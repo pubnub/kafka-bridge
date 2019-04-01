@@ -18,6 +18,8 @@ Add YAML sidecar
 
 ## Deploying Docker Compose
 
+`docker run -p 4444:4444 nats -p 4444`
+
 ...
 
 ## Reference Links
