@@ -1,0 +1,14 @@
+# PubNub NATS Bridge
+FROM alpine:3.9.2
+LABEL maintainer="Stephen Blum <stephen@pubnub.com>"
+
+RUN apk add --no-cache --virtual build-deps openssl-dev rust cargo
+
+WORKDIR ~/
+COPY ./ ./
+RUN ls -lsrta
+
+RUN cargo build --release
+RUN apk del build-deps
+
+CMD ["./target/release/nats-bridge"]
