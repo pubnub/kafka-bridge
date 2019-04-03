@@ -12,7 +12,7 @@ Built-in security model allows encyrpted data in motion using 2048bit TLS.
 
 ## Building the Docker Container
 
-Production runtime image size is 6MB.
+Production runtime image size is 9MB.
 
 ```shell
 docker build --cpuset-cpus 3 -t nats-bridge .
@@ -26,7 +26,9 @@ Add YAML sidecar
 
 ## Deploying Docker Compose
 
-`docker run -p 4222:4222 nats -p 4222`
+```shell
+docker run -e "NATSHOST=0.0.0.0:4222" nats-bridge
+```
 
 ...
 

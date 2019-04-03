@@ -9,6 +9,7 @@ nats = "0.3.2"
 hyper = "0.12"
 failure = "^0.1"
 failure_derive = "^0.1"
+openssl = { version = "0.10", features = ["vendored"] }
 
 [[bin]]
 name = "nats-bridge"
