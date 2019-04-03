@@ -10,6 +10,14 @@ The application will listen on NATS channels specified by runtime
 and deploytime configuration.
 Built-in security model allows encyrpted data in motion using 2048bit TLS.
 
+## Building the Docker Container
+
+Production runtime image size is 6MB.
+
+```shell
+docker build --cpuset-cpus 3 -t nats-bridge .
+```
+
 ## Deploying Sidecar in Kubernetes (K8s)
 
 ...
@@ -18,7 +26,7 @@ Add YAML sidecar
 
 ## Deploying Docker Compose
 
-`docker run -p 4444:4444 nats -p 4444`
+`docker run -p 4222:4222 nats -p 4222`
 
 ...
 

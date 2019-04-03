@@ -1,14 +1,37 @@
-# PubNub NATS Bridge
-FROM alpine:3.9.2
-LABEL maintainer="Stephen Blum <stephen@pubnub.com>"
+# Dependency Build
+FROM rust:latest as deps
+ENV USER=root
+RUN cargo new app
+WORKDIR /app
+COPY Cargo.* /app/
+RUN apt-get update && \
+    apt-get -y install musl-tools libssl-dev && \
+    rustup target add x86_64-unknown-linux-musl && \
+    cargo build --release --target=x86_64-unknown-linux-musl && \
+    rm ./src/*.rs ./target/x86_64-unknown-linux-musl/release/redis-slowlog-monitor
 
-RUN apk add --no-cache --virtual build-deps openssl-dev rust cargo
+# Application Build
+FROM deps as build
+ARG version=0.0.0
+WORKDIR /app
+COPY . /app/
+RUN OLD_VERSION=$(egrep '^version = "[0-9a-z.+-]+"$' Cargo.toml | cut -d'"' -f2 | sed -e 's/\./\\./g') && \
+    sed -i -e "s/$OLD_VERSION/$version/" Cargo.toml && \
+    cargo build --release --target=x86_64-unknown-linux-musl && \
+    strip target/x86_64-unknown-linux-musl/release/rsm
 
-WORKDIR ~/
-COPY ./ ./
-RUN ls -lsrta
+# Copy stage
+FROM alpine:latest
+RUN apk --no-cache add tini && \
+    addgroup -g 1000 appuser && \
+    adduser -S -u 1000 -g appuser -G appuser appuser
+USER appuser
+WORKDIR /app
+COPY --from=build /app/target/x86_64-unknown-linux-musl/release/rsm /app
 
-RUN cargo build --release
-RUN apk del build-deps
+# Setup the environment
+ENTRYPOINT ["/sbin/tini", "--"]
 
-CMD ["./target/release/nats-bridge"]
+# Dev Master
+ENV REDIS_HOST_PORT="redis-16575.c2036.us-west-2-mz.ec2.cloud.rlrcp.com:16575"
+CMD ["./rsm"]
