@@ -27,10 +27,8 @@ Add YAML sidecar
 ## Deploying Docker Compose
 
 ```shell
-docker run -e "NATSHOST=0.0.0.0:4222" nats-bridge
+docker run -e "NATS_HOST=0.0.0.0:4222" -e "NATS_CHANNELS=a,b,c" nats-bridge
 ```
-
-...
 
 ## Reference Links
 

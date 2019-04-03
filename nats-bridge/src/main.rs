@@ -11,8 +11,11 @@ extern crate nats;
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #[derive(Debug, Fail)]
 pub enum AppError {
-    #[fail(display = "Missing host ENVIRONMENTAL configuration")]
+    #[fail(display = "Missing NATS_HOST ENVIRONMENTAL configuration")]
     MissingHost,
+
+    #[fail(display = "Missing NATS_CHANNELS ENVIRONMENTAL configuration")]
+    MissingChannels,
 
     #[fail(display = "NATS Error on command `{}`", _0)]
     NatsError(String, #[cause] nats::NatsError),
@@ -23,12 +26,13 @@ pub enum AppError {
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 //fn main() -> Result<(), nats::NatsError> {
 fn main() -> Result<(), AppError> {
-    use self::AppError::{MissingHost, NatsError};
+    use self::AppError::{MissingHost, MissingChannels, NatsError};
 
     // Connection to NATS Cluster
     println!("Connecting to NATS");
-    let host = std::env::var("NATSHOST").map_err( |_| MissingHost )?;
-    let url = format!("nats://{}", host);
+    let host  = std::env::var("NATS_HOST").map_err( |_| MissingHost )?;
+    let chans = std::env::var("NATS_CHANNELS").map_err( |_| MissingChannels )?;
+    let url   = format!("nats://{}", host);
     let mut natsclient = nats::Client::new(url.clone())
         .map_err(|e|NatsError(url.clone(), e))?;
     println!("Connected to NATS");

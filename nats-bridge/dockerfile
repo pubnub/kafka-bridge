@@ -34,5 +34,6 @@ ENTRYPOINT ["/sbin/tini", "--"]
 
 # Runtime
 ENV RUST_BACKTRACE=1
-ENV NATS_HOST="nats://0.0.0.0:4222"
+ENV NATS_HOST="0.0.0.0:4222"
+ENV NATS_CHANNELS="a,b,c,d"
 CMD ["/app/nats-bridge"]
