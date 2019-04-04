@@ -1,0 +1,21 @@
+version: '3'
+
+services:
+  nats:
+    image: nats
+    ports:
+      - "8222:8222"
+      - "4222:4222"
+
+  nats-bridge:
+    build: .
+    image: nats-bridge
+    restart: on-failure
+    links:
+      - nats
+    depends_on:
+      - nats
+    environment:
+      - RUST_BACKTRACE=1
+      - NATS_HOST=nats
+      - NATS_CHANNELS=a,b,c,d

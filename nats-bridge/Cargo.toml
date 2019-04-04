@@ -6,7 +6,8 @@ edition = "2018"
 
 [dependencies]
 nats = "0.3.2"
-hyper = "0.12"
+actix-web = "0.7.19"
+actix-rt = "0.2.2"
 failure = "^0.1"
 failure_derive = "^0.1"
 openssl = { version = "0.10", features = ["vendored"] }

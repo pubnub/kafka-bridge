@@ -10,13 +10,26 @@ The application will listen on NATS channels specified by runtime
 and deploytime configuration.
 Built-in security model allows encyrpted data in motion using 2048bit TLS.
 
-## Building the Docker Container
+## Build and Run the Docker Container
 
-Production runtime image size is 9MB.
+Production runtime Alpine image size is 9MB.
 
 ```shell
 docker build --cpuset-cpus 3 -t nats-bridge .
 ```
+
+```shell
+docker run .................
+```
+
+## Test Runtime with Docker Compose
+
+Easily test with `docker-compose`.
+
+```shell
+docker-compose up
+```
+
 
 ## Deploying Sidecar in Kubernetes (K8s)
 

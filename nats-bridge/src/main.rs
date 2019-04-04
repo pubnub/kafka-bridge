@@ -1,10 +1,12 @@
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Libs
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-use failure::Fail;
-
-extern crate hyper;
+//extern crate actix_web;
 extern crate nats;
+
+use failure::Fail;
+//use actix_rt::System;
+//use actix_web::client::Client;
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // All the ways in which this app can fail
@@ -35,6 +37,7 @@ fn main() -> Result<(), AppError> {
     let url   = format!("nats://{}", host);
     let mut natsclient = nats::Client::new(url.clone())
         .map_err(|e|NatsError(url.clone(), e))?;
+
     println!("Connected to NATS");
 
     // TODO: Listen on configured channels
@@ -47,9 +50,47 @@ fn main() -> Result<(), AppError> {
         for _event in natsclient.events() {
             //...kj
             println!("NATS Message Received");
+            //pubnub_sync(&channel, message: &str)
             // TODO: send to PubNub
         }
     }
-
-    //Ok(())
 }
+
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+// Maintain Connection to NATS and forward message to PubNub Sync
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+// ...
+
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+// Sync Data to PubNub Data Stream Network
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+/*
+fn pubnub_sync(channel: &str, message: &str) {
+    System::new("pubnub_sync").block_on(lazy(|| {
+       let mut client = Client::default();
+       let domain = "pndsn.pubnub.com";
+       let proto  = "https://"
+       let channel
+       // let uri
+
+       client.get("https://pndsn.pubnub.com") // <- Create request builder
+          .header("User-Agent", "Actix-web")
+          .send()                             // <- Send http request
+          .map_err(|_| ())
+          .and_then(|response| {              // <- server http response
+               println!("Response: {:?}", response);
+               Ok(())
+          })
+    }));
+}
+*/
+
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+// Receive Configuration Changes
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+// ...
+
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+// Load Configuration
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+// ...
