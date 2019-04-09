@@ -22,9 +22,6 @@ pub enum SocketError {
     IOError(#[cause] std::io::Error),
 
     #[fail(display = "Invalid HOST `{}` configuration.", _0)]
-    InvalidHost(String),
-
-    #[fail(display = "Invalid HOST `{}` configuration.", _0)]
     Unconnectable(String),
 
     #[fail(display = "Missing PORT configuration.")]
@@ -67,9 +64,7 @@ impl From<std::io::Error> for SocketError {
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 pub fn connect(host:&'static str) -> Result<impl Future, SocketError> {
     let hoststring = host.to_owned();
-    let addr = host.parse().map_err( |_|
-        SocketError::InvalidHost(hoststring.clone())
-    )?;
+    let addr = host.parse().map_err(SocketError::ParseError)?;
 
     let client = TcpStream::connect(&addr)
     .and_then( |_stream| {
@@ -107,6 +102,7 @@ pub fn disconnect() -> Result<(), SocketError> {
 #[cfg(test)]
 mod tests {
     use crate::socket;
+    use super::*;
 
     /*
     #[test]
@@ -121,11 +117,16 @@ mod tests {
 
     #[test]
     fn test_connect_ok() {
-       // let host = "psdsn.pubnub.com:80";
+        //let host = "psdsn.pubnub.com:80";
         let host = "1.1.1.1:80";
         assert!(
             socket::connect(host).or_else(|e| {
-                println!("Test connect ok failed with '{}'.", e);
+
+                eprintln!("{} {}", "error:", e);
+                for cause in Fail::iter_causes(&e) {
+                    eprintln!("{} {}", "caused by:", cause);
+                }
+
                 Err(e)
             }).is_ok(),
             "Connected to host."
