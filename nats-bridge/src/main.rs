@@ -1,12 +1,9 @@
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-// Libs
+// Dependencies
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-//extern crate actix_web;
-extern crate nats;
-
+mod socket;
 use failure::Fail;
-//use actix_rt::System;
-//use actix_web::client::Client;
+//use serialize::{Decodable, Encodable, json};
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // All the ways in which this app can fail
@@ -19,16 +16,43 @@ pub enum AppError {
     #[fail(display = "Missing NATS_CHANNELS ENVIRONMENTAL configuration")]
     MissingChannels,
 
-    #[fail(display = "NATS Error on command `{}`", _0)]
-    NatsError(String, #[cause] nats::NatsError),
+//    #[fail(display = "NATS Error on command `{}`", _0)]
+//    NatsError(String, #[cause] nats::NatsError),
 }
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Main
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-//fn main() -> Result<(), nats::NatsError> {
 fn main() -> Result<(), AppError> {
-    use self::AppError::{MissingHost, MissingChannels, NatsError};
+    // TODO - 
+    // TODO - TLS Socket Lib ( deals with reconnect )
+    // TODO - Socket Lib ( deals with reconnect )
+    // TODO - Nats Lib ( uses socket lib )
+    // TODO - PubNub lib ( uses tls socket lib )
+    // TODO - 
+    // TODO - 
+    // TODO - 
+    // TODO - 
+    // TODO - 
+    // TODO - 
+    // TODO - 
+    // TODO - 
+    println!("hahaha");
+    Ok(())
+}
+
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+// Construct NATS Connection Payload
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+/*
+fn NATSConnection() -> Result<(), AppError> {
+}
+*/
+
+//fn main() -> Result<(), nats::NatsError> {
+/*
+fn main() -> Result<(), AppError> {
+    use self::AppError::{MissingHost, MissingChannels}; //, NatsError};
 
     // Connection to NATS Cluster
     println!("Connecting to NATS");
@@ -50,11 +74,12 @@ fn main() -> Result<(), AppError> {
         for _event in natsclient.events() {
             //...kj
             println!("NATS Message Received");
-            //pubnub_sync(&channel, message: &str)
+            // pubnub_sync(&channel, message: &str)
             // TODO: send to PubNub
         }
     }
 }
+*/
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Maintain Connection to NATS and forward message to PubNub Sync
@@ -66,22 +91,6 @@ fn main() -> Result<(), AppError> {
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 /*
 fn pubnub_sync(channel: &str, message: &str) {
-    System::new("pubnub_sync").block_on(lazy(|| {
-       let mut client = Client::default();
-       let domain = "pndsn.pubnub.com";
-       let proto  = "https://"
-       let channel
-       // let uri
-
-       client.get("https://pndsn.pubnub.com") // <- Create request builder
-          .header("User-Agent", "Actix-web")
-          .send()                             // <- Send http request
-          .map_err(|_| ())
-          .and_then(|response| {              // <- server http response
-               println!("Response: {:?}", response);
-               Ok(())
-          })
-    }));
 }
 */
 

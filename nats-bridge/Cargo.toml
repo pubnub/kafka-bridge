@@ -5,12 +5,11 @@ authors = ["Stephen Blum <blum.stephen@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-nats = "0.3.2"
-actix-web = "0.7.19"
-actix-rt = "0.2.2"
+tokio = "0.1.18"
+tokio-tls = "0.2.1"
+openssl = { version = "0.10", features = ["vendored"] }
 failure = "^0.1"
 failure_derive = "^0.1"
-openssl = { version = "0.10", features = ["vendored"] }
 
 [[bin]]
 name = "nats-bridge"

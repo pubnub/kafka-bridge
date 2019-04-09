@@ -1,13 +1,28 @@
 version: '3'
 
-services:
-  nats:
-    image: nats
-    ports:
-      - "8222:8222"
-      - "4222:4222"
+## - TODO ===================
+## - TODO containers:
+## - TODO ===================
+## - TODO nats
+## - TODO nats-bridge
+## - TODO nats-producer-test
+## - TODO pubnub-consumer-test
+## - TODO 
+## - TODO ===================
+## - TODO 
 
+services:
   nats-bridge:
+    environment:
+      - PUBNUB_SUBKEY=
+      - PUBNUB_PUBKEY=
+      - PUBNUB_SECKEY=
+      - NATS_SUBJECTS=a,b,c,d ## comma delimited list of subjects
+      - NATS_HOST=nats
+      - NATS_USER=
+      - NATS_PASSWORD=
+      - NATS_AUTH_TOKEN=
+      - RUST_BACKTRACE=1
     build: .
     image: nats-bridge
     restart: on-failure
@@ -15,7 +30,8 @@ services:
       - nats
     depends_on:
       - nats
-    environment:
-      - RUST_BACKTRACE=1
-      - NATS_HOST=nats
-      - NATS_CHANNELS=a,b,c,d
+
+  nats:
+    image: nats
+    ports:
+      - "8222:8222"

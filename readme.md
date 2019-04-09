@@ -30,6 +30,7 @@ Easily test with `docker-compose`.
 docker-compose up
 ```
 
+The output will ... #TODO
 
 ## Deploying Sidecar in Kubernetes (K8s)
 
@@ -41,6 +42,21 @@ Add YAML sidecar
 
 ```shell
 docker run -e "NATS_HOST=0.0.0.0:4222" -e "NATS_CHANNELS=a,b,c" nats-bridge
+```
+
+##  Easy NATS Terminal Test
+
+```shell
+(printf "SUB FOO 1\r\n"; sleep 5) | nc 0.0.0.0 4222 &
+(printf "PING\r\n";                        sleep 0.4; \
+ printf "CONNECT {\"verbose\":false}\r\n"; sleep 0.4; \
+ printf "SUB BAR 1\r\n";                   sleep 0.4; \
+ printf "PING\r\n";                        sleep 0.4; \
+ printf "PUB FOO 11\r\nKNOCK KNOCK\r\n";   sleep 0.4; \
+ printf "PING\r\n";                        sleep 0.4; \
+ printf "PUB BAR 11\r\nKNOCK KNOCK\r\n";   sleep 0.4; \
+ printf "PING\r\n";                        sleep 0.4; \
+) | nc 0.0.0.0 4222 
 ```
 
 ## Reference Links
