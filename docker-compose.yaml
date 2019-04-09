@@ -1,4 +1,37 @@
+version: '3'
 
-# NATS
-# Sample Feed
-# Bridge
+## - TODO ===================
+## - TODO containers:
+## - TODO ===================
+## - TODO nats
+## - TODO nats-bridge
+## - TODO nats-producer-test
+## - TODO pubnub-consumer-test
+## - TODO 
+## - TODO ===================
+## - TODO 
+
+services:
+  nats-bridge:
+    environment:
+      - PUBNUB_SUBKEY=
+      - PUBNUB_PUBKEY=
+      - PUBNUB_SECKEY=
+      - NATS_SUBJECTS=a,b,c,d ## comma delimited list of subjects
+      - NATS_HOST=nats
+      - NATS_USER=
+      - NATS_PASSWORD=
+      - NATS_AUTH_TOKEN=
+      - RUST_BACKTRACE=1
+    build: .
+    image: nats-bridge
+    restart: on-failure
+    links:
+      - nats
+    depends_on:
+      - nats
+
+  nats:
+    image: nats
+    ports:
+      - "8222:8222"

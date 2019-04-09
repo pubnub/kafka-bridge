@@ -5,12 +5,10 @@ authors = ["Stephen Blum <blum.stephen@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-tokio = "0.1.18"
-tokio-tls = "0.2.1"
 openssl = { version = "0.10", features = ["vendored"] }
 failure = "^0.1"
 failure_derive = "^0.1"
 
 [[bin]]
 name = "nats-bridge"
-path = "src/main.rs"
+path = "main.rs"

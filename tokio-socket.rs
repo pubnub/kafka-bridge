@@ -15,7 +15,7 @@ pub enum SocketError {
     #[fail(display = "Missing HOST configuration.")]
     MissingHost,
 
-    #[fail(display = "Unparseable.")]
+    #[fail(display = "Unparseable address.")]
     ParseError(#[cause] std::net::AddrParseError),
 
     #[fail(display = "IO Error.")]
@@ -45,7 +45,7 @@ struct NATSConnectionSettings {
 
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-// 
+// Error Type Conversions
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 impl From<std::net::AddrParseError> for SocketError {
     fn from(error: std::net::AddrParseError) -> Self {
@@ -60,20 +60,69 @@ impl From<std::io::Error> for SocketError {
 
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-// Persistent Socket Lib
+// Connection Lib
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-pub fn connect(host:&'static str) -> Result<impl Future, SocketError> {
-    let hoststring = host.to_owned();
-    let addr = host.parse().map_err(SocketError::ParseError)?;
+pub struct Connection {
+    host: String,
+    socket: String,
+}
 
-    let client = TcpStream::connect(&addr)
-    .and_then( |_stream| {
-        println!("Connected");
-        Ok(())
-    })
-    .map_err(SocketError::IOError);
+impl Connection {
+    pub fn new(host: String) -> Connection {
+        Connected {
+            host
+        }
+    }
 
-    Ok(client)
+    pub fn connect(host:&'static str) -> Result<impl Future, SocketError> {
+        let hoststring = host.to_owned();
+        let addr = host.parse().map_err(SocketError::ParseError)?;
+
+        let client = TcpStream::connect(&addr)
+        .and_then( |_stream| {
+            println!("Connected");
+            Ok(())
+        })
+        .map_err(SocketError::IOError);
+
+        Ok(client)
+    }
+
+    fn resolve_addr(&self, host: &str) -> Result<SocketAddr, String> {
+        let mut addr_iter = match host.to_socket_addrs() {
+            Ok(addr_iter) => addr_iter,
+            Err(e) => return Err(format!("Invalid host {:?}: {:?}", host, e)),
+        };
+        match addr_iter.next() {
+            None => Err(format!("No addresses found for host: {:?}", host)),
+            Some(addr) => Ok(addr),
+        }
+    }
+
+    fn send(&self, host: String, path: String) -> impl Future<Item=(), Error=()> {
+	let mut addr_iter = host.to_socket_addrs().unwrap();
+	let addr = match addr_iter.next() {
+	    None => panic!("DNS resolution failed"),
+	    Some(addr) => addr,
+	};
+	let req_body = format!(
+	    "GET {} HTTP/1.1\r\nHost: {}:80\r\nConnection: close\r\n\r\n",
+	    path,
+	    host,
+	    );
+
+	TcpStream::connect(&addr)
+        .and_then(|stream| {
+            write_all(stream, req_body).and_then(|(stream, _body)| {
+                let buffer = vec![];
+                read_to_end(stream, buffer).and_then(|(_stream, buffer)| {
+                    File::create(filename).and_then(|mut file| {
+                        file.write_all(&buffer)
+                    })
+                })
+            })
+        }).map_err(|e| eprintln!("Error occured: {:?}", e))
+    }
 }
 
 /*
