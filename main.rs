@@ -12,7 +12,7 @@ fn main() -> Result<(), std::io::Error> {
         "psdsn.pubnub.com:80".to_string(),
         "demo".to_string(),
         "demo".to_string()
-    );
+    ).unwrap();
     let _ = pubnub.publish("demo".to_string(), "1234".to_string());
     Ok(())
 }
