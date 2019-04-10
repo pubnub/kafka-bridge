@@ -1,21 +1,20 @@
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Dependencies
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-use std::net::{TcpStream, TcpListener};
-use std::io::{Write};
+use std::io::prelude::*;
+use std::net::TcpStream;
 
-fn main() {
-    let listener = TcpListener::bind("127.0.0.1:8080").unwrap();
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+// Main
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+fn main() -> std::io::Result<()> {
+    let mut socket = TcpStream::connect("173.194.39.119:80")?;
+    let mut buffer = String::new();
 
-    for stream in listener.incoming() {
-        match stream {
-            Ok(mut stream) => {
-                let response = b"Hello World";
-                stream.write(response).expect("Response failed");
-            }
-            Err(e) => {
-                println!("Unable to connect: {}", e);
-            }
-        }
-    }
+    let result = socket.write(b"GET / HTTP/1.0\n\n");
+    //println!("{}", result);
+
+    socket.read_to_string(&mut buffer)?;
+    println!("{}",buffer);
+    Ok(())
 }
