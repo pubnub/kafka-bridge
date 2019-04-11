@@ -1,5 +1,25 @@
 # PubNub NATs Bridge
 
+ - TODO - TLS on PubNub
+ - TODO - Secret Key Signing on Publish
+ - TODO - agent and sec key PubNub struct
+ - TODO - &str vs String?
+ - TODO - pnsdk=nats-to-mobile / nats-bridge
+ - TODO - CONNECT string for NATS
+ - TODO - AsyncAwait & EPOLL
+ - TODO - Multple Channels support (NATS)
+ - TODO - error handeling ( unwarp() )
+ - TODO - recover from disconnect or restart?
+ - TODO - http parser?
+ - TODO - pubnub.subscribe via /v2/stream endpoint
+ - TODO - /// Rust DOC comments
+ - TODO - ENV vars for runtime config ( pub/sub/sec/origin/channel-list )
+ - TODO - 
+ - TODO - 
+ - TODO - 
+ - TODO - 
+ - TODO - 
+
 Bring push notifications and streaming events to Mobile and Web clients
 based on a NATs channels.
 Easy drop-in sidecar.
