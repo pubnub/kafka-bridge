@@ -46,9 +46,19 @@ docker run -e "NATS_HOST=0.0.0.0:4222" -e "NATS_CHANNELS=a,b,c" nats-bridge
 
 ##  Easy NATS Terminal Test
 
+Publish Messages in a Loop.
+
 ```shell
 while true;
-    do (printf "PUB demo 7\r\n\"KNOCK\"\r\n"; sleep 0.4) | nc 0.0.0.0 4222;
+    do (printf "PUB demo 5\r\nKNOCK\r\n"; sleep 0.4) | nc 0.0.0.0 4222;
+done
+```
+
+Subscribe to these messages in another termianl window.
+
+```shell
+while true;
+    do (printf "SUB demo 1\r\n"; sleep 60) | nc 0.0.0.0 4222;
 done
 ```
 

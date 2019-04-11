@@ -13,21 +13,26 @@ fn main() -> Result<(), std::io::Error> {
         "demo".to_string(),
         "demo".to_string()
     ).unwrap();
-    let _ = pubnub.publish("demo".to_string(), "123".to_string());
 
     let mut nats = nats::NATS::new(
         "0.0.0.0:4222".to_string(),
-        "*".to_string(),
+        "demo".to_string(),
         "".to_string(),
         "".to_string(),
         "".to_string()
     ).unwrap();
 
     loop {
-        let result = nats.listen();
-        let message = result.unwrap();
-        println!("{}", message);
-    }
+        let message = nats.next_message().unwrap();
 
-    Ok(())
+        println!(
+            "CHANNEL:{} MSG:{}",
+            message.channel,
+            message.data,
+        );
+
+        let jsonmsg = format!("\"{}\"", message.data);
+        println!("PUBLISHING: {}",jsonmsg);
+        let _ = pubnub.publish(message.channel, jsonmsg);
+    }
 }

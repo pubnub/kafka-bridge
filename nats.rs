@@ -1,8 +1,7 @@
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Libs
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-use std::io::{BufReader, Write};
-use std::io::BufRead;
+use std::io::{BufReader, BufRead, Write};
 use std::net::TcpStream;
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -14,7 +13,14 @@ pub struct NATS {
     user: String,
     password: String,
     stream: TcpStream,
-    reader: BufReader<TcpStream>
+    reader: BufReader<TcpStream>,
+}
+
+pub struct NATSMessage {
+    pub channel: String,
+    pub myId: String,
+    pub senderId: String,
+    pub data: String,
 }
 
 impl NATS {
@@ -26,7 +32,7 @@ impl NATS {
         password: String
     ) -> Result<NATS, std::io::Error> {
         let mut stream = TcpStream::connect(host).unwrap();
-        let subscription = format!("SUB {}", channel);
+        let subscription = format!("SUB {} 1\r\n", channel);
         let _ = stream.write(subscription.as_bytes());
 
         Ok(NATS {
@@ -35,15 +41,33 @@ impl NATS {
             user: user.clone(),
             password: password.clone(),
             stream: stream.try_clone().unwrap(),
-            reader: BufReader::new(stream)
+            reader: BufReader::new(stream),
         })
     }
 
-    pub fn listen(&mut self)
-    -> Result<String, std::io::Error> {
-        let mut line = String::new();
-        let _len = self.reader.read_line(&mut line);
-        Ok(line)
+    pub fn next_message(&mut self) -> Result<NATSMessage, std::io::Error> {
+        Ok(loop {
+            let mut line = String::new();
+            let _len = self.reader.read_line(&mut line);
+            let mut detail = line.split_whitespace();
+            if Some("MSG") != detail.next() { continue }
+
+            let mut data = String::new();
+            let _len = self.reader.read_line(&mut data);
+
+            break NATSMessage {
+                channel: detail.next().unwrap().to_string(),
+                myId: detail.next().unwrap().to_string(),
+                senderId: detail.next().unwrap().to_string(),
+                data: data.trim().to_string(),
+            };
+        })
+
+        // if line == MSG 
+        // get channel
+        // get message payload
+        // convert to JSON String?
+
 
         //reader.read_line()
 
@@ -64,8 +88,7 @@ impl NATS {
         //Ok(result)
     }
 
-    pub fn ping(&mut self)
-    -> Result<String, std::io::Error> {
+    pub fn ping(&mut self) -> Result<String, std::io::Error> {
         let ping = format!("PING");
         let _ = self.stream.write(ping.as_bytes());
         let mut line = String::new();
