@@ -13,14 +13,21 @@ fn main() -> Result<(), std::io::Error> {
         "demo".to_string(),
         "demo".to_string()
     ).unwrap();
-    let _ = pubnub.publish("demo".to_string(), "1234".to_string());
+    let _ = pubnub.publish("demo".to_string(), "123".to_string());
 
-    let _result = nats::NATS::new(
+    let mut nats = nats::NATS::new(
         "0.0.0.0:4222".to_string(),
+        "*".to_string(),
         "".to_string(),
         "".to_string(),
         "".to_string()
-    );
+    ).unwrap();
+
+    loop {
+        let result = nats.listen();
+        let message = result.unwrap();
+        println!("{}", message);
+    }
 
     Ok(())
 }

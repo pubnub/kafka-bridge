@@ -47,6 +47,12 @@ docker run -e "NATS_HOST=0.0.0.0:4222" -e "NATS_CHANNELS=a,b,c" nats-bridge
 ##  Easy NATS Terminal Test
 
 ```shell
+while true;
+    do (printf "PUB demo 7\r\n\"KNOCK\"\r\n"; sleep 0.4) | nc 0.0.0.0 4222;
+done
+```
+
+```shell
 (printf "SUB FOO 1\r\n"; sleep 5) | nc 0.0.0.0 4222 &
 (printf "PING\r\n";                        sleep 0.4; \
  printf "CONNECT {\"verbose\":false}\r\n"; sleep 0.4; \
