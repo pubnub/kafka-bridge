@@ -3,6 +3,7 @@
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 use std::io::{BufRead, BufReader, Write};
 use std::net::TcpStream;
+use json;
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // PubNub
@@ -16,10 +17,14 @@ pub struct PubNub {
     stream: TcpStream,
     reader: BufReader<TcpStream>,
 }
+
 /*
 pub struct PubNubMessage {
     pub channel: String,
-    pub data: String,
+    pub data: json::JsonValue,
+    pub meta: json::JsonValue,
+    pub store: String,
+    pub replicate: String,
 }
 */
 
@@ -42,10 +47,15 @@ impl PubNub {
         })
     }
 
-    pub fn publish(&mut self, channel: &str, message: &str) -> Result<(), std::io::Error> {
+    pub fn publish(
+        &mut self,
+        channel: &str,
+        message: &str
+    ) -> Result<(), std::io::Error> {
+        let json_message = json::stringify(message);
         let uri = format!(
             "/publish/{}/{}/0/{}/0/{}",
-            self.pubkey, self.subkey, channel, message
+            self.pubkey, self.subkey, channel, json_message
         );
 
         let request = format!("GET {} HTTP/1.1\r\nHost: pubnub\r\n\r\n", uri);
@@ -73,13 +83,15 @@ mod tests {
 
     #[test]
     fn connect_ok() {
-        let result = PubNub::new("psdsn.pubnub.com:80", "demo", "demo", "secret");
+        let host = "psdsn.pubnub.com:80";
+        let result = PubNub::new(host, "demo", "demo", "secret");
         assert!(result.is_ok());
     }
 
     #[test]
     fn publish_ok() {
-        let result = PubNub::new("psdsn.pubnub.com:80", "demo", "demo", "secret");
+        let host = "psdsn.pubnub.com:80";
+        let result = PubNub::new(host, "demo", "demo", "secret");
         assert!(result.is_ok());
 
         let mut pubnub = result.unwrap();

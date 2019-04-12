@@ -5,6 +5,7 @@ authors = ["Stephen Blum <blum.stephen@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+json = "*"
 openssl = { version = "0.10", features = ["vendored"] }
 failure = "^0.1"
 failure_derive = "^0.1"
