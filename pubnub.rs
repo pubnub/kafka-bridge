@@ -1,7 +1,7 @@
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Libs
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-use std::io::{BufReader, BufRead, Write};
+use std::io::{BufRead, BufReader, Write};
 use std::net::TcpStream;
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -15,8 +15,7 @@ pub struct PubNub {
 }
 
 impl PubNub {
-    pub fn new(host: String, pubkey: String, subkey: String)
-    -> Result<PubNub, std::io::Error> {
+    pub fn new(host: String, pubkey: String, subkey: String) -> Result<PubNub, std::io::Error> {
         let mut stream = TcpStream::connect(host).unwrap();
         Ok(PubNub {
             pubkey: pubkey.clone(),
@@ -26,14 +25,10 @@ impl PubNub {
         })
     }
 
-    pub fn publish(&mut self, channel: String, message: String)
-    -> Result<(), std::io::Error> {
+    pub fn publish(&mut self, channel: String, message: String) -> Result<(), std::io::Error> {
         let uri = format!(
             "/publish/{}/{}/0/{}/0/{}",
-            self.pubkey,
-            self.subkey,
-            channel,
-            message
+            self.pubkey, self.subkey, channel, message
         );
 
         let request = format!("GET {} HTTP/1.1\r\nHost: pubnub\r\n\r\n", uri);
@@ -42,10 +37,11 @@ impl PubNub {
         loop {
             let mut buf = String::new();
             let _count = self.reader.read_line(&mut buf).unwrap();
-            if _count == 2 { break }
-            println!("{}: {}",_count.to_string(), buf.to_string());
+            if _count == 2 {
+                break;
+            }
+            println!("{}: {}", _count.to_string(), buf.to_string());
         }
-
 
         Ok(())
     }
@@ -63,7 +59,7 @@ mod tests {
         let result = PubNub::new(
             "psdsn.pubnub.com:80".to_string(),
             "demo".to_string(),
-            "demo".to_string()
+            "demo".to_string(),
         );
         assert!(result.is_ok());
     }
@@ -73,7 +69,7 @@ mod tests {
         let result = PubNub::new(
             "psdsn.pubnub.com:80".to_string(),
             "demo".to_string(),
-            "demo".to_string()
+            "demo".to_string(),
         );
         assert!(result.is_ok());
 
