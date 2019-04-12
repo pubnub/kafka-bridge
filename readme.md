@@ -2,25 +2,26 @@
 
  - TODO - read line one last time to get response body
  - TODO - TLS on PubNub
+ -      - https://docs.rs/native-tls/0.2.2/native_tls/
  - TODO - JSON
  - TODO - Secret Key Signing on Publish
  - TODO - agent and sec key PubNub struct
  - TODO - &str vs String?
  - TODO - pnsdk=nats-to-mobile / nats-bridge
  - TODO - CONNECT string for NATS
- - TODO - AsyncAwait & EPOLL
+ - TODO - AsyncAwait & EPOLL ( https://jsdw.me/posts/rust-asyncawait-preview/  )
+ - TODO - socket hangout needs to reconnect
  - TODO - Multple Channels support (NATS)
  - TODO - error handeling ( unwarp() )
+ - TODO - error enum for unrecoverables
  - TODO - recover from disconnect or restart?
  - TODO - http parser?
  - TODO - pubnub.subscribe via /v2/stream endpoint
  - TODO - /// Rust DOC comments
  - TODO - ENV vars for runtime config ( pub/sub/sec/origin/channel-list )
- - TODO - 
- - TODO - 
- - TODO - 
- - TODO - 
- - TODO - 
+ - TODO - add more tests!!!!!!!
+ - TODO - remove all `println!()`
+ - TODO - dashboard
 
 Bring push notifications and streaming events to Mobile and Web clients
 based on a NATs channels.

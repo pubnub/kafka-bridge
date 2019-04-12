@@ -12,7 +12,7 @@ fn main() -> Result<(), std::io::Error> {
         "psdsn.pubnub.com:80".to_string(),
         "demo".to_string(),
         "demo".to_string(),
-        "secret".to_string()
+        "secret".to_string(),
     )
     .unwrap();
 

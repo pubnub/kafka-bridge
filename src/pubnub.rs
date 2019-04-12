@@ -16,6 +16,12 @@ pub struct PubNub {
     stream: TcpStream,
     reader: BufReader<TcpStream>,
 }
+/*
+pub struct PubNubMessage {
+    pub channel: String,
+    pub data: String,
+}
+*/
 
 impl PubNub {
     pub fn new(host: String, pubkey: String, subkey: String) -> Result<PubNub, std::io::Error> {
