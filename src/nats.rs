@@ -1,7 +1,7 @@
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Libs
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-use std::io::{BufReader, BufRead, Write};
+use std::io::{BufRead, BufReader, Write};
 use std::net::TcpStream;
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -29,7 +29,7 @@ impl NATS {
         channel: String,
         authkey: String,
         user: String,
-        password: String
+        password: String,
     ) -> Result<NATS, std::io::Error> {
         let mut stream = TcpStream::connect(host).unwrap();
         let subscription = format!("SUB {} 1\r\n", channel);
@@ -50,7 +50,9 @@ impl NATS {
             let mut line = String::new();
             let _len = self.reader.read_line(&mut line);
             let mut detail = line.split_whitespace();
-            if Some("MSG") != detail.next() { continue }
+            if Some("MSG") != detail.next() {
+                continue;
+            }
 
             let mut data = String::new();
             let _len = self.reader.read_line(&mut data);
@@ -63,11 +65,10 @@ impl NATS {
             };
         })
 
-        // if line == MSG 
+        // if line == MSG
         // get channel
         // get message payload
         // convert to JSON String?
-
 
         //reader.read_line()
 
@@ -112,7 +113,7 @@ mod tests {
             "demo".to_string(),
             "".to_string(),
             "".to_string(),
-            "".to_string()
+            "".to_string(),
         );
         assert!(result.is_ok());
     }
@@ -124,7 +125,7 @@ mod tests {
             "demo".to_string(),
             "".to_string(),
             "".to_string(),
-            "".to_string()
+            "".to_string(),
         );
         assert!(result.is_ok());
 
