@@ -10,9 +10,9 @@ use std::net::TcpStream;
 pub struct PubNub {
     pubkey: String,
     subkey: String,
-    seckey: String,
-    agent: String,
-    host: String,
+    _seckey: String,
+    _agent: String,
+    _host: String,
     stream: TcpStream,
     reader: BufReader<TcpStream>,
 }
@@ -24,20 +24,25 @@ pub struct PubNubMessage {
 */
 
 impl PubNub {
-    pub fn new(host: String, pubkey: String, subkey: String) -> Result<PubNub, std::io::Error> {
-        let mut stream = TcpStream::connect(host).unwrap();
+    pub fn new(
+        host: &str,
+        pubkey: &str,
+        subkey: &str,
+        seckey: &str,
+    ) -> Result<PubNub, std::io::Error> {
+        let stream = TcpStream::connect(&host).unwrap();
         Ok(PubNub {
-            pubkey: pubkey.clone(),
-            subkey: subkey.clone(),
-            seckey: seckey.clone(),
-            agent: "nats-bridge".to_string(),
-            host: host.clone(),
+            pubkey: pubkey.into(),
+            subkey: subkey.into(),
+            _seckey: seckey.into(),
+            _agent: "nats-bridge".to_string(),
+            _host: host.into(),
             stream: stream.try_clone().unwrap(),
             reader: BufReader::new(stream),
         })
     }
 
-    pub fn publish(&mut self, channel: String, message: String) -> Result<(), std::io::Error> {
+    pub fn publish(&mut self, channel: &str, message: &str) -> Result<(), std::io::Error> {
         let uri = format!(
             "/publish/{}/{}/0/{}/0/{}",
             self.pubkey, self.subkey, channel, message
@@ -49,7 +54,7 @@ impl PubNub {
         loop {
             let mut buf = String::new();
             let count = self.reader.read_line(&mut buf).unwrap();
-            println!("{}: {}",_count.to_string(), buf.to_string());
+            println!("{}: {}", count, buf);
             if count == 2 {
                 break;
             }
@@ -68,26 +73,17 @@ mod tests {
 
     #[test]
     fn connect_ok() {
-        let result = PubNub::new(
-            "psdsn.pubnub.com:80".to_string(),
-            "demo".to_string(),
-            "demo".to_string(),
-        );
+        let result = PubNub::new("psdsn.pubnub.com:80", "demo", "demo", "secret");
         assert!(result.is_ok());
     }
 
     #[test]
     fn publish_ok() {
-        let result = PubNub::new(
-            "psdsn.pubnub.com:80".to_string(),
-            "demo".to_string(),
-            "demo".to_string(),
-            "secret".to_string(),
-        );
+        let result = PubNub::new("psdsn.pubnub.com:80", "demo", "demo", "secret");
         assert!(result.is_ok());
 
         let mut pubnub = result.unwrap();
-        let result = pubnub.publish("demo".to_string(), "123".to_string());
+        let result = pubnub.publish("demo", "123");
         assert!(result.is_ok());
     }
 }
