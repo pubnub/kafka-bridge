@@ -10,17 +10,23 @@ use std::net::TcpStream;
 pub struct PubNub {
     pubkey: String,
     subkey: String,
+    seckey: String,
+    agent: String,
+    host: String,
     stream: TcpStream,
     reader: BufReader<TcpStream>,
 }
 
 impl PubNub {
-    pub fn new(host: String, pubkey: String, subkey: String)
+    pub fn new(host: String, pubkey: String, subkey: String, seckey: String)
     -> Result<PubNub, std::io::Error> {
-        let mut stream = TcpStream::connect(host).unwrap();
+        let mut stream = TcpStream::connect(host.clone()).unwrap();
         Ok(PubNub {
             pubkey: pubkey.clone(),
             subkey: subkey.clone(),
+            seckey: seckey.clone(),
+            agent: "nats-bridge".to_string(),
+            host: host.clone(),
             stream: stream.try_clone().unwrap(),
             reader: BufReader::new(stream),
         })
@@ -42,10 +48,13 @@ impl PubNub {
         loop {
             let mut buf = String::new();
             let _count = self.reader.read_line(&mut buf).unwrap();
-            if _count == 2 { break }
             println!("{}: {}",_count.to_string(), buf.to_string());
+            if _count == 2 {
+                //let _count = self.reader.read_line(&mut buf).unwrap();
+                //println!("{}: {}",_count.to_string(), buf.to_string());
+                break;
+            }
         }
-
 
         Ok(())
     }
@@ -73,7 +82,8 @@ mod tests {
         let result = PubNub::new(
             "psdsn.pubnub.com:80".to_string(),
             "demo".to_string(),
-            "demo".to_string()
+            "demo".to_string(),
+            "secret".to_string()
         );
         assert!(result.is_ok());
 

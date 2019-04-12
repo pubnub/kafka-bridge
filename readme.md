@@ -1,6 +1,8 @@
 # PubNub NATs Bridge
 
+ - TODO - read line one last time to get response body
  - TODO - TLS on PubNub
+ - TODO - JSON
  - TODO - Secret Key Signing on Publish
  - TODO - agent and sec key PubNub struct
  - TODO - &str vs String?

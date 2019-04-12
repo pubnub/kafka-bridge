@@ -11,7 +11,8 @@ fn main() -> Result<(), std::io::Error> {
     let mut pubnub = pubnub::PubNub::new(
         "psdsn.pubnub.com:80".to_string(),
         "demo".to_string(),
-        "demo".to_string()
+        "demo".to_string(),
+        "secret".to_string()
     ).unwrap();
 
     let mut nats = nats::NATS::new(
