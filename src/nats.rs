@@ -8,39 +8,39 @@ use std::net::TcpStream;
 // NATS
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 pub struct NATS {
-    channel: String,
-    authkey: String,
-    user: String,
-    password: String,
-    stream: TcpStream,
+    _channel: String,
+    _authkey: String,
+    _user: String,
+    _password: String,
+    _stream: TcpStream,
     reader: BufReader<TcpStream>,
 }
 
 pub struct NATSMessage {
     pub channel: String,
-    pub myId: String,
-    pub senderId: String,
+    pub my_id: String,
+    pub sender_id: String,
     pub data: String,
 }
 
 impl NATS {
     pub fn new(
-        host: String,
-        channel: String,
-        authkey: String,
-        user: String,
-        password: String,
+        host: &str,
+        channel: &str,
+        authkey: &str,
+        user: &str,
+        password: &str,
     ) -> Result<NATS, std::io::Error> {
         let mut stream = TcpStream::connect(host).unwrap();
         let subscription = format!("SUB {} 1\r\n", channel);
         let _ = stream.write(subscription.as_bytes());
 
         Ok(NATS {
-            channel: channel.clone(),
-            authkey: authkey.clone(),
-            user: user.clone(),
-            password: password.clone(),
-            stream: stream.try_clone().unwrap(),
+            _channel: channel.into(),
+            _authkey: authkey.into(),
+            _user: user.into(),
+            _password: password.into(),
+            _stream: stream.try_clone().unwrap(),
             reader: BufReader::new(stream),
         })
     }
@@ -58,10 +58,10 @@ impl NATS {
             let _len = self.reader.read_line(&mut data);
 
             break NATSMessage {
-                channel: detail.next().unwrap().to_string(),
-                myId: detail.next().unwrap().to_string(),
-                senderId: detail.next().unwrap().to_string(),
-                data: data.trim().to_string(),
+                channel: detail.next().unwrap().into(),
+                my_id: detail.next().unwrap().into(),
+                sender_id: detail.next().unwrap().into(),
+                data: data.trim().into(),
             };
         })
 
@@ -89,9 +89,10 @@ impl NATS {
         //Ok(result)
     }
 
+    #[cfg(test)]
     pub fn ping(&mut self) -> Result<String, std::io::Error> {
         let ping = format!("PING");
-        let _ = self.stream.write(ping.as_bytes());
+        let _ = self._stream.write(ping.as_bytes());
         let mut line = String::new();
 
         let _ = self.reader.read_line(&mut line);
@@ -108,25 +109,13 @@ mod tests {
 
     #[test]
     fn connect_ok() {
-        let result = NATS::new(
-            "0.0.0.0:4222".to_string(),
-            "demo".to_string(),
-            "".to_string(),
-            "".to_string(),
-            "".to_string(),
-        );
+        let result = NATS::new("0.0.0.0:4222", "demo", "", "", "");
         assert!(result.is_ok());
     }
 
     #[test]
     fn ping_ok() {
-        let result = NATS::new(
-            "0.0.0.0:4222".to_string(),
-            "demo".to_string(),
-            "".to_string(),
-            "".to_string(),
-            "".to_string(),
-        );
+        let result = NATS::new("0.0.0.0:4222", "demo", "", "", "");
         assert!(result.is_ok());
 
         let mut nats = result.unwrap();
