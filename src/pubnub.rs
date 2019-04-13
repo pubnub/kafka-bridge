@@ -1,5 +1,5 @@
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-// Libs
+// Imports
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 use std::io::{BufRead, BufReader, Write};
 use std::net::TcpStream;
@@ -12,7 +12,7 @@ pub struct PubNub {
     pubkey: String,
     subkey: String,
     _seckey: String,
-    _agent: String,
+    agent: String,
     _host: String,
     stream: TcpStream,
     reader: BufReader<TcpStream>,
@@ -40,7 +40,7 @@ impl PubNub {
             pubkey: pubkey.into(),
             subkey: subkey.into(),
             _seckey: seckey.into(),
-            _agent: "nats-bridge".to_string(),
+            agent: "nats-bridge".to_string(),
             _host: host.into(),
             stream: stream.try_clone().unwrap(),
             reader: BufReader::new(stream),
@@ -54,8 +54,8 @@ impl PubNub {
     ) -> Result<(), std::io::Error> {
         let json_message = json::stringify(message);
         let uri = format!(
-            "/publish/{}/{}/0/{}/0/{}",
-            self.pubkey, self.subkey, channel, json_message
+            "/publish/{}/{}/0/{}/0/{}?pnsdk={}",
+            self.pubkey, self.subkey, channel, json_message, self.agent
         );
 
         let request = format!("GET {} HTTP/1.1\r\nHost: pubnub\r\n\r\n", uri);
@@ -64,7 +64,6 @@ impl PubNub {
         loop {
             let mut buf = String::new();
             let count = self.reader.read_line(&mut buf).unwrap();
-            println!("{}: {}", count, buf);
             if count == 2 {
                 break;
             }

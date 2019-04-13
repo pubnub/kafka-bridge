@@ -1,13 +1,18 @@
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-// Libs
+// Imports
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#[macro_use] extern crate json;
+
+use std::time::{SystemTime, UNIX_EPOCH};
+use std::env;
+
 mod nats;
 mod pubnub;
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Main
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-fn main() -> Result<(), std::io::Error> {
+fn main() {
     // PubNub SDK
     let mut pubnub = pubnub::PubNub::new(
         "psdsn.pubnub.com:80",
@@ -28,7 +33,18 @@ fn main() -> Result<(), std::io::Error> {
     // Sync NATS to PubNub
     loop {
         let message = nats.next_message().unwrap();
-        //let jsonmsg = format!("\"{}\"", message.data);
-        let _status = pubnub.publish(&message.channel, &message.data);
+        let status = pubnub.publish(&message.channel, &message.data);
+
+        assert!(status.is_ok());
+
+        let now = SystemTime::now();
+        let epoch = now.duration_since(UNIX_EPOCH).unwrap().as_secs();
+
+        println!("{}", json::stringify(object!{
+            "sync" => status.is_ok(),
+            "epoch" => epoch,
+            "channel" => message.channel,
+            "message" => message.data,
+        }));
     }
 }
