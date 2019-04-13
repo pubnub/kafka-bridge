@@ -4,7 +4,7 @@
 #[macro_use] extern crate json;
 
 use std::time::{SystemTime, UNIX_EPOCH};
-use std::env;
+//use std::env;
 
 mod nats;
 mod pubnub;
@@ -34,8 +34,6 @@ fn main() {
     loop {
         let message = nats.next_message().unwrap();
         let status = pubnub.publish(&message.channel, &message.data);
-
-        assert!(status.is_ok());
 
         let now = SystemTime::now();
         let epoch = now.duration_since(UNIX_EPOCH).unwrap().as_secs();

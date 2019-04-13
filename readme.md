@@ -3,6 +3,7 @@
  - TODO - read line one last time to get response body
  - TODO - TLS on PubNub
  -      - https://docs.rs/native-tls/0.2.2/native_tls/
+ - TODO - JSON decode PubNub response GET TIMETOKEN return Result
  - TODO - JSON
  - TODO - Secret Key Signing on Publish
  - TODO - agent and sec key PubNub struct
