@@ -1,5 +1,8 @@
 # PubNub NATs Bridge
 
+ - TODO - add a STATS thread that collects counters and sends them over a PubNub channel.
+ -      - this allows for a dashboard to see that status of the container.
+ - TODO - multiple channels NATS - https://doc.rust-lang.org/std/sync/mpsc/#examples
  - TODO - read line one last time to get response body
  - TODO - TLS on PubNub
  -      - https://docs.rs/native-tls/0.2.2/native_tls/
@@ -21,7 +24,7 @@
  - TODO - /// Rust DOC comments
  - TODO - ENV vars for runtime config ( pub/sub/sec/origin/channel-list )
  - TODO - add more tests!!!!!!!
- - TODO - remove all `println!()`
+ - TODO - remove all `println!()` except the system log stdout
  - TODO - dashboard
 
 Bring push notifications and streaming events to Mobile and Web clients
