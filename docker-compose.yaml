@@ -14,10 +14,10 @@ version: '3'
 services:
   nats-bridge:
     environment:
-      - PUBNUB_SUBKEY=
-      - PUBNUB_PUBKEY=
-      - PUBNUB_SECKEY=
-      - NATS_SUBJECTS=a,b,c,d ## comma delimited list of subjects
+      - PUBNUB_SUBKEY=demo
+      - PUBNUB_PUBKEY=demo
+      - PUBNUB_SECKEY=demo
+      - NATS_SUBJECTS=a,b,c,d ## comma delimited list of subjects to sync
       - NATS_HOST=nats
       - NATS_USER=
       - NATS_PASSWORD=
