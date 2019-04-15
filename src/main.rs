@@ -3,6 +3,8 @@
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #[macro_use] extern crate json;
 
+use std::thread;
+use std::sync::mpsc::channel;
 use std::time::{SystemTime, UNIX_EPOCH};
 //use std::env;
 
@@ -30,19 +32,34 @@ fn main() {
         ""
     ).unwrap();
 
+    // Async Channels
+    let (sender, receiver) = channel();
+
+    // Receive NATS Messages
+    let nats_thread = thread::spawn(move || {
+        loop {
+            let message = nats.next_message().unwrap();
+            sender.send(message).unwrap();
+        }
+    });
+
     // Sync NATS to PubNub
-    loop {
-        let message = nats.next_message().unwrap();
-        let status = pubnub.publish(&message.channel, &message.data);
+    let pubnub_thread = thread::spawn(move || {
+        loop {
+            let message = receiver.recv().unwrap();
+            let status = pubnub.publish(&message.channel, &message.data);
+            let now = SystemTime::now();
+            let epoch = now.duration_since(UNIX_EPOCH).unwrap().as_secs();
 
-        let now = SystemTime::now();
-        let epoch = now.duration_since(UNIX_EPOCH).unwrap().as_secs();
+            println!("{}", json::stringify(object!{
+                "sync" => status.is_ok(),
+                "epoch" => epoch,
+                "channel" => message.channel,
+                "message" => message.data,
+            }));
+        }
+    });
 
-        println!("{}", json::stringify(object!{
-            "sync" => status.is_ok(),
-            "epoch" => epoch,
-            "channel" => message.channel,
-            "message" => message.data,
-        }));
-    }
+    let _ = nats_thread.join();
+    let _ = pubnub_thread.join();
 }
