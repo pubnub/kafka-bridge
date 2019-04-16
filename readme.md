@@ -3,6 +3,7 @@
  - TODO - add a STATS thread that collects counters and sends them over a PubNub channel.
  -      - this allows for a dashboard to see that status of the container.
  - TODO - multiple channels NATS - https://doc.rust-lang.org/std/sync/mpsc/#examples
+ -      - Multple Channels support (NATS)
  - TODO - read line one last time to get response body
  - TODO - TLS on PubNub
  -      - https://docs.rs/native-tls/0.2.2/native_tls/
@@ -15,13 +16,12 @@
  - TODO - CONNECT string for NATS
  - TODO - AsyncAwait & EPOLL ( https://jsdw.me/posts/rust-asyncawait-preview/  )
  - TODO - socket hangout needs to reconnect
- - TODO - Multple Channels support (NATS)
  - TODO - error handeling ( unwarp() )
  - TODO - error enum for unrecoverables
  - TODO - recover from disconnect or restart?
  - TODO - http parser?
  - TODO - pubnub.subscribe via /v2/stream endpoint
- - TODO - /// Rust DOC comments
+ - TODO - /// Rust DOC comments?
  - TODO - ENV vars for runtime config ( pub/sub/sec/origin/channel-list )
  - TODO - add more tests!!!!!!!
  - TODO - remove all `println!()` except the system log stdout

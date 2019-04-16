@@ -35,7 +35,17 @@ impl PubNub {
         subkey: &str,
         seckey: &str,
     ) -> Result<PubNub, std::io::Error> {
-        let stream = TcpStream::connect(&host).unwrap();
+        let stream;
+
+        match TcpStream::connect(&host) {
+            Ok(data) => {
+                stream = data;
+            }
+            Err(error) => {
+                panic!("Error connecting PubNub: {error}", error = error);
+            }
+        }
+
         Ok(PubNub {
             pubkey: pubkey.into(),
             subkey: subkey.into(),
@@ -46,6 +56,23 @@ impl PubNub {
             reader: BufReader::new(stream),
         })
     }
+
+    /*
+    fn connect(host: &str) -> TcpStream {
+        loop {
+            let connection = TcpStream::connect(&host);
+            if connection.is_ok() { return connection.unwrap() }
+            
+            let error = connection.unwrap_err();
+            println!("{}", json::stringify(object!{
+                "message" => "PubNub API Reconnecting.",
+                "host" => host,
+                "error" => format!("{}", error),
+            }));
+            thread::sleep(time::Duration::new(5, 0));
+        }
+    }
+    */
 
     pub fn publish(
         &mut self,

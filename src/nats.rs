@@ -2,7 +2,11 @@
 // Imports
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 use std::io::{BufRead, BufReader, Write};
+use std::{thread, time};
 use std::net::TcpStream;
+
+//mod log;
+//mod pubnub;
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // NATS
@@ -31,7 +35,7 @@ impl NATS {
         user: &str,
         password: &str,
     ) -> Result<NATS, std::io::Error> {
-        let mut stream = TcpStream::connect(host).unwrap();
+        let mut stream = NATS::connect(host);
         let subscription = format!("SUB {} 1\r\n", channel);
         let _ = stream.write(subscription.as_bytes());
 
@@ -45,6 +49,22 @@ impl NATS {
         })
     }
 
+    //fn subscribe(channel: &str) { }
+    fn connect(host: &str) -> TcpStream {
+        loop {
+            let connection = TcpStream::connect(&host);
+            if connection.is_ok() { return connection.unwrap() }
+            
+            let error = connection.unwrap_err();
+            println!("{}", json::stringify(object!{
+                "message" => "NATS Host unreachable.",
+                "host" => host,
+                "error" => format!("{}", error),
+            }));
+            thread::sleep(time::Duration::new(5, 0));
+        }
+    }
+
     pub fn next_message(&mut self) -> Result<NATSMessage, std::io::Error> {
         Ok(loop {
             let mut line = String::new();
@@ -55,7 +75,12 @@ impl NATS {
             }
 
             let mut data = String::new();
-            let _len = self.reader.read_line(&mut data);
+            let _status = self.reader.read_line(&mut data);
+            /*
+            if status.is_err() {
+                // TODO
+            }
+            */
 
             break NATSMessage {
                 channel: detail.next().unwrap().into(),
