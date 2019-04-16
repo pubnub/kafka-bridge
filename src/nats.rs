@@ -1,22 +1,23 @@
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Imports
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-use std::io::{BufRead, BufReader, Write};
-use std::{thread, time};
-use std::net::TcpStream;
+#![deny(clippy::all)]
+#![deny(clippy::pedantic)]
 
-//mod log;
-//mod pubnub;
+use std::io::{BufRead, BufReader, Write};
+use std::net::TcpStream;
+use std::{thread, time};
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // NATS
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 pub struct NATS {
-    _channel: String,
+    host: String,
+    channel: String,
     _authkey: String,
     _user: String,
     _password: String,
-    _stream: TcpStream,
+    stream: TcpStream,
     reader: BufReader<TcpStream>,
 }
 
@@ -34,33 +35,51 @@ impl NATS {
         authkey: &str,
         user: &str,
         password: &str,
-    ) -> Result<NATS, std::io::Error> {
-        let mut stream = NATS::connect(host);
-        let subscription = format!("SUB {} 1\r\n", channel);
-        let _ = stream.write(subscription.as_bytes());
+    ) -> Result<Self, std::io::Error> {
+        let stream = Self::connect(host);
+        Self::subscribe(stream.try_clone().unwrap(), &channel);
 
-        Ok(NATS {
-            _channel: channel.into(),
+        Ok(Self {
+            host: host.into(),
+            channel: channel.into(),
             _authkey: authkey.into(),
             _user: user.into(),
             _password: password.into(),
-            _stream: stream.try_clone().unwrap(),
+            stream: stream.try_clone().unwrap(),
             reader: BufReader::new(stream),
         })
     }
 
-    //fn subscribe(channel: &str) { }
+    fn subscribe(mut stream: TcpStream, channel: &str) {
+        let subscription = format!("SUB {} 1\r\n", channel);
+        let _ = stream.write(subscription.as_bytes());
+        // TODO reconnect on write error.
+    }
+
+    fn reconnect(&mut self) {
+        thread::sleep(time::Duration::new(1, 0));
+        eprintln!("RECONNECTING");
+        self.stream = Self::connect(&self.host);
+        Self::subscribe(self.stream.try_clone().unwrap(), &self.channel);
+        self.reader = BufReader::new(self.stream.try_clone().unwrap());
+    }
+
     fn connect(host: &str) -> TcpStream {
         loop {
             let connection = TcpStream::connect(&host);
-            if connection.is_ok() { return connection.unwrap() }
-            
-            let error = connection.unwrap_err();
-            println!("{}", json::stringify(object!{
-                "message" => "NATS Host unreachable.",
-                "host" => host,
-                "error" => format!("{}", error),
-            }));
+            let error = match connection {
+                Ok(stream) => return stream,
+                Err(error) => error,
+            };
+
+            eprintln!(
+                "{}",
+                json::stringify(object! {
+                    "message" => "NATS Host unreachable.",
+                    "host" => host,
+                    "error" => format!("{}", error),
+                })
+            );
             thread::sleep(time::Duration::new(5, 0));
         }
     }
@@ -68,20 +87,28 @@ impl NATS {
     pub fn next_message(&mut self) -> Result<NATSMessage, std::io::Error> {
         Ok(loop {
             let mut line = String::new();
-            let _len = self.reader.read_line(&mut line);
+            let status = self.reader.read_line(&mut line);
+
+            if status.is_err() || status.unwrap() == 0 {
+                Self::reconnect(self);
+                //TODO move to reconnect
+                continue;
+            }
+
             let mut detail = line.split_whitespace();
             if Some("MSG") != detail.next() {
                 continue;
             }
 
             let mut data = String::new();
-            let _status = self.reader.read_line(&mut data);
-            /*
+            let status = self.reader.read_line(&mut data);
             if status.is_err() {
-                // TODO
+                Self::reconnect(self);
+                continue;
             }
-            */
 
+            // TODO Check length of detail iterator
+            // TODO vecotr collection
             break NATSMessage {
                 channel: detail.next().unwrap().into(),
                 my_id: detail.next().unwrap().into(),
@@ -89,29 +116,6 @@ impl NATS {
                 data: data.trim().into(),
             };
         })
-
-        // if line == MSG
-        // get channel
-        // get message payload
-        // convert to JSON String?
-
-        //reader.read_line()
-
-        //Ok(line.unwrap())
-
-        /*
-        match result {
-            Ok(data) => {
-                println!("{}", data.as_slice().trim());
-            }
-            Err(e) => {
-                println!("error reading: {}", e);
-                break;
-            }
-        }
-        */
-
-        //Ok(result)
     }
 
     #[cfg(test)]

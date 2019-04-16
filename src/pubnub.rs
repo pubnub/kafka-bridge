@@ -1,9 +1,9 @@
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Imports
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+use json;
 use std::io::{BufRead, BufReader, Write};
 use std::net::TcpStream;
-use json;
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // PubNub
@@ -62,7 +62,7 @@ impl PubNub {
         loop {
             let connection = TcpStream::connect(&host);
             if connection.is_ok() { return connection.unwrap() }
-            
+
             let error = connection.unwrap_err();
             println!("{}", json::stringify(object!{
                 "message" => "PubNub API Reconnecting.",
@@ -74,11 +74,7 @@ impl PubNub {
     }
     */
 
-    pub fn publish(
-        &mut self,
-        channel: &str,
-        message: &str
-    ) -> Result<(), std::io::Error> {
+    pub fn publish(&mut self, channel: &str, message: &str) -> Result<(), std::io::Error> {
         let json_message = json::stringify(message);
         let uri = format!(
             "/publish/{}/{}/0/{}/0/{}?pnsdk={}",

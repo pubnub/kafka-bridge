@@ -6,6 +6,7 @@ edition = "2018"
 
 [dependencies]
 json = "*"
-openssl = { version = "0.10", features = ["vendored"] }
+# openssl = { version = "0.10", features = ["vendored"] }
+native-tls = "0.2.2"
 failure = "^0.1"
 failure_derive = "^0.1"
