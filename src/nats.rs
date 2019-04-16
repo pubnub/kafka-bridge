@@ -1,9 +1,7 @@
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Imports
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-#![deny(clippy::all)]
-#![deny(clippy::pedantic)]
-
+use json::object;
 use std::io::{BufRead, BufReader, Write};
 use std::net::TcpStream;
 use std::{thread, time};
@@ -64,6 +62,7 @@ impl NATS {
         self.reader = BufReader::new(self.stream.try_clone().unwrap());
     }
 
+    // TODO stream.take_error()
     fn connect(host: &str) -> TcpStream {
         loop {
             let connection = TcpStream::connect(&host);

@@ -9,9 +9,9 @@ use std::net::TcpStream;
 // PubNub
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 pub struct PubNub {
-    pubkey: String,
-    subkey: String,
-    _seckey: String,
+    publish_key: String,
+    subscribe_key: String,
+    _secret_key: String,
     agent: String,
     _host: String,
     stream: TcpStream,
@@ -31,10 +31,10 @@ pub struct PubNubMessage {
 impl PubNub {
     pub fn new(
         host: &str,
-        pubkey: &str,
-        subkey: &str,
-        seckey: &str,
-    ) -> Result<PubNub, std::io::Error> {
+        publish_key: &str,
+        subscribe_key: &str,
+        secret_key: &str,
+    ) -> Result<Self, std::io::Error> {
         let stream;
 
         match TcpStream::connect(&host) {
@@ -46,10 +46,10 @@ impl PubNub {
             }
         }
 
-        Ok(PubNub {
-            pubkey: pubkey.into(),
-            subkey: subkey.into(),
-            _seckey: seckey.into(),
+        Ok(Self {
+            publish_key: publish_key.into(),
+            subscribe_key: subscribe_key.into(),
+            _secret_key: secret_key.into(),
             agent: "nats-bridge".to_string(),
             _host: host.into(),
             stream: stream.try_clone().unwrap(),
@@ -78,7 +78,7 @@ impl PubNub {
         let json_message = json::stringify(message);
         let uri = format!(
             "/publish/{}/{}/0/{}/0/{}?pnsdk={}",
-            self.pubkey, self.subkey, channel, json_message, self.agent
+            self.publish_key, self.subscribe_key, channel, json_message, self.agent
         );
 
         let request = format!("GET {} HTTP/1.1\r\nHost: pubnub\r\n\r\n", uri);
