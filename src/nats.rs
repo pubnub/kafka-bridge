@@ -62,7 +62,7 @@ impl NATS {
         self.reader = BufReader::new(self.stream.try_clone().unwrap());
     }
 
-    // TODO stream.take_error()
+    // TODO stream.take_error() on connect, read, and write!!!
     fn connect(host: &str) -> TcpStream {
         loop {
             let connection = TcpStream::connect(&host);
@@ -79,12 +79,15 @@ impl NATS {
                     "error" => format!("{}", error),
                 })
             );
-            thread::sleep(time::Duration::new(5, 0));
+            thread::sleep(time::Duration::new(2, 0));
         }
     }
 
     pub fn next_message(&mut self) -> Result<NATSMessage, std::io::Error> {
         Ok(loop {
+
+            // create socket lib that is durable and implemetns the common
+            // read/write and reconnect on errors.
             let mut line = String::new();
             let status = self.reader.read_line(&mut line);
 
