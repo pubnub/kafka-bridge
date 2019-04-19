@@ -9,21 +9,21 @@ use std::{thread, time};
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Socket Class and Struct
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-struct Client {
-    name: String,
-    host: String,
+pub(crate) struct Client {
+    pub(crate) name: String,
+    pub(crate) host: String,
 }
 
-pub struct Socket {
-    client: Client,
+pub(crate) struct Socket {
+    pub(crate) client: Client,
     stream: TcpStream,
     reader: BufReader<TcpStream>,
 }
 
-pub struct Line {
-    ok: bool,
-    size: usize,
-    data: String,
+pub(crate) struct Line {
+    pub(crate) ok: bool,
+    pub(crate) size: usize,
+    pub(crate) data: String,
 }
 
 impl Socket {

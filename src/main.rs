@@ -25,7 +25,7 @@ fn main() {
     let mut pubnub = pubnub::PubNub::new("psdsn.pubnub.com:80", "demo", "demo", "secret").unwrap();
 
     // NATS SDK
-    let mut nats = nats::NATS::new("0.0.0.0:4222", "demo", "", "", "").unwrap();
+    let mut nats = nats::NATS::new("0.0.0.0:4222", "demo", "", "", "");
 
     // Async Channels
     let (sender, receiver) = channel();

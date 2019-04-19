@@ -5,7 +5,7 @@ use json::object;
 use std::io::{BufRead, BufReader, Write};
 use std::net::TcpStream;
 use std::{thread, time};
-
+use crate::socket::Socket;
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // NATS
@@ -32,10 +32,10 @@ impl NATS {
         authkey: &str,
         user: &str,
         password: &str,
-    ) -> Result<Self, std::io::Error> {
+    ) -> Self {
         let socket = Socket::new("NATS", host);
 
-        let nats = {
+        let nats = NATS {
             socket: socket,
             channel: channel.into(),
             _authkey: authkey.into(),
@@ -43,15 +43,14 @@ impl NATS {
             _password: password.into(),
         };
 
+        Self::subscribe(nats);
 
-        Self::subscribe(
-        Ok(nats)
-
+        nats
     }
 
-    fn subscribe(mut nats: NATS) {
-        let subscription = format!("SUB {} 1\r\n", channel);
-        let _ = nats.socket.write(subscription);
+    fn subscribe(nats: NATS) {
+        let subscription = format!("SUB {} 1\r\n", nats.channel);
+        let _ = nats.socket.write(&subscription);
     }
 
     pub fn next_message(&mut self) -> Result<NATSMessage, std::io::Error> {
@@ -61,15 +60,13 @@ impl NATS {
             // read/write and reconnect on errors.
             let line = self.socket.read_line();
 
-            let mut detail = line.split_whitespace();
-            if Some("MSG") != detail.next() {
-                continue;
-            }
+            if line.size <= 0 { continue; }
 
-            let data = self.socket.read_line();
-            if !data.ok {
-                continue;
-            }
+            let mut detail = line.data.split_whitespace();
+            if Some("MSG") != detail.next() { continue; }
+
+            let line = self.socket.read_line();
+            if !line.ok { continue; }
 
             // TODO Check length of detail iterator
             // TODO vecotr collection
@@ -77,18 +74,18 @@ impl NATS {
                 channel: detail.next().unwrap().into(),
                 my_id: detail.next().unwrap().into(),
                 sender_id: detail.next().unwrap().into(),
-                data: data.trim().into(),
+                data: line.data.trim().into(),
             };
         })
     }
 
     #[cfg(test)]
-    pub fn ping(&mut self) -> Result<String, std::io::Error> {
+    pub fn ping(&mut self) -> String {
         let ping = format!("PING");
-        let _ = self.socket.write(ping);
+        let _ = self.socket.write(&ping);
 
         let line = self.socket.read_line();
-        Ok(line)
+        line.data
     }
 }
 
@@ -101,17 +98,18 @@ mod tests {
 
     #[test]
     fn connect_ok() {
-        let result = NATS::new("0.0.0.0:4222", "demo", "", "", "");
-        assert!(result.is_ok());
+        let host = "0.0.0.0:4222";
+        let nats = NATS::new(host, "demo", "", "", "");
+        assert!(nats.socket.client.host == host);
     }
 
     #[test]
     fn ping_ok() {
-        let result = NATS::new("0.0.0.0:4222", "demo", "", "", "");
-        assert!(result.is_ok());
+        let host = "0.0.0.0:4222";
+        let mut nats = NATS::new(host, "demo", "", "", "");
+        assert!(nats.socket.client.host == host);
 
-        let mut nats = result.unwrap();
-        let result = nats.ping();
-        assert!(result.is_ok());
+        let pong = nats.ping();
+        assert!(pong == "PONG");
     }
 }
