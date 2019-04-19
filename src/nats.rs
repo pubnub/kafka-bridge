@@ -6,17 +6,16 @@ use std::io::{BufRead, BufReader, Write};
 use std::net::TcpStream;
 use std::{thread, time};
 
+
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // NATS
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 pub struct NATS {
-    host: String,
+    socket: Socket,
     channel: String,
     _authkey: String,
     _user: String,
     _password: String,
-    stream: TcpStream,
-    reader: BufReader<TcpStream>,
 }
 
 pub struct NATSMessage {
@@ -34,53 +33,25 @@ impl NATS {
         user: &str,
         password: &str,
     ) -> Result<Self, std::io::Error> {
-        let stream = Self::connect(host);
-        Self::subscribe(stream.try_clone().unwrap(), &channel);
+        let socket = Socket::new("NATS", host);
 
-        Ok(Self {
-            host: host.into(),
+        let nats = {
+            socket: socket,
             channel: channel.into(),
             _authkey: authkey.into(),
             _user: user.into(),
             _password: password.into(),
-            stream: stream.try_clone().unwrap(),
-            reader: BufReader::new(stream),
-        })
+        };
+
+
+        Self::subscribe(
+        Ok(nats)
+
     }
 
-    fn subscribe(mut stream: TcpStream, channel: &str) {
+    fn subscribe(mut nats: NATS) {
         let subscription = format!("SUB {} 1\r\n", channel);
-        let _ = stream.write(subscription.as_bytes());
-        // TODO reconnect on write error.
-    }
-
-    fn reconnect(&mut self) {
-        thread::sleep(time::Duration::new(1, 0));
-        eprintln!("RECONNECTING");
-        self.stream = Self::connect(&self.host);
-        Self::subscribe(self.stream.try_clone().unwrap(), &self.channel);
-        self.reader = BufReader::new(self.stream.try_clone().unwrap());
-    }
-
-    // TODO stream.take_error() on connect, read, and write!!!
-    fn connect(host: &str) -> TcpStream {
-        loop {
-            let connection = TcpStream::connect(&host);
-            let error = match connection {
-                Ok(stream) => return stream,
-                Err(error) => error,
-            };
-
-            eprintln!(
-                "{}",
-                json::stringify(object! {
-                    "message" => "NATS Host unreachable.",
-                    "host" => host,
-                    "error" => format!("{}", error),
-                })
-            );
-            thread::sleep(time::Duration::new(2, 0));
-        }
+        let _ = nats.socket.write(subscription);
     }
 
     pub fn next_message(&mut self) -> Result<NATSMessage, std::io::Error> {
@@ -88,24 +59,15 @@ impl NATS {
 
             // create socket lib that is durable and implemetns the common
             // read/write and reconnect on errors.
-            let mut line = String::new();
-            let status = self.reader.read_line(&mut line);
-
-            if status.is_err() || status.unwrap() == 0 {
-                Self::reconnect(self);
-                //TODO move to reconnect
-                continue;
-            }
+            let line = self.socket.read_line();
 
             let mut detail = line.split_whitespace();
             if Some("MSG") != detail.next() {
                 continue;
             }
 
-            let mut data = String::new();
-            let status = self.reader.read_line(&mut data);
-            if status.is_err() {
-                Self::reconnect(self);
+            let data = self.socket.read_line();
+            if !data.ok {
                 continue;
             }
 
@@ -123,10 +85,9 @@ impl NATS {
     #[cfg(test)]
     pub fn ping(&mut self) -> Result<String, std::io::Error> {
         let ping = format!("PING");
-        let _ = self.stream.write(ping.as_bytes());
-        let mut line = String::new();
+        let _ = self.socket.write(ping);
 
-        let _ = self.reader.read_line(&mut line);
+        let line = self.socket.read_line();
         Ok(line)
     }
 }
