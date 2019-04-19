@@ -9,8 +9,13 @@ use std::{thread, time};
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Socket Class and Struct
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-pub struct Socket {
+struct Client {
+    name: String,
     host: String,
+}
+
+pub struct Socket {
+    client: Client,
     stream: TcpStream,
     reader: BufReader<TcpStream>,
 }
@@ -22,35 +27,34 @@ pub struct Line {
 }
 
 impl Socket {
-    pub fn new(host: &str) -> Self {
-        let stream = Self::connect(host);
+    pub fn new(name: &str, host: &str) -> Self {
+        let client = Client { name: name.into(), host: host.into() };
+        let stream = Self::connect(&client);
 
         Self {
-            host: host.into(),
+            client: client,
             stream: stream.try_clone().unwrap(),
             reader: BufReader::new(stream.try_clone().unwrap()),
         }
     }
 
-    fn log(data: &str) {
-        eprintln!("{}", data);
+    fn log(client: &Client, message: &str) {
+        eprintln!("{}", json::stringify(object!{ 
+            "message" => message,
+            "host" => client.host.clone(),
+            "name" => client.name.clone(),
+        }));
     }
 
-    fn connect(host: &str) -> TcpStream {
+    fn connect(client: &Client) -> TcpStream {
         loop {
-            let connection = TcpStream::connect(&host);
+            let connection = TcpStream::connect(&client.host);
             let error = match connection {
                 Ok(stream) => return stream,
                 Err(error) => error,
             };
 
-            // unable to connect, retry
-            Self::log(&json::stringify(object! {
-                "message" => "Host unreachable.",
-                "host" => host,
-                "error" => format!("{}", error),
-            }));
-
+            Self::log(&client, &format!("Host unreachable: {}", error));
             thread::sleep(time::Duration::new(1, 0));
         }
     }
@@ -60,12 +64,9 @@ impl Socket {
     }
 
     fn reconnect(&mut self) {
-        Self::log(&json::stringify(object! {
-            "message" => "Lost connection, reconnecting.",
-            "host" => self.host.clone(),
-        }));
+        Self::log(&self.client, "Lost connection, reconnecting.");
         thread::sleep(time::Duration::new(1, 0));
-        self.stream = Self::connect(&self.host);
+        self.stream = Self::connect(&self.client);
         self.reader = BufReader::new(self.stream.try_clone().unwrap());
     }
 
@@ -74,11 +75,10 @@ impl Socket {
         match result {
             Ok(size) => Ok(size),
             Err(error) => {
-                Self::log(&json::stringify(object! {
-                    "message" => "Lost connection, reconnecting.",
-                    "host" => self.host.clone(),
-                    "error" => format!("{}", error),
-                }));
+                Self::log(&self.client, &format!(
+                    "Lost connection, reconnecting shortly: {}",
+                    error
+                ));
                 Err(0)
             }
         }
@@ -110,14 +110,16 @@ mod socket_tests {
     #[test]
     fn socket_connect_ok() {
         let host = "www.pubnub.com:80";
-        let socket = Socket::new(host);
-        assert!(socket.host == host);
+        let name = "http client";
+        let socket = Socket::new(name, host);
+        assert!(socket.client.host == host);
+        assert!(socket.client.name == name);
     }
 
     #[test]
     fn socket_write_ok() {
         let host = "www.pubnub.com:80";
-        let mut socket = Socket::new(host);
+        let mut socket = Socket::new("http client", host);
 
         let request = "GET / HTTP/1.1\r\nHost: pubnub.com\r\n\r\n";
         let result = socket.write(&request);
@@ -130,7 +132,7 @@ mod socket_tests {
     #[test]
     fn socket_read_and_write_ok() {
         let host = "www.pubnub.com:80";
-        let mut socket = Socket::new(host);
+        let mut socket = Socket::new("http client", host);
         let request = "GET / HTTP/1.1\r\nHost: pubnub.com\r\n\r\n";
         let result = socket.write(&request);
         assert!(result.is_ok());
