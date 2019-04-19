@@ -6,6 +6,7 @@ use std::io::{BufRead, BufReader, Write};
 use std::net::TcpStream;
 use std::{thread, time};
 
+
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // NATS
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -123,7 +124,7 @@ impl NATS {
     #[cfg(test)]
     pub fn ping(&mut self) -> Result<String, std::io::Error> {
         let ping = format!("PING");
-        let _ = self._stream.write(ping.as_bytes());
+        let _ = self.stream.write(ping.as_bytes());
         let mut line = String::new();
 
         let _ = self.reader.read_line(&mut line);

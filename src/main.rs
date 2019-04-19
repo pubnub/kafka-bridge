@@ -13,6 +13,7 @@ use std::thread;
 use std::time::{SystemTime, UNIX_EPOCH};
 //use std::env;
 
+mod socket;
 mod nats;
 mod pubnub;
 
