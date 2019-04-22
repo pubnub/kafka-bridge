@@ -1,10 +1,6 @@
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Imports
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-use json::object;
-use std::io::{BufRead, BufReader, Write};
-use std::net::TcpStream;
-use std::{thread, time};
 use crate::socket::Socket;
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -35,7 +31,7 @@ impl NATS {
     ) -> Self {
         let socket = Socket::new("NATS", host);
 
-        let nats = NATS {
+        let mut nats = NATS {
             socket: socket,
             channel: channel.into(),
             _authkey: authkey.into(),
@@ -43,14 +39,14 @@ impl NATS {
             _password: password.into(),
         };
 
-        Self::subscribe(nats);
+        nats.subscribe();
 
         nats
     }
 
-    fn subscribe(nats: NATS) {
-        let subscription = format!("SUB {} 1\r\n", nats.channel);
-        let _ = nats.socket.write(&subscription);
+    fn subscribe(&mut self) {
+        let subscription = format!("SUB {} 1\r\n", self.channel);
+        self.socket.write(&subscription).expect("Unable to write to NATS socket");
     }
 
     pub fn next_message(&mut self) -> Result<NATSMessage, std::io::Error> {
@@ -89,6 +85,12 @@ impl NATS {
     }
 }
 
+impl Drop for NATS {
+    fn drop(&mut self) {
+        self.socket.disconnect().expect("Failed to disconnect NATS during drop");
+    }
+}
+
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Tests
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -107,8 +109,6 @@ mod tests {
     fn ping_ok() {
         let host = "0.0.0.0:4222";
         let mut nats = NATS::new(host, "demo", "", "", "");
-        assert!(nats.socket.client.host == host);
-
         let pong = nats.ping();
         assert!(pong == "PONG");
     }

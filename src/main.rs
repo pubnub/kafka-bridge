@@ -20,7 +20,7 @@ mod pubnub;
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Main
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-fn main() {
+fn main() -> thread::Result<()> {
     // PubNub SDK
     let mut pubnub = pubnub::PubNub::new("psdsn.pubnub.com:80", "demo", "demo", "secret").unwrap();
 
@@ -54,6 +54,8 @@ fn main() {
         );
     });
 
-    let _ = nats_thread.join();
-    let _ = pubnub_thread.join();
+    nats_thread.join()?;
+    pubnub_thread.join()?;
+
+    Ok(())
 }

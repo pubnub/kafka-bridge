@@ -26,37 +26,50 @@ pub(crate) struct Line {
     pub(crate) data: String,
 }
 
-impl Socket {
-    pub fn new(name: &str, host: &str) -> Self {
-        let client = Client { name: name.into(), host: host.into() };
-        let stream = Self::connect(&client);
-
+impl Client {
+    fn new(name: &str, host: &str) -> Self {
         Self {
-            client: client,
-            stream: stream.try_clone().unwrap(),
-            reader: BufReader::new(stream.try_clone().unwrap()),
+            name: name.into(),
+            host: host.into(),
         }
     }
 
-    fn log(client: &Client, message: &str) {
+    fn log(&self, message: &str) {
         eprintln!("{}", json::stringify(object!{ 
             "message" => message,
-            "host" => client.host.clone(),
-            "name" => client.name.clone(),
+            "host" => self.host.clone(),
+            "name" => self.name.clone(),
         }));
     }
 
-    fn connect(client: &Client) -> TcpStream {
+    fn connect(&self) -> TcpStream {
         loop {
-            let connection = TcpStream::connect(&client.host);
+            let connection = TcpStream::connect(&self.host);
             let error = match connection {
                 Ok(stream) => return stream,
                 Err(error) => error,
             };
 
-            Self::log(&client, &format!("Host unreachable: {}", error));
+            self.log(&format!("Host unreachable: {}", error));
             thread::sleep(time::Duration::new(1, 0));
         }
+    }
+}
+
+impl Socket {
+    pub fn new(name: &str, host: &str) -> Self {
+        let client = Client::new(name, host);
+        let stream = client.connect();
+
+        Self {
+            client,
+            stream: stream.try_clone().expect("Failed to clone TCPStream"),
+            reader: BufReader::new(stream),
+        }
+    }
+
+    fn log(&self, message: &str) {
+        self.client.log(message)
     }
 
     pub fn disconnect(&mut self) -> Result<(), std::io::Error>{
@@ -64,9 +77,9 @@ impl Socket {
     }
 
     fn reconnect(&mut self) {
-        Self::log(&self.client, "Lost connection, reconnecting.");
+        self.log("Lost connection, reconnecting.");
         thread::sleep(time::Duration::new(1, 0));
-        self.stream = Self::connect(&self.client);
+        self.stream = self.client.connect();
         self.reader = BufReader::new(self.stream.try_clone().unwrap());
     }
 
@@ -75,7 +88,7 @@ impl Socket {
         match result {
             Ok(size) => Ok(size),
             Err(error) => {
-                Self::log(&self.client, &format!(
+                self.log(&format!(
                     "Lost connection, reconnecting shortly: {}",
                     error
                 ));
