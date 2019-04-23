@@ -1,125 +1,62 @@
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Imports
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+use json::object;
 use std::io::{BufRead, BufReader, Write};
 use std::net::{Shutdown, TcpStream};
 use std::{thread, time};
-use json::object;
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-/// # Socket Events
-///
-/// Describes what actions a Socket will take for various policy.
-///
+// Socket Class and Struct
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-pub trait SocketPolicy {
-    fn initialized(&self, mut socket: &Socket) {}
-    fn connected(&self, mut socket: &Socket) {}
-    fn disconnected(&self, mut socket: &Socket) {}
-    fn unreachable(&self, mut socket: &Socket) {}
-
-    fn log(&self, message: &str, success: bool) {
-        eprintln!("{}", json::stringify(object!{ 
-            "message" => message,
-            "success" => success
-        }));
-    }
+pub(crate) struct Client {
+    pub(crate) name: String,
+    pub(crate) host: String,
 }
-/*
-struct AutoReconnect;
-impl SocketPolicy for AutoReconnect {
-    fn on_connect(&self, socket: Socket) {
-        println!("Connected ! ( SocketPolicy )");
-    }
+
+pub(crate) struct Socket {
+    pub(crate) client: Client,
+    stream: TcpStream,
+    reader: BufReader<TcpStream>,
 }
-*/
 
-
-// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-/// # Socket
-///
-/// Describes what actions a Socket will take for various policy.
-///
-/// ```
-/// ```
-///
-///
-// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-pub struct Socket {
-    pub name: String,
-    pub host: String,
-    policy: Box<SocketPolicy>,
-    stream: Option<TcpStream>,
-    reader: Option<BufReader<TcpStream>>,
+pub(crate) struct Line {
+    pub(crate) ok: bool,
+    pub(crate) size: usize,
+    pub(crate) data: String,
 }
 
 impl Socket {
-    pub fn new<P: SocketPolicy + 'static>(
-        name: &str,
-        host: &str,
-        policy: P,
-    ) -> Self {
-        let socket = Self {
-            name: name.into(),
-            host: host.into(),
-            policy: Box::new(policy),
-            stream: None,
-            reader: None,
-        };
+    pub fn new(name: &str, host: &str) -> Self {
+        let client = Client { name: name.into(), host: host.into() };
+        let stream = Self::connect(&client);
 
-        socket.policy.initialized(&socket);
-
-        socket
+        Self {
+            client: client,
+            stream: stream.try_clone().unwrap(),
+            reader: BufReader::new(stream.try_clone().unwrap()),
+        }
     }
 
-    pub fn connect(&mut self) {
+    fn log(client: &Client, message: &str) {
+        eprintln!("{}", json::stringify(object!{ 
+            "message" => message,
+            "host" => client.host.clone(),
+            "name" => client.name.clone(),
+        }));
+    }
+
+    fn connect(client: &Client) -> TcpStream {
         loop {
-            let connection = TcpStream::connect(self.host.clone());
+            let connection = TcpStream::connect(&client.host);
             let error = match connection {
-                Ok(stream) => {
-                    // CONNECTININTIlailz
-                    //let policy = self.policy.fisrt();
-                    //for policy in &self.policy {
-                    //}
-                    self.stream = Some(stream.try_clone().expect("TcpStream"));
-                    self.reader = Some(BufReader::new(
-                        stream.try_clone().expect("TcpStream")
-                    ));
-                    //self.policy.connected(self);
-                    break;
-                },
+                Ok(stream) => return stream,
                 Err(error) => error,
             };
 
-            // LOG ERROR ( call policy)
-            /*
-            Self::log(&format!(
-                "{name} unreachable: {error}",
-                name=name,
-                error=error,
-            ), false);
-            */
-
+            Self::log(&client, &format!("Host unreachable: {}", error));
             thread::sleep(time::Duration::new(1, 0));
         }
-    }
-}
-
-/*
-impl Socket {
-    pub fn new(name: &str, host: &str) -> Self {
-        let client = Client::new(name, host);
-        let stream = client.connect();
-
-        Self {
-            client,
-            stream: stream.try_clone().expect("Failed to clone TCPStream"),
-            reader: BufReader::new(stream),
-        }
-    }
-
-    fn log(&self, message: &str) {
-        self.client.log(message)
     }
 
     pub fn disconnect(&mut self) -> Result<(), std::io::Error>{
@@ -127,9 +64,9 @@ impl Socket {
     }
 
     fn reconnect(&mut self) {
-        self.log("Lost connection, reconnecting.");
+        Self::log(&self.client, "Lost connection, reconnecting.");
         thread::sleep(time::Duration::new(1, 0));
-        self.stream = self.client.connect();
+        self.stream = Self::connect(&self.client);
         self.reader = BufReader::new(self.stream.try_clone().unwrap());
     }
 
@@ -138,7 +75,7 @@ impl Socket {
         match result {
             Ok(size) => Ok(size),
             Err(error) => {
-                self.log(&format!(
+                Self::log(&self.client, &format!(
                     "Lost connection, reconnecting shortly: {}",
                     error
                 ));
@@ -147,7 +84,7 @@ impl Socket {
         }
     }
 
-    pub fn readln(&mut self) -> Line {
+    pub fn read_line(&mut self) -> Line {
         loop {
             let mut line = String::new();
             let result   = self.reader.read_line(&mut line);
@@ -209,4 +146,3 @@ mod socket_tests {
         assert!(line.size > 0);
     }
 }
-*/

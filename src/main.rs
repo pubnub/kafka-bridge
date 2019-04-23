@@ -8,7 +8,7 @@
 // Local Imports
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 mod socket;
-mod pubnub;
+//mod pubnub;
 mod nats;
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -16,8 +16,9 @@ mod nats;
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 fn main() {
     let nats = nats::NATS::new("0.0.0.0:4222", "demo");
+    //nats.subscribe();
     println!("{}", nats.channel);
 
-    let pubnub = pubnub::PubNub::new("psdsn.pubnub.com", "demo");
-    println!("{}", pubnub.channel);
+    //let pubnub = pubnub::PubNub::new("psdsn.pubnub.com", "demo");
+    //println!("{}", pubnub.channel);
 }

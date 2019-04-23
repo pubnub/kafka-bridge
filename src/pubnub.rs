@@ -1,7 +1,7 @@
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Imports
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-use crate::socket::{Socket, SocketPolicy, SocketConnectivityPolicy};
+use crate::socket::{Socket, SocketPolicy, HasSocketPolicy};
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // PubNub Struct
@@ -16,6 +16,7 @@ impl PubNub {
         host: &'static str,
         channel: &'static str,
     ) -> Self {
+    /*
         let policy = SocketPolicy {
             connected: &Self::connected,
         };
@@ -25,11 +26,14 @@ impl PubNub {
         pubnub.socket.connect();
 
         pubnub
+        */
     }
 }
 
+/*
 impl SocketConnectivityPolicy for PubNub {
     fn connected(&self) {
         println!("{} Connected!", self.socket.name);
     }
 }
+*/
