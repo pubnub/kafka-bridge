@@ -7,44 +7,22 @@ use std::{thread, time};
 use json::object;
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-/// # Socket Events
+/// # Socket Policy
 ///
-/// Describes what actions a Socket will take for various policy.
+/// Describes what actions a Socket will take for various situations.
 ///
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 pub trait SocketPolicy {
     fn initialized(&self, mut socket: &Socket) {}
     fn connected(&self, mut socket: &Socket) {}
-    fn disconnected(&self, mut socket: &Socket) {}
-    fn unreachable(&self, mut socket: &Socket) {}
-
-    /*
-    fn log(&self, mut socket: &Socket, message: &str) {
-        eprintln!("{}", json::stringify(object!{ 
-            "message" => message,
-            "success" => success
-        }));
-    }
-    */
+    fn disconnected(&self, mut socket: &Socket, message: &str) {}
+    fn unreachable(&self, mut socket: &Socket, message: &str) {}
 }
-/*
-struct AutoReconnect;
-impl SocketPolicy for AutoReconnect {
-    fn on_connect(&self, socket: Socket) {
-        println!("Connected ! ( SocketPolicy )");
-    }
-}
-*/
-
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 /// # Socket
 ///
-/// Describes what actions a Socket will take for various policy.
-///
-/// ```
-/// ```
-///
+/// The user interface to this library will be accessed via the Socet struct.
 ///
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 pub struct Socket {

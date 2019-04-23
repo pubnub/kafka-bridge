@@ -4,11 +4,11 @@
 use crate::socket::{Socket, SocketPolicy};
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-// NATS User Structs
+// NATS End-user Interface
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 pub(crate) struct NATS {
     pub(crate) channel: String,
-    pub(crate) socket: Socket,
+    socket: Socket,
 }
 pub(crate) struct NATSMessage {
     pub(crate) channel: String,
@@ -20,8 +20,11 @@ pub(crate) struct NATSMessage {
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // NATS Socket Policy ( Wire State & Events )
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-struct NATSReconnectPolicy { client_id: u64 }
-impl SocketPolicy for NATSReconnectPolicy {
+struct NATSSocketPolicy {
+    channel: String,
+    client_id: u64,
+}
+impl SocketPolicy for NATSSocketPolicy {
     fn initialized(&self, mut socket: &Socket) {
         println!("Initailzield ! ( SocketPolicy ) {}", socket.name);
         // TODO socket.connect ?
@@ -29,10 +32,18 @@ impl SocketPolicy for NATSReconnectPolicy {
     fn connected(&self, mut socket: &Socket) {
         println!("Connected ! ( SocketPolicy )");
     }
-    fn disconnected(&self, mut socket: &Socket) {}
-    fn unreachable(&self, mut socket: &Socket) {
+    fn disconnected(&self, mut socket: &Socket, message: &str) {}
+    fn unreachable(&self, mut socket: &Socket, message: &str) {
         println!("Unreachable Host! ( SocketPolicy )");
     }
+    /*
+    fn log(&self, mut socket: &Socket, message: &str) {
+        eprintln!("{}", json::stringify(object!{ 
+            "message" => message,
+            "success" => success
+        }));
+    }
+    */
 }
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -40,15 +51,12 @@ impl SocketPolicy for NATSReconnectPolicy {
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 impl NATS {
     pub fn new(host: &str, channel: &str) -> Self {
-        let policy = NATSReconnectPolicy { client_id: 0 };
+        let policy = NATSSocketPolicy {channel: channel.into(), client_id: 0};
         let mut socket = Socket::new("NATS", host.into(), policy);
-        //socket.set_policy(AutoReconnectPolicy);
+
         Self {
             channel: channel.into(),
             socket: socket,
-            //_authkey: authkey.into(),
-            //_user: user.into(),
-            //_password: password.into(),
         }
     }
 
