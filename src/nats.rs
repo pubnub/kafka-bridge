@@ -4,7 +4,7 @@
 use crate::socket::{Socket, SocketPolicy};
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-// NATS Struct
+// NATS User Structs
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 pub(crate) struct NATS {
     pub(crate) channel: String,
@@ -16,8 +16,23 @@ pub(crate) struct NATSMessage {
     pub(crate) sender_id: String,
     pub(crate) data: String,
 }
-pub(crate) enum NATSError {
-    ConnectionError
+
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+// NATS Socket Policy ( Wire State & Events )
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+struct NATSReconnectPolicy { client_id: u64 }
+impl SocketPolicy for NATSReconnectPolicy {
+    fn initialized(&self, mut socket: &Socket) {
+        println!("Initailzield ! ( SocketPolicy ) {}", socket.name);
+        // TODO socket.connect ?
+    }
+    fn connected(&self, mut socket: &Socket) {
+        println!("Connected ! ( SocketPolicy )");
+    }
+    fn disconnected(&self, mut socket: &Socket) {}
+    fn unreachable(&self, mut socket: &Socket) {
+        println!("Unreachable Host! ( SocketPolicy )");
+    }
 }
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -25,7 +40,8 @@ pub(crate) enum NATSError {
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 impl NATS {
     pub fn new(host: &str, channel: &str) -> Self {
-        let mut socket = Socket::new("NATS", host.into(), AutoReconnectPolicy);
+        let policy = NATSReconnectPolicy { client_id: 0 };
+        let mut socket = Socket::new("NATS", host.into(), policy);
         //socket.set_policy(AutoReconnectPolicy);
         Self {
             channel: channel.into(),
@@ -57,22 +73,6 @@ impl NATS {
         nats
     }
     */
-}
-
-struct AutoReconnectPolicy;
-impl SocketPolicy for AutoReconnectPolicy {
-
-    fn initialized(&self, mut socket: &Socket) {
-        println!("Initailzield ! ( SocketPolicy ) {}", socket.name);
-        // TODO socket.connect ?
-    }
-    fn connected(&self, mut socket: &Socket) {
-        println!("Connected ! ( SocketPolicy )");
-    }
-    fn disconnected(&self, mut socket: &Socket) {}
-    fn unreachable(&self, mut socket: &Socket) {
-        println!("Unreachable Host! ( SocketPolicy )");
-    }
 }
 
 /*

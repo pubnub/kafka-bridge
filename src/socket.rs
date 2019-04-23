@@ -18,12 +18,14 @@ pub trait SocketPolicy {
     fn disconnected(&self, mut socket: &Socket) {}
     fn unreachable(&self, mut socket: &Socket) {}
 
-    fn log(&self, message: &str, success: bool) {
+    /*
+    fn log(&self, mut socket: &Socket, message: &str) {
         eprintln!("{}", json::stringify(object!{ 
             "message" => message,
             "success" => success
         }));
     }
+    */
 }
 /*
 struct AutoReconnect;
