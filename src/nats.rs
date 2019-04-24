@@ -21,13 +21,14 @@ pub(crate) struct NATSMessage {
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // NATS Socket Policy ( Wire State & Events )
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#[derive(Copy, Clone)]
 struct NATSSocketPolicy {
-    channel: String,
-    host: String,
+    channel: &'static str,
+    host: &'static str,
     client_id: u64,
 }
 impl SocketPolicy for NATSSocketPolicy {
-    // Attributes
+    // Socket Attributes
     fn host(&self) -> &str { &self.host }
 
     // Socket Events
@@ -70,7 +71,7 @@ impl NATSSocketPolicy {
 // NATS
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 impl NATS {
-    pub fn new(host: &str, channel: &str) -> Self {
+    pub fn new(host: &'static str, channel: &'static str) -> Self {
         let policy = NATSSocketPolicy {
             host: host.into(),
             channel: channel.into(),
@@ -107,12 +108,16 @@ impl NATS {
     */
 }
 
-/*
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+// Drop interface
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 impl Drop for NATS {
     fn drop(&mut self) {
-        self.socket.disconnect().expect("Failed to disconnect NATS during drop");
+        self.socket.disconnect();
     }
 }
+
+/*
 */
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=

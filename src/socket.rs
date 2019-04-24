@@ -30,7 +30,7 @@ pub trait SocketPolicy {
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 /// # Socket
 ///
-/// The user interface to this library will be accessed via the Socet struct.
+/// The user interface for this library.
 ///
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 pub struct Socket {
@@ -42,7 +42,7 @@ pub struct Socket {
 }
 
 impl Socket {
-    pub fn new<P: SocketPolicy + 'static>(
+    pub fn new<P: SocketPolicy + 'static + Copy>(
         client: &str,
         host: &str,
         policy: P,
@@ -51,12 +51,13 @@ impl Socket {
         let stream = Self::connect(&policy);
         policy.connected();
 
+
         Self {
             client: client.into(),
             host: host.into(),
             policy: Box::new(policy),
-            stream: stream.try_clone().unwrap(),
-            reader: BufReader::new(stream.try_clone().unwrap()),
+            stream: stream.try_clone().expect("TcpStream"),
+            reader: BufReader::new(stream.try_clone().expect("TcpStream")),
         }
     }
 
@@ -64,13 +65,20 @@ impl Socket {
         self.stream.shutdown(Shutdown::Both).expect("Shutdown");
     }
 
-    fn connect<P: SocketPolicy + 'static>(policy: &P) -> TcpStream {
+    fn connect<P: SocketPolicy + 'static + ?Sized>(policy: &P) -> TcpStream {
         let retry_delay = policy.retry_delay_when_unreachable();
         loop {
+            // Open connection and send initialization data
             let host: String = policy.host().into();
             let connection = TcpStream::connect(host);
             let error = match connection {
-                Ok(stream) => return stream,
+                Ok(mut stream) => {
+                    let data = policy.data_on_connect();
+                    if data.chars().count() > 0 {
+                        stream.write(data.as_bytes());
+                    }
+                    return stream;
+                },
                 Err(error) => error,
             };
 
@@ -80,17 +88,23 @@ impl Socket {
         }
     }
 
-    pub fn write(&mut self, data: &str) -> Result<usize, usize> {
-        let result = self.stream.write(data.as_bytes());
-        match result {
-            Ok(size) => Ok(size),
-            Err(error) => {
-                self.policy.disconnected(&format!("{}",error));
-                // TODO 
-                // TODO reconnect
-                // TODO resend
-                // TODO 
-                Err(0)
+    fn reconnect(&mut self) {
+        let retry_delay = self.policy.retry_delay_after_disconnected();
+        thread::sleep(time::Duration::new(retry_delay, 0));
+        let stream = Self::connect(&*self.policy);
+        self.stream = stream.try_clone().expect("TcpStream");
+        self.reader = BufReader::new(stream.try_clone().expect("TcpStream"));
+    }
+
+    pub fn write(&mut self, data: &str)/* -> Result<usize, usize>*/ {
+        loop {
+            let result = self.stream.write(data.as_bytes());
+            match result {
+                Ok(size) => break,
+                Err(error) => {
+                    self.policy.disconnected(&format!("{}",error));
+                    self.reconnect();
+                }
             }
         }
     }
@@ -98,21 +112,6 @@ impl Socket {
 
 /*
 impl Socket {
-    pub fn new(client: &str, host: &str) -> Self {
-        let client = Client::new(client, host);
-        let stream = client.connect();
-
-        Self {
-            client,
-            stream: stream.try_clone().expect("Failed to clone TCPStream"),
-            reader: BufReader::new(stream),
-        }
-    }
-
-    fn log(&self, message: &str) {
-        self.client.log(message)
-    }
-
     pub fn disconnect(&mut self) -> Result<(), std::io::Error>{
         self.stream.shutdown(Shutdown::Both)
     }
