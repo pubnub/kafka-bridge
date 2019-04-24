@@ -61,10 +61,10 @@ pub struct Socket {
     reader: BufReader<TcpStream>,
 }
 
-pub(crate) struct Line {
-    pub(crate) ok: bool,
-    pub(crate) size: usize,
-    pub(crate) data: String,
+pub struct Line {
+    pub ok: bool,
+    pub size: usize,
+    pub data: String,
 }
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
