@@ -32,8 +32,8 @@ impl SocketPolicy for NATSSocketPolicy {
     fn host(&self) -> &str { &self.host }
 
     // Socket Events
-    fn initialized(&self) {
-        self.log("NATS Initailzield");
+    fn initializing(&self) {
+        self.log("NATS Initializing...");
     }
     fn connected(&self) {
         self.log("NATS Connected Successfully");

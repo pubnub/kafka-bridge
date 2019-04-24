@@ -14,10 +14,12 @@ use std::{thread, time};
 /// ```
 /// use socket::{Socket, SocketPolicy, Line};
 /// 
+/// #[derive(Copy, Clone)]
 /// struct MySocketPolicy {
 ///     channel: &'static str,
 ///     host: &'static str,
 ///     client_id: u64,
+///     other_thing: u64,
 /// }
 /// 
 /// impl SocketPolicy for MySocketPolicy {
@@ -25,13 +27,13 @@ use std::{thread, time};
 ///     fn host(&self) -> &str { &self.host }
 /// 
 ///     // Socket Events
-///     fn initialized(&self) { self.log("NATS Initailzield"); }
+///     fn initializing(&self) { self.log("NATS Initailzield"); }
 ///     fn connected(&self) { self.log("NATS Connected Successfully"); }
 ///     fn disconnected(&self, error: &str) { self.log(error); }
 ///     fn unreachable(&self, error: &str) { self.log(error); }
 /// 
 ///     // Socket Behaviors
-///     fn data_on_connect(&self) -> String { "SUB chan 1\r\n" }
+///     fn data_on_connect(&self) -> String { format!("SUB chan 1\r\n") }
 ///     fn retry_delay_after_disconnected(&self) -> u64 { 1 }
 ///     fn retry_delay_when_unreachable(&self) -> u64 { 1 }
 /// }
@@ -42,7 +44,7 @@ pub trait SocketPolicy {
     fn host(&self) -> &str;
 
     // Events
-    fn initialized(&self) {}
+    fn initializing(&self) {}
     fn connected(&self) {}
     fn disconnected(&self, error: &str) {}
     fn unreachable(&self, error: &str) {}
@@ -73,8 +75,8 @@ pub struct Line {
 /// The user interface for this library.
 ///
 /// ```
-/// pub(crate) struct MyClient {
-///     pub(crate) channel: String,
+/// pub struct MyClient {
+///     pub channel: String,
 ///     socket: Socket,
 /// }
 /// impl MyClient {
@@ -93,14 +95,13 @@ pub struct Line {
 ///     }
 /// }
 /// ```
-///
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 impl Socket {
     pub fn new<P: SocketPolicy + 'static + Copy>(
         client: &str,
         policy: P,
     ) -> Self {
-        policy.initialized();
+        policy.initializing();
         let stream = Self::connect(&policy);
         policy.connected();
 
@@ -205,51 +206,89 @@ impl Socket {
     }
 }
 
-/*
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Tests
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #[cfg(test)]
 mod socket_tests {
     use super::*;
+    use json::object;
 
-    #[test]
-    fn socket_connect_ok() {
-        let host = "www.pubnub.com:80";
-        let client = "http client";
-        let socket = Socket::new(client, host);
-        assert!(socket.client.host == host);
-        assert!(socket.client.client == client);
+    #[derive(Copy, Clone)]
+    struct MySocketPolicy {
+        host: &'static str,
+    }
+
+    impl SocketPolicy for MySocketPolicy {
+        // Socket Attributes
+        fn host(&self) -> &str { &self.host }
+
+        // Socket Events
+        fn initializing(&self) { self.log("NATS Initailzield"); }
+        fn connected(&self) { self.log("NATS Connected Successfully"); }
+        fn disconnected(&self, error: &str) { self.log(error); }
+        fn unreachable(&self, error: &str) { self.log(error); }
+
+        // Socket Behaviors
+        fn data_on_connect(&self) -> String { format!("SUB chan 1\r\n") }
+        fn retry_delay_after_disconnected(&self) -> u64 { 1 }
+        fn retry_delay_when_unreachable(&self) -> u64 { 1 }
+    }
+
+    impl MySocketPolicy {
+        fn log(&self, message: &str) {
+            println!("{}", json::stringify(object!{ 
+                "message" => message,
+                "client" => "MyClient",
+                "host" => self.host.clone(),
+            }));
+        }
     }
 
     #[test]
-    fn socket_write_ok() {
+    fn connect_ok() {
         let host = "www.pubnub.com:80";
-        let mut socket = Socket::new("http client", host);
+        let client = "MyClient";
+        let policy = MySocketPolicy {
+            host: host.into(),
+        };
+        let socket = Socket::new(client, policy);
 
-        let request = "GET / HTTP/1.1\r\nHost: pubnub.com\r\n\r\n";
-        let result = socket.write(&request);
-        assert!(result.is_ok());
-
-        let size = result.unwrap();
-        assert!(size > 0);
+        assert!(socket.host == host);
+        assert!(socket.client == client);
     }
 
     #[test]
-    fn socket_read_and_write_ok() {
+    fn write_ok() {
         let host = "www.pubnub.com:80";
-        let mut socket = Socket::new("http client", host);
-        let request = "GET / HTTP/1.1\r\nHost: pubnub.com\r\n\r\n";
-        let result = socket.write(&request);
-        assert!(result.is_ok());
+        let client = "MyClient";
+        let policy = MySocketPolicy {
+            host: host.into(),
+        };
+        let mut socket = Socket::new(client, policy);
 
-        let line = socket.read_line();
+        let request = "GET / HTTP/1.1\r\nHost: pubnub.com\r\n\r\n";
+        socket.write(request);
+    }
+
+    #[test]
+    fn read_ok() {
+        let host = "www.pubnub.com:80";
+        let client = "MyClient";
+        let policy = MySocketPolicy {
+            host: host.into(),
+        };
+        let mut socket = Socket::new(client, policy);
+
+        let request = "GET / HTTP/1.1\r\nHost: pubnub.com\r\n\r\n";
+        socket.write(request);
+
+        let line = socket.readln();
         assert!(line.ok);
         assert!(line.size > 0);
 
-        let line = socket.read_line();
+        let line = socket.readln();
         assert!(line.ok);
         assert!(line.size > 0);
     }
 }
-*/
