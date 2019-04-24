@@ -2,6 +2,7 @@
 // Imports
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 use crate::socket::{Socket, SocketPolicy};
+use json::object;
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // NATS End-user Interface
@@ -22,28 +23,47 @@ pub(crate) struct NATSMessage {
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 struct NATSSocketPolicy {
     channel: String,
+    host: String,
     client_id: u64,
 }
 impl SocketPolicy for NATSSocketPolicy {
-    fn initialized(&self, mut socket: &Socket) {
-        println!("Initailzield ! ( SocketPolicy ) {}", socket.name);
-        // TODO socket.connect ?
+    // Socket Events
+    fn initialized(&self) {
+        self.log("NATS Initailzield");
     }
-    fn connected(&self, mut socket: &Socket) {
-        println!("Connected ! ( SocketPolicy )");
+    fn connected(&self) {
+        self.log("NATS Connected Successfully");
     }
-    fn disconnected(&self, mut socket: &Socket, message: &str) {}
-    fn unreachable(&self, mut socket: &Socket, message: &str) {
-        println!("Unreachable Host! ( SocketPolicy )");
+    fn disconnected(&self, error: &str) {
+        self.log(error);
     }
-    /*
-    fn log(&self, mut socket: &Socket, message: &str) {
-        eprintln!("{}", json::stringify(object!{ 
+    fn unreachable(&self, error: &str) {
+        self.log(error);
+    }
+
+    // Socket Behaviors
+    fn connect_after_initialized(&self) -> bool {
+        true
+    }
+    fn data_on_connect(&self) -> String {
+        format!("SUB {} {}\r\n", self.channel, self.client_id)
+    }
+    fn reconnect_after_disconnected(&self) -> bool {
+        true
+    }
+    fn retry_when_unreachable(&self) -> bool {
+        true
+    }
+}
+impl NATSSocketPolicy {
+    fn log(&self, message: &str) {
+        println!("{}", json::stringify(object!{ 
             "message" => message,
-            "success" => success
+            "client" => "NATS",
+            "channel" => self.channel.clone(),
+            "host" => self.host.clone(),
         }));
     }
-    */
 }
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -51,7 +71,11 @@ impl SocketPolicy for NATSSocketPolicy {
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 impl NATS {
     pub fn new(host: &str, channel: &str) -> Self {
-        let policy = NATSSocketPolicy {channel: channel.into(), client_id: 0};
+        let policy = NATSSocketPolicy {
+            host: host.into(),
+            channel: channel.into(),
+            client_id: 1, // TODO get ClientID
+        };
         let mut socket = Socket::new("NATS", host.into(), policy);
 
         Self {
@@ -82,21 +106,6 @@ impl NATS {
     }
     */
 }
-
-/*
-impl HasSocketPolicy for NATS {
-    fn connected(&mut self) {
-        println!("{} Connected!", self.socket.name);
-        self.subscribe();
-    }
-    fn disconnected(&mut self) {
-        println!("{} Disconnected!", self.socket.name);
-        println!("{} Reconnecting...", self.socket.name);
-        // self.socket.connect();
-        self.subscribe();
-    }
-}
-*/
 
 /*
 impl Drop for NATS {

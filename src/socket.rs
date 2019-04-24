@@ -4,7 +4,6 @@
 use std::io::{BufRead, BufReader, Write};
 use std::net::{Shutdown, TcpStream};
 use std::{thread, time};
-use json::object;
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 /// # Socket Policy
@@ -13,10 +12,17 @@ use json::object;
 ///
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 pub trait SocketPolicy {
-    fn initialized(&self, mut socket: &Socket) {}
-    fn connected(&self, mut socket: &Socket) {}
-    fn disconnected(&self, mut socket: &Socket, message: &str) {}
-    fn unreachable(&self, mut socket: &Socket, message: &str) {}
+    // Events
+    fn initialized(&self) {}
+    fn connected(&self) {}
+    fn disconnected(&self, error: &str) {}
+    fn unreachable(&self, error: &str) {}
+
+    // Behaviors
+    fn connect_after_initialized(&self) -> bool;
+    fn data_on_connect(&self) -> String;
+    fn reconnect_after_disconnected(&self) -> bool;
+    fn retry_when_unreachable(&self) -> bool;
 }
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -26,7 +32,7 @@ pub trait SocketPolicy {
 ///
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 pub struct Socket {
-    pub name: String,
+    pub client: String,
     pub host: String,
     policy: Box<SocketPolicy>,
     stream: Option<TcpStream>,
@@ -35,19 +41,22 @@ pub struct Socket {
 
 impl Socket {
     pub fn new<P: SocketPolicy + 'static>(
-        name: &str,
+        client: &str,
         host: &str,
         policy: P,
     ) -> Self {
-        let socket = Self {
-            name: name.into(),
+        let mut socket = Self {
+            client: client.into(),
             host: host.into(),
             policy: Box::new(policy),
             stream: None,
             reader: None,
         };
 
-        socket.policy.initialized(&socket);
+        socket.policy.initialized();
+        if socket.policy.connect_after_initialized() {
+            socket.connect();
+        }
 
         socket
     }
@@ -57,29 +66,22 @@ impl Socket {
             let connection = TcpStream::connect(self.host.clone());
             let error = match connection {
                 Ok(stream) => {
-                    // CONNECTININTIlailz
-                    //let policy = self.policy.fisrt();
-                    //for policy in &self.policy {
-                    //}
                     self.stream = Some(stream.try_clone().expect("TcpStream"));
                     self.reader = Some(BufReader::new(
                         stream.try_clone().expect("TcpStream")
                     ));
-                    //self.policy.connected(self);
+                    self.policy.connected();
+                    // TODO 
+                    // TODO self.write(self.policy.data_on_connect());
+                    // TODO 
                     break;
                 },
                 Err(error) => error,
             };
 
-            // LOG ERROR ( call policy)
-            /*
-            Self::log(&format!(
-                "{name} unreachable: {error}",
-                name=name,
-                error=error,
-            ), false);
-            */
-
+            // retry connection until the host becomes available
+            self.policy.unreachable(&format!("{}", error));
+            if !self.policy.retry_when_unreachable() { break; }
             thread::sleep(time::Duration::new(1, 0));
         }
     }
@@ -87,8 +89,8 @@ impl Socket {
 
 /*
 impl Socket {
-    pub fn new(name: &str, host: &str) -> Self {
-        let client = Client::new(name, host);
+    pub fn new(client: &str, host: &str) -> Self {
+        let client = Client::new(client, host);
         let stream = client.connect();
 
         Self {
@@ -153,10 +155,10 @@ mod socket_tests {
     #[test]
     fn socket_connect_ok() {
         let host = "www.pubnub.com:80";
-        let name = "http client";
-        let socket = Socket::new(name, host);
+        let client = "http client";
+        let socket = Socket::new(client, host);
         assert!(socket.client.host == host);
-        assert!(socket.client.name == name);
+        assert!(socket.client.client == client);
     }
 
     #[test]
