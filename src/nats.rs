@@ -77,7 +77,7 @@ impl NATS {
             channel: channel.into(),
             client_id: 1, // TODO get ClientID
         };
-        let socket = Socket::new("NATS", host.into(), policy);
+        let socket = Socket::new("NATS", policy);
 
         Self {
             channel: channel.into(),

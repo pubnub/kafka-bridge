@@ -9,7 +9,30 @@ use std::{thread, time};
 /// # Socket Policy
 ///
 /// Describes what actions a Socket will take for various situations.
-///
+/// The `impl` Struct is where you store state for the socket connection.
+/// 
+/// ```
+/// struct MySocketPolicy {
+///     channel: &'static str,
+///     host: &'static str,
+///     client_id: u64,
+/// }
+/// impl SocketPolicy for MySocketPolicy {
+///     // Socket Attributes
+///     fn host(&self) -> &str { &self.host }
+/// 
+///     // Socket Events
+///     fn initialized(&self) { self.log("NATS Initailzield"); }
+///     fn connected(&self) { self.log("NATS Connected Successfully"); }
+///     fn disconnected(&self, error: &str) { self.log(error); }
+///     fn unreachable(&self, error: &str) { self.log(error); }
+/// 
+///     // Socket Behaviors
+///     fn data_on_connect(&self) -> String { "SUB chan 1\r\n" }
+///     fn retry_delay_after_disconnected(&self) -> u64 { 1 }
+///     fn retry_delay_when_unreachable(&self) -> u64 { 1 }
+/// }
+/// ```
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 pub trait SocketPolicy {
     // Attributes
@@ -32,6 +55,28 @@ pub trait SocketPolicy {
 ///
 /// The user interface for this library.
 ///
+/// ```
+/// pub(crate) struct MyClient {
+///     pub(crate) channel: String,
+///     socket: Socket,
+/// }
+/// impl MyClient {
+///     pub fn new(host: &'static str, channel: &'static str) -> Self {
+///         let policy = MySocketPolicy {
+///             host: host.into(),
+///             channel: channel.into(),
+///             client_id: 1,
+///         };
+///         let socket = Socket::new("MyClient", policy);
+/// 
+///         Self {
+///             channel: channel.into(),
+///             socket: socket,
+///         }
+///     }
+/// }
+/// ```
+///
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 pub struct Socket {
     pub client: String,
@@ -44,23 +89,28 @@ pub struct Socket {
 impl Socket {
     pub fn new<P: SocketPolicy + 'static + Copy>(
         client: &str,
-        host: &str,
         policy: P,
     ) -> Self {
         policy.initialized();
         let stream = Self::connect(&policy);
         policy.connected();
 
-
         Self {
             client: client.into(),
-            host: host.into(),
+            host: policy.host().into(),
             policy: Box::new(policy),
             stream: stream.try_clone().expect("TcpStream"),
             reader: BufReader::new(stream.try_clone().expect("TcpStream")),
         }
     }
 
+    /// ## Disconnect
+    ///
+    /// This will courteously turn off the connection of your socket.
+    ///
+    /// ```
+    /// socket.disconnect();
+    /// ```
     pub fn disconnect(&mut self) {
         self.stream.shutdown(Shutdown::Both).expect("Shutdown");
     }
@@ -96,7 +146,7 @@ impl Socket {
         self.reader = BufReader::new(stream.try_clone().expect("TcpStream"));
     }
 
-    pub fn write(&mut self, data: &str)/* -> Result<usize, usize>*/ {
+    pub fn write(&mut self, data: &str) {
         loop {
             let result = self.stream.write(data.as_bytes());
             match result {
