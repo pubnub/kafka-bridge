@@ -27,6 +27,9 @@ struct NATSSocketPolicy {
     client_id: u64,
 }
 impl SocketPolicy for NATSSocketPolicy {
+    // Attributes
+    fn host(&self) -> &str { &self.host }
+
     // Socket Events
     fn initialized(&self) {
         self.log("NATS Initailzield");
@@ -42,17 +45,14 @@ impl SocketPolicy for NATSSocketPolicy {
     }
 
     // Socket Behaviors
-    fn connect_after_initialized(&self) -> bool {
-        true
-    }
     fn data_on_connect(&self) -> String {
         format!("SUB {} {}\r\n", self.channel, self.client_id)
     }
-    fn reconnect_after_disconnected(&self) -> bool {
-        true
+    fn retry_delay_after_disconnected(&self) -> u64 {
+        1
     }
-    fn retry_when_unreachable(&self) -> bool {
-        true
+    fn retry_delay_when_unreachable(&self) -> u64 {
+        1
     }
 }
 impl NATSSocketPolicy {
@@ -76,7 +76,7 @@ impl NATS {
             channel: channel.into(),
             client_id: 1, // TODO get ClientID
         };
-        let mut socket = Socket::new("NATS", host.into(), policy);
+        let socket = Socket::new("NATS", host.into(), policy);
 
         Self {
             channel: channel.into(),

@@ -12,6 +12,9 @@ use std::{thread, time};
 ///
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 pub trait SocketPolicy {
+    // Attributes
+    fn host(&self) -> &str;
+
     // Events
     fn initialized(&self) {}
     fn connected(&self) {}
@@ -19,10 +22,9 @@ pub trait SocketPolicy {
     fn unreachable(&self, error: &str) {}
 
     // Behaviors
-    fn connect_after_initialized(&self) -> bool;
     fn data_on_connect(&self) -> String;
-    fn reconnect_after_disconnected(&self) -> bool;
-    fn retry_when_unreachable(&self) -> bool;
+    fn retry_delay_after_disconnected(&self) -> u64;
+    fn retry_delay_when_unreachable(&self) -> u64;
 }
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -35,8 +37,8 @@ pub struct Socket {
     pub client: String,
     pub host: String,
     policy: Box<SocketPolicy>,
-    stream: Option<TcpStream>,
-    reader: Option<BufReader<TcpStream>>,
+    stream: TcpStream,
+    reader: BufReader<TcpStream>,
 }
 
 impl Socket {
@@ -45,44 +47,51 @@ impl Socket {
         host: &str,
         policy: P,
     ) -> Self {
-        let mut socket = Self {
+        policy.initialized();
+        let stream = Self::connect(&policy);
+        policy.connected();
+
+        Self {
             client: client.into(),
             host: host.into(),
             policy: Box::new(policy),
-            stream: None,
-            reader: None,
-        };
-
-        socket.policy.initialized();
-        if socket.policy.connect_after_initialized() {
-            socket.connect();
+            stream: stream.try_clone().unwrap(),
+            reader: BufReader::new(stream.try_clone().unwrap()),
         }
-
-        socket
     }
 
-    pub fn connect(&mut self) {
+    pub fn disconnect(&mut self) {
+        self.stream.shutdown(Shutdown::Both).expect("Shutdown");
+    }
+
+    fn connect<P: SocketPolicy + 'static>(policy: &P) -> TcpStream {
+        let retry_delay = policy.retry_delay_when_unreachable();
         loop {
-            let connection = TcpStream::connect(self.host.clone());
+            let host: String = policy.host().into();
+            let connection = TcpStream::connect(host);
             let error = match connection {
-                Ok(stream) => {
-                    self.stream = Some(stream.try_clone().expect("TcpStream"));
-                    self.reader = Some(BufReader::new(
-                        stream.try_clone().expect("TcpStream")
-                    ));
-                    self.policy.connected();
-                    // TODO 
-                    // TODO self.write(self.policy.data_on_connect());
-                    // TODO 
-                    break;
-                },
+                Ok(stream) => return stream,
                 Err(error) => error,
             };
 
-            // retry connection until the host becomes available
-            self.policy.unreachable(&format!("{}", error));
-            if !self.policy.retry_when_unreachable() { break; }
-            thread::sleep(time::Duration::new(1, 0));
+            // Retry connection until the host becomes available
+            policy.unreachable(&format!("{}", error));
+            thread::sleep(time::Duration::new(retry_delay, 0));
+        }
+    }
+
+    pub fn write(&mut self, data: &str) -> Result<usize, usize> {
+        let result = self.stream.write(data.as_bytes());
+        match result {
+            Ok(size) => Ok(size),
+            Err(error) => {
+                self.policy.disconnected(&format!("{}",error));
+                // TODO 
+                // TODO reconnect
+                // TODO resend
+                // TODO 
+                Err(0)
+            }
         }
     }
 }
@@ -115,19 +124,6 @@ impl Socket {
         self.reader = BufReader::new(self.stream.try_clone().unwrap());
     }
 
-    pub fn write(&mut self, data: &str) -> Result<usize, usize> {
-        let result = self.stream.write(data.as_bytes());
-        match result {
-            Ok(size) => Ok(size),
-            Err(error) => {
-                self.log(&format!(
-                    "Lost connection, reconnecting shortly: {}",
-                    error
-                ));
-                Err(0)
-            }
-        }
-    }
 
     pub fn readln(&mut self) -> Line {
         loop {
