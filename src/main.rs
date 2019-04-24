@@ -23,6 +23,7 @@ fn main() {
         nats.publish(channel, "Hello");
         let message = nats.next_message();
         counter+=1;
+        if !message.ok { continue }
         assert!(message.ok);
         println!(
             "[ {count} ] Channel:{channel} -> message:{message}",
