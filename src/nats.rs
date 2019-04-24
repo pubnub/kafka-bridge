@@ -9,6 +9,7 @@ use json::object;
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 pub(crate) struct NATS {
     pub(crate) channel: String,
+    policy: NATSSocketPolicy,
     socket: Socket,
 }
 pub(crate) struct NATSMessage {
@@ -78,16 +79,18 @@ impl NATS {
             client_id: 1, // TODO get ClientID
         };
         let socket = Socket::new("NATS", policy);
+        let natspolicy = policy;
 
         Self {
             channel: channel.into(),
+            policy: natspolicy,
             socket: socket,
         }
     }
 
     fn subscribe(&mut self) {
         println!("SUB {} 1\r\n", self.channel);
-        //let subscription = format!("SUB {} 1\r\n", self.channel);
+        let subscription = format!("SUB {} 1\r\n", self.policy.channel);
         //self.socket.write(&subscription).expect("Unable to write to NATS socket");
     }
 
