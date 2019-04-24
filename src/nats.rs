@@ -17,6 +17,7 @@ pub(crate) struct NATSMessage {
     pub(crate) my_id: String,
     pub(crate) sender_id: String,
     pub(crate) data: String,
+    pub(crate) ok: bool,
 }
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -78,8 +79,10 @@ impl NATS {
             channel: channel.into(),
             client_id: 1, // TODO get ClientID
         };
-        let socket = Socket::new("NATS", policy);
+        let mut socket = Socket::new("NATS", policy);
         let natspolicy = policy;
+        let info = socket.readln();
+        // TODO use info
 
         Self {
             channel: channel.into(),
@@ -88,27 +91,47 @@ impl NATS {
         }
     }
 
-    fn subscribe(&mut self) {
-        println!("SUB {} 1\r\n", self.channel);
-        let subscription = format!("SUB {} 1\r\n", self.policy.channel);
-        //self.socket.write(&subscription).expect("Unable to write to NATS socket");
+    pub fn publish(&mut self, channel: &str, data: &str) {
+        self.socket.write(&format!(
+            "PUB {channel} {length}\r\n{data}\r\n",
+            channel=self.channel,
+            length=data.chars().count(),
+            data=data,
+        ));
     }
 
-    /*
-    pub fn next_message(&mut self) -> Result<NATSMessage, std::io::Error> {
-        Ok(loop {
-
-            // create socket lib that is durable and implemetns the common
-            // read/write and reconnect on errors.
-            let line = self.socket.read_line();
-
+    // TODO VEC
+    pub fn next_message(&mut self) -> NATSMessage {
+        loop {
+            let line = self.socket.readln();
             if line.size <= 0 { continue; }
 
-        nats.socket.connect();
+            let mut detail = line.data.split_whitespace();
+            let command = detail.next();
+            if Some("PING") == command { self.socket.write("PONG\r\n"); }
+            if Some("MSG") != command { continue; }
 
-        nats
+            let line = self.socket.readln();
+            if !line.ok { continue; }
+
+            // TODO Check length of detail iterator
+            // TODO vecotr collection dealio
+            break NATSMessage {
+                channel: detail.next().unwrap().into(),
+                my_id: detail.next().unwrap().into(),
+                sender_id: detail.next().unwrap().into(),
+                data: line.data.trim().into(),
+                ok: true,
+            };
+        }
     }
-    */
+
+    #[cfg(test)]
+    pub fn ping(&mut self) -> String {
+        self.socket.write(&format!("PING"));
+        let ok = self.socket.readln();
+        ok.data
+    }
 }
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -120,9 +143,6 @@ impl Drop for NATS {
     }
 }
 
-/*
-*/
-
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Tests
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -132,7 +152,7 @@ mod tests {
 
     #[test]
     fn create_ok() {
-        let channel = "demo-channel";
+        let channel = "demo";
         let host = "0.0.0.0:4222";
         let nats = NATS::new(host, channel);
 
@@ -142,24 +162,26 @@ mod tests {
 
     #[test]
     fn subscribe_ok() {
-        let channel = "demo-channel";
+        let channel = "demo";
         let host = "0.0.0.0:4222";
         let mut nats = NATS::new(host, channel);
 
-        nats.subscribe();
-
         assert!(nats.socket.host == host);
         assert!(nats.channel == channel);
+
+        // TODO write then read?
+        nats.publish(channel, "Hello");
+        let message = nats.next_message();
+        assert!(message.ok);
     }
 
-
-    /*
     #[test]
     fn ping_ok() {
+        let channel = "demo";
         let host = "0.0.0.0:4222";
-        let mut nats = NATS::new(host, "demo");
-        //let pong = nats.ping();
-        //assert!(pong == "PONG");
+        let mut nats = NATS::new(host, channel);
+
+        let pong = nats.ping();
+        assert!(pong == "+OK\r\n");
     }
-    */
 }
