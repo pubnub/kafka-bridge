@@ -53,6 +53,20 @@ pub trait SocketPolicy {
     fn retry_delay_when_unreachable(&self) -> u64;
 }
 
+pub struct Socket {
+    pub client: String,
+    pub host: String,
+    policy: Box<SocketPolicy>,
+    stream: TcpStream,
+    reader: BufReader<TcpStream>,
+}
+
+pub(crate) struct Line {
+    pub(crate) ok: bool,
+    pub(crate) size: usize,
+    pub(crate) data: String,
+}
+
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 /// # Socket
 ///
@@ -81,20 +95,6 @@ pub trait SocketPolicy {
 /// ```
 ///
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-pub struct Socket {
-    pub client: String,
-    pub host: String,
-    policy: Box<SocketPolicy>,
-    stream: TcpStream,
-    reader: BufReader<TcpStream>,
-}
-
-pub(crate) struct Line {
-    pub(crate) ok: bool,
-    pub(crate) size: usize,
-    pub(crate) data: String,
-}
-
 impl Socket {
     pub fn new<P: SocketPolicy + 'static + Copy>(
         client: &str,
@@ -206,21 +206,6 @@ impl Socket {
 }
 
 /*
-impl Socket {
-    pub fn disconnect(&mut self) -> Result<(), std::io::Error>{
-        self.stream.shutdown(Shutdown::Both)
-    }
-
-    fn reconnect(&mut self) {
-        self.log("Lost connection, reconnecting.");
-        thread::sleep(time::Duration::new(1, 0));
-        self.stream = self.client.connect();
-        self.reader = BufReader::new(self.stream.try_clone().unwrap());
-    }
-
-
-}
-
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Tests
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
