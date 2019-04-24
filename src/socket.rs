@@ -12,11 +12,14 @@ use std::{thread, time};
 /// The `impl` Struct is where you store state for the socket connection.
 /// 
 /// ```
+/// use socket::{Socket, SocketPolicy, Line};
+/// 
 /// struct MySocketPolicy {
 ///     channel: &'static str,
 ///     host: &'static str,
 ///     client_id: u64,
 /// }
+/// 
 /// impl SocketPolicy for MySocketPolicy {
 ///     // Socket Attributes
 ///     fn host(&self) -> &str { &self.host }
@@ -86,6 +89,12 @@ pub struct Socket {
     reader: BufReader<TcpStream>,
 }
 
+pub(crate) struct Line {
+    pub(crate) ok: bool,
+    pub(crate) size: usize,
+    pub(crate) data: String,
+}
+
 impl Socket {
     pub fn new<P: SocketPolicy + 'static + Copy>(
         client: &str,
@@ -101,6 +110,55 @@ impl Socket {
             policy: Box::new(policy),
             stream: stream.try_clone().expect("TcpStream"),
             reader: BufReader::new(stream.try_clone().expect("TcpStream")),
+        }
+    }
+
+    /// ## Write Data
+    ///
+    /// Write string data to the stream.
+    ///
+    /// ```
+    /// let request = "GET / HTTP/1.1\r\nHost: pubnub.com\r\n\r\n";
+    /// socket.write(&request);
+    /// 
+    /// let line = socket.readln();
+    /// assert!(line.ok);
+    /// assert!(line.size > 0);
+    /// ```
+    pub fn write(&mut self, data: &str) {
+        loop {
+            let result = self.stream.write(data.as_bytes());
+            match result {
+                Ok(size) => break,
+                Err(error) => {
+                    self.policy.disconnected(&format!("{}",error));
+                    self.reconnect();
+                }
+            }
+        }
+    }
+
+    /// ## Read Line
+    ///
+    /// Read a line of data from the stream.
+    ///
+    /// ```
+    /// let line = socket.readln();
+    /// assert!(line.ok);
+    /// assert!(line.size > 0);
+    /// ```
+    pub fn readln(&mut self) -> Line {
+        loop {
+            let mut line = String::new();
+            let result   = self.reader.read_line(&mut line);
+            let size     = result.unwrap_or_else( |_| 0 );
+
+            if size == 0 {
+                self.reconnect();
+                break Line { ok: false, size: size, data: line };
+            }
+
+            break Line { ok: true, size: size, data: line };
         }
     }
 
@@ -145,19 +203,6 @@ impl Socket {
         self.stream = stream.try_clone().expect("TcpStream");
         self.reader = BufReader::new(stream.try_clone().expect("TcpStream"));
     }
-
-    pub fn write(&mut self, data: &str) {
-        loop {
-            let result = self.stream.write(data.as_bytes());
-            match result {
-                Ok(size) => break,
-                Err(error) => {
-                    self.policy.disconnected(&format!("{}",error));
-                    self.reconnect();
-                }
-            }
-        }
-    }
 }
 
 /*
@@ -174,20 +219,6 @@ impl Socket {
     }
 
 
-    pub fn readln(&mut self) -> Line {
-        loop {
-            let mut line = String::new();
-            let result   = self.reader.read_line(&mut line);
-            let size     = result.unwrap_or_else( |_| 0 );
-
-            if size == 0 {
-                Self::reconnect(self);
-                break Line { ok: false, size: size, data: line };
-            }
-
-            break Line { ok: true, size: size, data: line };
-        }
-    }
 }
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
