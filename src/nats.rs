@@ -29,35 +29,25 @@ struct NATSSocketPolicy {
     host: &'static str,
     client_id: u64,
 }
+
 impl SocketPolicy for NATSSocketPolicy {
     // Socket Attributes
     fn host(&self) -> &str { &self.host }
 
     // Socket Events
-    fn initializing(&self) {
-        self.log("NATS Initializing...");
-    }
-    fn connected(&self) {
-        self.log("NATS Connected Successfully");
-    }
-    fn disconnected(&self, error: &str) {
-        self.log(error);
-    }
-    fn unreachable(&self, error: &str) {
-        self.log(error);
-    }
+    fn initializing(&self) { self.log("NATS Initializing..."); }
+    fn connected(&self) { self.log("NATS Connected Successfully"); }
+    fn disconnected(&self, error: &str) { self.log(error); }
+    fn unreachable(&self, error: &str) { self.log(error); }
 
     // Socket Behaviors
     fn data_on_connect(&self) -> String {
         format!("SUB {} {}\r\n", self.channel, self.client_id)
     }
-    fn retry_delay_after_disconnected(&self) -> u64 {
-        1
-    }
-    fn retry_delay_when_unreachable(&self) -> u64 {
-        1
-    }
+    fn retry_delay_after_disconnected(&self) -> u64 { 1 }
+    fn retry_delay_when_unreachable(&self) -> u64 { 1 }
 }
+
 impl NATSSocketPolicy {
     fn log(&self, message: &str) {
         println!("{}", json::stringify(object!{ 
@@ -70,14 +60,27 @@ impl NATSSocketPolicy {
 }
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-// NATS
+/// # NATS
+/// 
+/// This client lib offers *durable* publish and subscribe support to NATS.
+/// 
+/// ```
+/// let mut nats = nats::NATS::new("0.0.0.0:4222", "demo");
+/// 
+/// loop {
+///     let message = nats.next_message();
+///     assert!(message.ok);
+///     println!("{} -> {}", message.channel, message.data);
+/// }
+/// ```
+/// 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 impl NATS {
     pub fn new(host: &'static str, channel: &'static str) -> Self {
         let policy = NATSSocketPolicy {
             host: host.into(),
             channel: channel.into(),
-            client_id: 1, // TODO get ClientID
+            client_id: 1, // TODO get ClientID from `info`
         };
         let mut socket = Socket::new("NATS", policy);
         let natspolicy = policy;
@@ -169,7 +172,6 @@ mod tests {
         assert!(nats.socket.host == host);
         assert!(nats.channel == channel);
 
-        // TODO write then read?
         nats.publish(channel, "Hello");
         let message = nats.next_message();
         assert!(message.ok);

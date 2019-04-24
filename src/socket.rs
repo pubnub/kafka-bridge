@@ -27,7 +27,7 @@ use std::{thread, time};
 ///     fn host(&self) -> &str { &self.host }
 /// 
 ///     // Socket Events
-///     fn initializing(&self) { self.log("NATS Initailzield"); }
+///     fn initializing(&self) { self.log("NATS Initializing"); }
 ///     fn connected(&self) { self.log("NATS Connected Successfully"); }
 ///     fn disconnected(&self, error: &str) { self.log(error); }
 ///     fn unreachable(&self, error: &str) { self.log(error); }
@@ -224,7 +224,7 @@ mod socket_tests {
         fn host(&self) -> &str { &self.host }
 
         // Socket Events
-        fn initializing(&self) { self.log("NATS Initailzield"); }
+        fn initializing(&self) { self.log("NATS Initializing"); }
         fn connected(&self) { self.log("NATS Connected Successfully"); }
         fn disconnected(&self, error: &str) { self.log(error); }
         fn unreachable(&self, error: &str) { self.log(error); }
