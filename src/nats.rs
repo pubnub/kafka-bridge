@@ -97,7 +97,7 @@ impl NATS {
     pub fn publish(&mut self, channel: &str, data: &str) {
         self.socket.write(&format!(
             "PUB {channel} {length}\r\n{data}\r\n",
-            channel=self.channel,
+            channel=channel,
             length=data.chars().count(),
             data=data,
         ));

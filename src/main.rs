@@ -15,12 +15,21 @@ mod nats;
 // Main
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 fn main() {
-    let mut nats = nats::NATS::new("0.0.0.0:4222", "demo");
+    let channel = "demo";
+    let mut counter = 0;
+    let mut nats = nats::NATS::new("0.0.0.0:4222", channel);
 
     loop {
+        nats.publish(channel, "Hello");
         let message = nats.next_message();
+        counter+=1;
         assert!(message.ok);
-        println!("{} -> {}", message.channel, message.data);
+        println!(
+            "[ {count} ] Channel:{channel} -> message:{message}",
+            count=counter,
+            channel=message.channel,
+            message=message.data
+        );
     }
 
     //let pubnub = pubnub::PubNub::new("psdsn.pubnub.com", "demo");
