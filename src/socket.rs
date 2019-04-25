@@ -209,7 +209,7 @@ impl Socket {
                             error
                         }
                     }
-                },
+                }
                 Err(error) => error,
             };
 
