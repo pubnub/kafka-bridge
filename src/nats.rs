@@ -39,6 +39,7 @@ impl SocketPolicy for NATSSocketPolicy {
     fn connected(&self) { self.log("NATS Connected Successfully"); }
     fn disconnected(&self, error: &str) { self.log(error); }
     fn unreachable(&self, error: &str) { self.log(error); }
+    fn unwritable(&self, error: &str) { self.log(error); }
 
     // Socket Behaviors
     fn data_on_connect(&self) -> String {
@@ -85,6 +86,7 @@ impl NATS {
         let mut socket = Socket::new("NATS", policy);
         let natspolicy = policy;
         let info = socket.readln();
+        println!("{}",info.data);
         // TODO use info
 
         Self {

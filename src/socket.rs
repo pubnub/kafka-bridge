@@ -31,6 +31,7 @@ use std::{thread, time};
 ///     fn connected(&self) { self.log("NATS Connected Successfully"); }
 ///     fn disconnected(&self, error: &str) { self.log(error); }
 ///     fn unreachable(&self, error: &str) { self.log(error); }
+///     fn unwritable(&self, error: &str) { self.log(error); }
 /// 
 ///     // Socket Behaviors
 ///     fn data_on_connect(&self) -> String { format!("SUB chan 1\r\n") }
@@ -44,15 +45,16 @@ pub trait SocketPolicy {
     fn host(&self) -> &str;
 
     // Events
-    fn initializing(&self) {}
-    fn connected(&self) {}
-    fn disconnected(&self, error: &str) {}
-    fn unreachable(&self, error: &str) {}
+    fn initializing(&self) { println!("initializing"); }
+    fn connected(&self) { println!("initializing"); }
+    fn disconnected(&self, error: &str) { eprintln!("{:?}",error); }
+    fn unreachable(&self, error: &str) { eprintln!("{:?}",error); }
+    fn unwritable(&self, error: &str) { eprintln!("{:?}",error); }
 
     // Behaviors
-    fn data_on_connect(&self) -> String;
-    fn retry_delay_after_disconnected(&self) -> u64;
-    fn retry_delay_when_unreachable(&self) -> u64;
+    fn data_on_connect(&self) -> String { format!("") }
+    fn retry_delay_after_disconnected(&self) -> u64 { 1 }
+    fn retry_delay_when_unreachable(&self) -> u64 { 1 }
 }
 
 pub struct Socket {
@@ -97,7 +99,7 @@ pub struct Line {
 /// ```
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 impl Socket {
-    pub fn new<P: SocketPolicy + 'static + Copy>(
+    pub fn new<P: SocketPolicy + 'static + Copy>( // TODO remove copy?
         client: &str,
         policy: P,
     ) -> Self {
@@ -130,12 +132,17 @@ impl Socket {
         loop {
             let result = self.stream.write(data.as_bytes());
             match result {
-                Ok(size) => break,
+                Ok(size) => {
+                    if size > 0 { break; }
+                    self.policy.disconnected(&format!("No data has been written."));
+                    self.reconnect();
+                }
                 Err(error) => {
+                    self.policy.unwritable(&format!("{}", error));
                     self.policy.disconnected(&format!("{}",error));
                     self.reconnect();
                 }
-            }
+            };
         }
     }
 
@@ -183,10 +190,25 @@ impl Socket {
             let error = match connection {
                 Ok(mut stream) => {
                     let data = policy.data_on_connect();
-                    if data.chars().count() > 0 {
-                        stream.write(data.as_bytes());
+                    if data.chars().count() == 0 { return stream; }
+                    let result = stream.write(data.as_bytes());
+                    match result {
+                        Ok(size) => {
+                            if size > 0 { return stream; }
+                            else {
+                                let error = std::io::Error::new(
+                                    std::io::ErrorKind::WriteZero,
+                                    "Unwritable"
+                                );
+                                policy.unwritable(&format!("{}", error));
+                                error
+                            }
+                        }
+                        Err(error) => {
+                            policy.unwritable(&format!("{}", error));
+                            error
+                        }
                     }
-                    return stream;
                 },
                 Err(error) => error,
             };
