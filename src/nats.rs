@@ -94,6 +94,18 @@ impl NATS {
         }
     }
 
+    /// ## Send NATS Messages
+    /// 
+    /// Easy way to send messages to any NATS channel.
+    /// 
+    /// ```
+    /// let mut nats = nats::NATS::new("0.0.0.0:4222", channel);
+    /// nats.publish(channel, "Hello");
+    /// let message = nats.next_message();
+    /// assert!(message.ok);
+    /// assert!(message.data == "Hello");
+    /// println!(message.data);
+    /// ```
     pub fn publish(&mut self, channel: &str, data: &str) {
         self.socket.write(&format!(
             "PUB {channel} {length}\r\n{data}\r\n",
@@ -103,13 +115,24 @@ impl NATS {
         ));
     }
 
-    // TODO VEC
+    /// ## Receive NATS Messages
+    /// 
+    /// Easy way to get messages from the initialized channel.
+    /// 
+    /// ```
+    /// let mut nats = nats::NATS::new("0.0.0.0:4222", channel);
+    /// nats.publish(channel, "Hello");
+    /// let message = nats.next_message();
+    /// assert!(message.ok);
+    /// assert!(message.data == "Hello");
+    /// println!(message.data);
+    /// ```
     pub fn next_message(&mut self) -> NATSMessage {
         loop {
             let line = self.socket.readln();
             if line.size <= 0 { continue; }
 
-            let mut detail = line.data.split_whitespace();
+            let mut detail = line.data.trim().split_whitespace();
             let command = detail.next();
             if Some("PING") == command { self.socket.write("PONG\r\n"); }
             if Some("MSG") != command { continue; }
