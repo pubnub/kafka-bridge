@@ -1,21 +1,21 @@
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Imports
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-use crate::socket::{Socket, SocketPolicy, Line};
+use crate::socket::{Socket, SocketPolicy};
 use json::object;
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // NATS End-user Interface
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 pub(crate) struct NATS {
-    pub(crate) channel: String,
-    policy: NATSSocketPolicy,
+    //pub channel: String,
+    //policy: NATSSocketPolicy,
     socket: Socket,
 }
 pub(crate) struct NATSMessage {
     pub(crate) channel: String,
-    pub(crate) my_id: String,
-    pub(crate) sender_id: String,
+    pub(crate) _my_id: String,
+    pub(crate) _sender_id: String,
     pub(crate) data: String,
     pub(crate) ok: bool,
 }
@@ -84,14 +84,14 @@ impl NATS {
             client_id: 1, // TODO get ClientID from `info`
         };
         let mut socket = Socket::new("NATS", policy);
-        let natspolicy = policy;
+        //let natspolicy = policy;
         let info = socket.readln();
         println!("{}",info.data);
         // TODO use info
 
         Self {
-            channel: channel.into(),
-            policy: natspolicy,
+            //channel: channel.into(),
+            //policy: natspolicy,
             socket: socket,
         }
     }
@@ -146,8 +146,8 @@ impl NATS {
             // TODO vecotr collection dealio
             break NATSMessage {
                 channel: detail.next().unwrap().into(),
-                my_id: detail.next().unwrap().into(),
-                sender_id: detail.next().unwrap().into(),
+                _my_id: detail.next().unwrap().into(),
+                _sender_id: detail.next().unwrap().into(),
                 data: line.data.trim().into(),
                 ok: true,
             };

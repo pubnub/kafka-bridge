@@ -99,7 +99,7 @@ pub struct Line {
 /// ```
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 impl Socket {
-    pub fn new<P: SocketPolicy + 'static + Copy>( // TODO remove copy?
+    pub fn new<P: SocketPolicy + 'static>( // TODO remove copy?
         client: &str,
         policy: P,
     ) -> Self {
