@@ -1,118 +1,166 @@
-// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-// Imports
-// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 use std::io::{BufRead, BufReader, Write};
 use std::net::{Shutdown, TcpStream};
 use std::{thread, time};
 
-// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 /// # Socket Policy
 ///
 /// Describes what actions a Socket will take for various situations.
-/// The `impl` Struct is where you store state for the socket connection.
-/// 
-/// ```
-/// use socket::{Socket, SocketPolicy, Line};
-/// 
-/// #[derive(Copy, Clone)]
+/// This is where you store state for the socket connection.
+///
+/// ```private
+/// use nats_bridge::socket::{Socket, Policy, Line};
+///
 /// struct MySocketPolicy {
-///     channel: &'static str,
-///     host: &'static str,
+///     channel: String,
+///     host: String,
 ///     client_id: u64,
 ///     other_thing: u64,
 /// }
-/// 
-/// impl SocketPolicy for MySocketPolicy {
+///
+/// impl MySocketPolicy {
+///     fn log(&self, message: &str) {
+///         println!("{}", message);
+///     }
+/// }
+///
+/// impl Policy for MySocketPolicy {
 ///     // Socket Attributes
-///     fn host(&self) -> &str { &self.host }
-/// 
+///     fn host(&self) -> &str {
+///         &self.host
+///     }
+///
 ///     // Socket Events
-///     fn initializing(&self) { self.log("NATS Initializing"); }
-///     fn connected(&self) { self.log("NATS Connected Successfully"); }
-///     fn disconnected(&self, error: &str) { self.log(error); }
-///     fn unreachable(&self, error: &str) { self.log(error); }
-///     fn unwritable(&self, error: &str) { self.log(error); }
-/// 
+///     fn initializing(&self) {
+///         self.log("NATS Initializing");
+///     }
+///     fn connected(&self) {
+///         self.log("NATS Connected Successfully");
+///     }
+///     fn disconnected(&self, error: &str) {
+///         self.log(error);
+///     }
+///     fn unreachable(&self, error: &str) {
+///         self.log(error);
+///     }
+///     fn unwritable(&self, error: &str) {
+///         self.log(error);
+///     }
+///
 ///     // Socket Behaviors
-///     fn data_on_connect(&self) -> String { format!("SUB chan 1\r\n") }
-///     fn retry_delay_after_disconnected(&self) -> u64 { 1 }
-///     fn retry_delay_when_unreachable(&self) -> u64 { 1 }
+///     fn data_on_connect(&self) -> String {
+///         "SUB chan 1\r\n".to_string()
+///     }
+///     fn retry_delay_after_disconnected(&self) -> u64 {
+///         1
+///     }
+///     fn retry_delay_when_unreachable(&self) -> u64 {
+///         1
+///     }
 /// }
 /// ```
-// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-pub trait SocketPolicy {
+pub(crate) trait Policy {
     // Attributes
     fn host(&self) -> &str;
 
     // Events
-    fn initializing(&self) { println!("initializing"); }
-    fn connected(&self) { println!("initializing"); }
-    fn disconnected(&self, error: &str) { eprintln!("{:?}",error); }
-    fn unreachable(&self, error: &str) { eprintln!("{:?}",error); }
-    fn unwritable(&self, error: &str) { eprintln!("{:?}",error); }
+    fn initializing(&self) {
+        println!("initializing");
+    }
+    fn connected(&self) {
+        println!("connected");
+    }
+    fn disconnected(&self, error: &str) {
+        eprintln!("{}", error);
+    }
+    fn unreachable(&self, error: &str) {
+        eprintln!("{}", error);
+    }
+    fn unwritable(&self, error: &str) {
+        eprintln!("{}", error);
+    }
 
     // Behaviors
-    fn data_on_connect(&self) -> String { format!("") }
-    fn retry_delay_after_disconnected(&self) -> u64 { 1 }
-    fn retry_delay_when_unreachable(&self) -> u64 { 1 }
+    fn data_on_connect(&self) -> String {
+        "".into()
+    }
+    fn retry_delay_after_disconnected(&self) -> u64 {
+        1
+    }
+    fn retry_delay_when_unreachable(&self) -> u64 {
+        1
+    }
 }
 
-pub struct Socket {
-    pub client: String,
-    pub host: String,
-    policy: Box<SocketPolicy>,
+pub(crate) struct Socket<P: Policy> {
+    policy: P,
     stream: TcpStream,
     reader: BufReader<TcpStream>,
 }
 
-pub struct Line {
-    pub ok: bool,
-    pub size: usize,
-    pub data: String,
+pub(crate) struct Line {
+    pub(crate) ok: bool,
+    pub(crate) data: String,
 }
 
-// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+fn connect<P: Policy>(policy: &P) -> TcpStream {
+    let retry_delay = policy.retry_delay_when_unreachable();
+    loop {
+        // Open connection and send initialization data
+        let host: String = policy.host().into();
+        let error = match TcpStream::connect(host) {
+            Ok(mut stream) => {
+                let data = policy.data_on_connect();
+                if data.is_empty() {
+                    return stream;
+                }
+                match stream.write(data.as_bytes()) {
+                    Ok(size) => {
+                        if size > 0 {
+                            return stream;
+                        }
+                        std::io::Error::new(std::io::ErrorKind::WriteZero, "Unwritable")
+                    }
+                    Err(error) => error
+                }
+            }
+            Err(error) => error,
+        };
+
+        // Retry connection until the host becomes available
+        policy.unreachable(&format!("{}", error));
+        thread::sleep(time::Duration::new(retry_delay, 0));
+    }
+}
+
 /// # Socket
 ///
 /// The user interface for this library.
 ///
-/// ```
-/// pub struct MyClient {
-///     pub channel: String,
-///     socket: Socket,
+/// ```private
+/// use nats_bridge::socket::{Policy, Socket};
+///
+/// struct MySocketPolicy {
+///     host: String,
 /// }
-/// impl MyClient {
-///     pub fn new(host: &'static str, channel: &'static str) -> Self {
-///         let policy = MySocketPolicy {
-///             host: host.into(),
-///             channel: channel.into(),
-///             client_id: 1,
-///         };
-///         let socket = Socket::new("MyClient", policy);
-/// 
-///         Self {
-///             channel: channel.into(),
-///             socket: socket,
-///         }
+///
+/// impl Policy for MySocketPolicy {
+///     fn host(&self) -> &str {
+///         &self.host
 ///     }
 /// }
+///
+/// let policy = MySocketPolicy {
+///     host: "pubsub.pubnub.com:80".to_string(),
+/// };
+/// let socket = Socket::new(policy);
 /// ```
-// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-impl Socket {
-    pub fn new<P: SocketPolicy + 'static>( // TODO remove copy?
-        client: &str,
-        policy: P,
-    ) -> Self {
-        policy.initializing();
-        let stream = Self::connect(&policy);
-        policy.connected();
-
+impl<P: Policy> Socket<P> {
+    pub(crate) fn new(policy: P) -> Self {
+        let stream = connect(&policy);
         Self {
-            client: client.into(),
-            host: policy.host().into(),
-            policy: Box::new(policy),
-            stream: stream.try_clone().expect("TcpStream"),
-            reader: BufReader::new(stream.try_clone().expect("TcpStream")),
+            policy,
+            stream: stream.try_clone().expect("Unable to clone stream"),
+            reader: BufReader::new(stream),
         }
     }
 
@@ -120,26 +168,38 @@ impl Socket {
     ///
     /// Write string data to the stream.
     ///
-    /// ```
+    /// ```private
+    /// # use nats_bridge::socket::{Policy, Socket};
+    /// # struct MySocketPolicy {
+    /// #     host: String,
+    /// # }
+    /// # impl Policy for MySocketPolicy {
+    /// #     fn host(&self) -> &str {
+    /// #         &self.host
+    /// #     }
+    /// # }
+    /// # let policy = MySocketPolicy {
+    /// #     host: "pubsub.pubnub.com:80".into(),
+    /// # };
+    /// # let mut socket = Socket::new(policy);
     /// let request = "GET / HTTP/1.1\r\nHost: pubnub.com\r\n\r\n";
-    /// socket.write(&request);
-    /// 
-    /// let line = socket.readln();
-    /// assert!(line.ok);
-    /// assert!(line.size > 0);
+    /// socket.write(request);
     /// ```
-    pub fn write(&mut self, data: &str) {
+    pub(crate) fn write(&mut self, data: &str) {
         loop {
             let result = self.stream.write(data.as_bytes());
             match result {
                 Ok(size) => {
-                    if size > 0 { break; }
-                    self.policy.disconnected(&format!("No data has been written."));
+                    if size > 0 {
+                        break;
+                    }
+                    self.policy.disconnected("No data has been written.");
                     self.reconnect();
                 }
                 Err(error) => {
-                    self.policy.unwritable(&format!("{}", error));
-                    self.policy.disconnected(&format!("{}",error));
+                    let error = format!("{}", error);
+                    self.policy.unwritable(&error);
+                    self.policy.disconnected(&error);
                     self.reconnect();
                 }
             };
@@ -150,23 +210,40 @@ impl Socket {
     ///
     /// Read a line of data from the stream.
     ///
-    /// ```
+    /// ```private
+    /// # use nats_bridge::socket::{Policy, Socket};
+    /// # struct MySocketPolicy {
+    /// #     host: String,
+    /// # }
+    /// # impl Policy for MySocketPolicy {
+    /// #     fn host(&self) -> &str {
+    /// #         &self.host
+    /// #     }
+    /// # }
+    /// # let policy = MySocketPolicy {
+    /// #     host: "pubsub.pubnub.com:80".into(),
+    /// # };
+    /// # let mut socket = Socket::new(policy);
+    /// # let request = "GET / HTTP/1.1\r\nHost: pubnub.com\r\n\r\n";
+    /// # socket.write(request);
     /// let line = socket.readln();
-    /// assert!(line.ok);
-    /// assert!(line.size > 0);
     /// ```
-    pub fn readln(&mut self) -> Line {
-        loop {
-            let mut line = String::new();
-            let result   = self.reader.read_line(&mut line);
-            let size     = result.unwrap_or_else( |_| 0 );
+    pub(crate) fn readln(&mut self) -> Line {
+        let mut line = String::new();
+        let result = self.reader.read_line(&mut line);
+        let size = result.unwrap_or_else(|_| 0);
 
-            if size == 0 {
-                self.reconnect();
-                break Line { ok: false, size: size, data: line };
-            }
+        if size == 0 {
+            self.reconnect();
+            return Line {
+                ok: false,
+                data: line,
+            };
+        }
 
-            break Line { ok: true, size: size, data: line };
+        Line {
+            ok: true,
+            data: line,
         }
     }
 
@@ -174,120 +251,88 @@ impl Socket {
     ///
     /// This will courteously turn off the connection of your socket.
     ///
-    /// ```
+    /// ```private
+    /// # use nats_bridge::socket::{Policy, Socket};
+    /// # struct MySocketPolicy {
+    /// #     host: String,
+    /// # }
+    /// # impl Policy for MySocketPolicy {
+    /// #     fn host(&self) -> &str {
+    /// #         &self.host
+    /// #     }
+    /// # }
+    /// # let policy = MySocketPolicy {
+    /// #     host: "pubsub.pubnub.com:80".into(),
+    /// # };
+    /// # let mut socket = Socket::new(policy);
     /// socket.disconnect();
     /// ```
-    pub fn disconnect(&mut self) {
-        self.stream.shutdown(Shutdown::Both).expect("Shutdown");
-    }
-
-    fn connect<P: SocketPolicy + 'static + ?Sized>(policy: &P) -> TcpStream {
-        let retry_delay = policy.retry_delay_when_unreachable();
-        loop {
-            // Open connection and send initialization data
-            let host: String = policy.host().into();
-            let connection = TcpStream::connect(host);
-            let error = match connection {
-                Ok(mut stream) => {
-                    let data = policy.data_on_connect();
-                    if data.chars().count() == 0 { return stream; }
-                    let result = stream.write(data.as_bytes());
-                    match result {
-                        Ok(size) => {
-                            if size > 0 { return stream; }
-                            else {
-                                let error = std::io::Error::new(
-                                    std::io::ErrorKind::WriteZero,
-                                    "Unwritable"
-                                );
-                                policy.unwritable(&format!("{}", error));
-                                error
-                            }
-                        }
-                        Err(error) => {
-                            policy.unwritable(&format!("{}", error));
-                            error
-                        }
-                    }
-                }
-                Err(error) => error,
-            };
-
-            // Retry connection until the host becomes available
-            policy.unreachable(&format!("{}", error));
-            thread::sleep(time::Duration::new(retry_delay, 0));
-        }
+    pub(crate) fn disconnect(&mut self) {
+        self.stream.shutdown(Shutdown::Both).unwrap_or_default();
     }
 
     fn reconnect(&mut self) {
         let retry_delay = self.policy.retry_delay_after_disconnected();
         thread::sleep(time::Duration::new(retry_delay, 0));
-        let stream = Self::connect(&*self.policy);
-        self.stream = stream.try_clone().expect("TcpStream");
-        self.reader = BufReader::new(stream.try_clone().expect("TcpStream"));
+        let stream = connect(&self.policy);
+        self.stream = stream.try_clone().expect("Unable to clone stream");
+        self.reader = BufReader::new(stream);
     }
 }
 
-// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-// Tests
-// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #[cfg(test)]
 mod socket_tests {
     use super::*;
     use json::object;
 
-    #[derive(Copy, Clone)]
     struct MySocketPolicy {
-        host: &'static str,
+        host: String,
     }
 
-    impl SocketPolicy for MySocketPolicy {
+    impl Policy for MySocketPolicy {
         // Socket Attributes
-        fn host(&self) -> &str { &self.host }
+        fn host(&self) -> &str {
+            &self.host
+        }
 
         // Socket Events
-        fn initializing(&self) { self.log("NATS Initializing"); }
-        fn connected(&self) { self.log("NATS Connected Successfully"); }
-        fn disconnected(&self, error: &str) { self.log(error); }
-        fn unreachable(&self, error: &str) { self.log(error); }
+        fn initializing(&self) {
+            self.log("NATS Initializing");
+        }
+        fn connected(&self) {
+            self.log("NATS Connected Successfully");
+        }
+        fn disconnected(&self, error: &str) {
+            self.log(error);
+        }
+        fn unreachable(&self, error: &str) {
+            self.log(error);
+        }
 
         // Socket Behaviors
-        fn data_on_connect(&self) -> String { format!("SUB chan 1\r\n") }
-        fn retry_delay_after_disconnected(&self) -> u64 { 1 }
-        fn retry_delay_when_unreachable(&self) -> u64 { 1 }
+        fn data_on_connect(&self) -> String {
+            "SUB chan 1\r\n".into()
+        }
     }
 
     impl MySocketPolicy {
         fn log(&self, message: &str) {
-            println!("{}", json::stringify(object!{ 
-                "message" => message,
-                "client" => "MyClient",
-                "host" => self.host.clone(),
-            }));
+            println!(
+                "{}",
+                json::stringify(object! {
+                    "message" => message,
+                    "client" => "MyClient",
+                    "host" => self.host.clone(),
+                })
+            );
         }
     }
 
     #[test]
-    fn connect_ok() {
-        let host = "www.pubnub.com:80";
-        let client = "MyClient";
-        let policy = MySocketPolicy {
-            host: host.into(),
-        };
-        let socket = Socket::new(client, policy);
-
-        assert!(socket.host == host);
-        assert!(socket.client == client);
-    }
-
-    #[test]
     fn write_ok() {
-        let host = "www.pubnub.com:80";
-        let client = "MyClient";
-        let policy = MySocketPolicy {
-            host: host.into(),
-        };
-        let mut socket = Socket::new(client, policy);
+        let host = "www.pubnub.com:80".into();
+        let policy = MySocketPolicy { host };
+        let mut socket = Socket::new(policy);
 
         let request = "GET / HTTP/1.1\r\nHost: pubnub.com\r\n\r\n";
         socket.write(request);
@@ -295,22 +340,19 @@ mod socket_tests {
 
     #[test]
     fn read_ok() {
-        let host = "www.pubnub.com:80";
-        let client = "MyClient";
-        let policy = MySocketPolicy {
-            host: host.into(),
-        };
-        let mut socket = Socket::new(client, policy);
+        let host = "www.pubnub.com:80".into();
+        let policy = MySocketPolicy { host };
+        let mut socket = Socket::new(policy);
 
         let request = "GET / HTTP/1.1\r\nHost: pubnub.com\r\n\r\n";
         socket.write(request);
 
         let line = socket.readln();
         assert!(line.ok);
-        assert!(line.size > 0);
+        assert!(line.data.len() > 0);
 
         let line = socket.readln();
         assert!(line.ok);
-        assert!(line.size > 0);
+        assert!(line.data.len() > 0);
     }
 }

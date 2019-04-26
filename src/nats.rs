@@ -1,214 +1,295 @@
-// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-// Imports
-// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-use crate::socket::{Socket, SocketPolicy};
+use crate::socket::{self, Socket};
 use json::object;
 
-// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-// NATS End-user Interface
-// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-pub(crate) struct NATS {
-    //pub channel: String,
-    //policy: NATSSocketPolicy,
-    socket: Socket,
+pub struct Client {
+    socket: Socket<Policy>,
 }
-pub(crate) struct NATSMessage {
-    pub(crate) channel: String,
-    pub(crate) _my_id: String,
-    pub(crate) _sender_id: String,
-    pub(crate) data: String,
-    pub(crate) ok: bool,
+pub struct Message {
+    pub channel: String,
+    pub my_id: String,
+    pub sender_id: String,
+    pub data: String,
+    pub ok: bool,
 }
 
-// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-// NATS Socket Policy ( Wire State & Events )
-// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-#[derive(Copy, Clone)]
-struct NATSSocketPolicy {
-    channel: &'static str,
-    host: &'static str,
-    client_id: u64,
+struct Policy {
+    host: String,
 }
 
-impl SocketPolicy for NATSSocketPolicy {
+impl socket::Policy for Policy {
     // Socket Attributes
-    fn host(&self) -> &str { &self.host }
+    fn host(&self) -> &str {
+        &self.host
+    }
 
     // Socket Events
-    fn initializing(&self) { self.log("NATS Initializing..."); }
-    fn connected(&self) { self.log("NATS Connected Successfully"); }
-    fn disconnected(&self, error: &str) { self.log(error); }
-    fn unreachable(&self, error: &str) { self.log(error); }
-    fn unwritable(&self, error: &str) { self.log(error); }
-
-    // Socket Behaviors
-    fn data_on_connect(&self) -> String {
-        format!("SUB {} {}\r\n", self.channel, self.client_id)
+    fn initializing(&self) {
+        self.log("Client Initializing...");
     }
-    fn retry_delay_after_disconnected(&self) -> u64 { 1 }
-    fn retry_delay_when_unreachable(&self) -> u64 { 1 }
+    fn connected(&self) {
+        self.log("Client Connected Successfully");
+    }
+    fn disconnected(&self, error: &str) {
+        self.log(error);
+    }
+    fn unreachable(&self, error: &str) {
+        self.log(error);
+    }
+    fn unwritable(&self, error: &str) {
+        self.log(error);
+    }
 }
 
-impl NATSSocketPolicy {
+impl Policy {
+    fn new(host: &str) -> Self {
+        Self { host: host.into() }
+    }
+
     fn log(&self, message: &str) {
-        println!("{}", json::stringify(object!{ 
-            "message" => message,
-            "client" => "NATS",
-            "channel" => self.channel.clone(),
-            "host" => self.host.clone(),
-        }));
+        println!(
+            "{}",
+            json::stringify(object! {
+                "message" => message,
+                "client" => "NATS",
+                "host" => self.host.clone(),
+            })
+        );
     }
 }
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-/// # NATS
-/// 
+/// # NATS Client
+///
 /// This client lib offers *durable* publish and subscribe support to NATS.
-/// 
-/// ```
-/// let mut nats = nats::NATS::new("0.0.0.0:4222", "demo");
-/// 
+///
+/// ```no_run
+/// use nats_bridge::nats::Client;
+///
+/// let mut nats = Client::new("0.0.0.0:4222");
+///
 /// loop {
 ///     let message = nats.next_message();
 ///     assert!(message.ok);
 ///     println!("{} -> {}", message.channel, message.data);
 /// }
 /// ```
-/// 
+///
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-impl NATS {
-    pub fn new(host: &'static str, channel: &'static str) -> Self {
-        let policy = NATSSocketPolicy {
-            host: host.into(),
-            channel: channel.into(),
-            client_id: 1, // TODO get ClientID from `info`
-        };
-        let mut socket = Socket::new("NATS", policy);
-        //let natspolicy = policy;
+impl Client {
+    pub fn new(host: &str) -> Self {
+        let policy = Policy::new(host);
+        let mut socket = Socket::new(policy);
         let info = socket.readln();
-        println!("{}",info.data);
+        println!("INFO: {}", info.data);
         // TODO use info
 
-        Self {
-            //channel: channel.into(),
-            //policy: natspolicy,
-            socket: socket,
-        }
+        Self { socket }
     }
 
     /// ## Send NATS Messages
-    /// 
+    ///
     /// Easy way to send messages to any NATS channel.
-    /// 
-    /// ```
-    /// let mut nats = nats::NATS::new("0.0.0.0:4222", channel);
+    ///
+    /// ```no_run
+    /// use nats_bridge::nats::Client;
+    ///
+    /// let mut nats = Client::new("0.0.0.0:4222");
+    /// let channel = "demo";
+    ///
     /// nats.publish(channel, "Hello");
-    /// let message = nats.next_message();
-    /// assert!(message.ok);
-    /// assert!(message.data == "Hello");
-    /// println!(message.data);
     /// ```
     pub fn publish(&mut self, channel: &str, data: &str) {
         self.socket.write(&format!(
             "PUB {channel} {length}\r\n{data}\r\n",
-            channel=channel,
-            length=data.chars().count(),
-            data=data,
+            channel = channel,
+            length = data.len(),
+            data = data,
         ));
     }
 
     /// ## Receive NATS Messages
-    /// 
-    /// Easy way to get messages from the initialized channel.
-    /// 
+    ///
+    /// Subscribe to any NATS channel.
+    ///
+    /// ```no_run
+    /// use nats_bridge::nats::Client;
+    ///
+    /// let mut nats = Client::new("0.0.0.0:4222");
+    /// let channel = "demo";
+    ///
+    /// nats.subscribe(channel);
+    /// let message = nats.next_message();
     /// ```
-    /// let mut nats = nats::NATS::new("0.0.0.0:4222", channel);
+    pub fn subscribe(&mut self, channel: &str) {
+        let subscription = format!("SUB {} 1\r\n", channel);
+        self.socket.write(&subscription);
+    }
+
+    /// ## Receive NATS Messages
+    ///
+    /// Easy way to get messages from the initialized channel.
+    ///
+    /// ```no_run
+    /// use nats_bridge::nats::Client;
+    ///
+    /// let mut nats = Client::new("0.0.0.0:4222");
+    ///
+    /// let channel = "demo";
     /// nats.publish(channel, "Hello");
+    ///
     /// let message = nats.next_message();
     /// assert!(message.ok);
-    /// assert!(message.data == "Hello");
-    /// println!(message.data);
+    /// assert_eq!(message.data, "Hello");
+    /// println!("{}", message.data);
     /// ```
-    pub fn next_message(&mut self) -> NATSMessage {
+    pub fn next_message(&mut self) -> Message {
         loop {
             let line = self.socket.readln();
-            if line.size <= 0 { continue; }
 
-            let mut detail = line.data.trim().split_whitespace();
-            let command = detail.next();
-            if Some("PING") == command { self.socket.write("PONG\r\n"); }
-            if Some("MSG") != command { continue; }
+            let detail: Vec<_> = line.data.trim().split_whitespace().collect();
+            if detail.is_empty() {
+                continue;
+            }
 
-            let line = self.socket.readln();
-            if !line.ok { continue; }
+            let command = detail[0];
+            match command {
+                "PING" => {
+                    self.socket.write("PONG\r\n");
+                },
+                "MSG" => {
+                    if detail.len() != 4 {
+                        continue;
+                    }
 
-            // TODO Check length of detail iterator
-            // TODO vecotr collection dealio
-            break NATSMessage {
-                channel: detail.next().unwrap().into(),
-                _my_id: detail.next().unwrap().into(),
-                _sender_id: detail.next().unwrap().into(),
-                data: line.data.trim().into(),
-                ok: true,
-            };
+                    let line = self.socket.readln();
+                    if !line.ok {
+                        continue;
+                    }
+
+                    // TODO Check length of detail iterator
+                    // TODO vecotr collection dealio
+                    return Message {
+                        channel: detail[1].into(),
+                        my_id: detail[2].into(),
+                        sender_id: detail[3].into(),
+                        data: line.data.trim().into(),
+                        ok: true,
+                    };
+                },
+                _ => continue,
+            }
         }
     }
 
     #[cfg(test)]
     pub fn ping(&mut self) -> String {
-        self.socket.write(&format!("PING"));
+        self.socket.write("PING\r\n");
         let ok = self.socket.readln();
         ok.data
     }
+
+    #[cfg(test)]
+    pub fn exit(&mut self) {
+        self.socket.write("EXIT\r\n");
+    }
 }
 
-// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-// Drop interface
-// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-impl Drop for NATS {
+impl Drop for Client {
     fn drop(&mut self) {
         self.socket.disconnect();
     }
 }
 
-// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-// Tests
-// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::{BufRead, BufReader, Write};
+    use std::net::TcpListener;
+    use std::thread;
 
-    #[test]
-    fn create_ok() {
-        let channel = "demo";
-        let host = "0.0.0.0:4222";
-        let nats = NATS::new(host, channel);
+    struct NATSMock {
+        listener: TcpListener,
+    }
 
-        assert!(nats.socket.host == host);
-        assert!(nats.channel == channel);
+    impl NATSMock {
+        fn new(host: &str) -> std::io::Result<Self> {
+            let listener = TcpListener::bind(host)?;
+            Ok(Self { listener })
+        }
+
+        fn process(&self) {
+            match self.listener.accept() {
+                Ok((mut socket, _addr)) => {
+                    socket.write_all(b"+OK\r\n").expect("Could not send info");
+
+                    let mut reader =
+                        BufReader::new(socket.try_clone().expect("Unable to clone socket"));
+                    let mut line = String::new();
+
+                    loop {
+                        line.clear();
+                        let size = reader.read_line(&mut line).expect("Unable to read line");
+                        if size == 0 {
+                            eprintln!("Socket disconnected while reading");
+                            break;
+                        }
+
+                        match line.as_ref() {
+                            "EXIT\r\n" => break,
+                            "PING\r\n" => {
+                                socket.write_all(b"PONG\r\n").expect("Unable to write");
+                            }
+                            "SUB demo 1\r\n" => continue,
+                            "PUB demo 5\r\n" => {
+                                line.clear();
+                                reader.read_line(&mut line).expect("Unable to read line");
+
+                                let cmd = format!("MSG demo 1 1\r\n{}", line);
+                                socket.write_all(cmd.as_bytes()).expect("Unable to write");
+                            }
+                            _ => eprintln!("Unexpected line: `{}`", line),
+                        };
+                    }
+                }
+                Err(e) => eprintln!("couldn't get client: {:?}", e),
+            }
+        }
     }
 
     #[test]
     fn subscribe_ok() {
-        let channel = "demo";
-        let host = "0.0.0.0:4222";
-        let mut nats = NATS::new(host, channel);
+        let host = "0.0.0.0:4221";
+        let mock = NATSMock::new(host).expect("Unable to listen");
+        let t = thread::spawn(move || {
+            mock.process();
+        });
 
-        assert!(nats.socket.host == host);
-        assert!(nats.channel == channel);
+        let channel = "demo";
+        let mut nats = Client::new(host);
+        nats.subscribe(channel);
 
         nats.publish(channel, "Hello");
         let message = nats.next_message();
         assert!(message.ok);
+
+        nats.exit();
+        t.join().expect("Thread died early...");
     }
 
     #[test]
     fn ping_ok() {
-        let channel = "demo";
-        let host = "0.0.0.0:4222";
-        let mut nats = NATS::new(host, channel);
+        let host = "0.0.0.0:4223";
+        let mock = NATSMock::new(host).expect("Unable to listen");
+        let t = thread::spawn(move || {
+            mock.process();
+        });
+
+        let mut nats = Client::new(host);
 
         let pong = nats.ping();
-        assert!(pong == "+OK\r\n");
+        assert_eq!(pong, "PONG\r\n");
+
+        nats.exit();
+        t.join().expect("Thread died early...");
     }
 }
