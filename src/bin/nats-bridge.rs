@@ -1,7 +1,7 @@
 #![deny(clippy::all)]
 #![deny(clippy::pedantic)]
 
-use nats_bridge::nats::Client;
+use nats_bridge::nats;
 use std::{thread, time};
 
 fn main() {
@@ -9,7 +9,7 @@ fn main() {
     // Publish as fast as possible
     let nats_publisher_thread = thread::spawn(move || {
         let channel = "demo";
-        let mut nats = Client::new("0.0.0.0:4222");
+        let mut nats = nats::Client::new("0.0.0.0:4222", channel);
         let mut counter = 0;
         loop {
             counter += 1;
@@ -21,8 +21,8 @@ fn main() {
     // Receive NATS Messages
     // Subscribe as fast as possbile
     let nats_subscriber_thread = thread::spawn(move || {
-        let mut nats = Client::new("0.0.0.0:4222");
-        nats.subscribe("demo");
+        let channel = "demo";
+        let mut nats = nats::Client::new("0.0.0.0:4222", channel);
         let mut counter = 0;
         loop {
             let message = nats.next_message();

@@ -47,9 +47,6 @@ use std::{thread, time};
 ///     }
 ///
 ///     // Socket Behaviors
-///     fn data_on_connect(&self) -> String {
-///         "SUB chan 1\r\n".to_string()
-///     }
 ///     fn retry_delay_after_disconnected(&self) -> u64 {
 ///         1
 ///     }
@@ -80,9 +77,6 @@ pub(crate) trait Policy {
     }
 
     // Behaviors
-    fn data_on_connect(&self) -> String {
-        "".into()
-    }
     fn retry_delay_after_disconnected(&self) -> u64 {
         1
     }
@@ -108,21 +102,7 @@ fn connect<P: Policy>(policy: &P) -> TcpStream {
         // Open connection and send initialization data
         let host: String = policy.host().into();
         let error = match TcpStream::connect(host) {
-            Ok(mut stream) => {
-                let data = policy.data_on_connect();
-                if data.is_empty() {
-                    return stream;
-                }
-                match stream.write(data.as_bytes()) {
-                    Ok(size) => {
-                        if size > 0 {
-                            return stream;
-                        }
-                        std::io::Error::new(std::io::ErrorKind::WriteZero, "Unwritable")
-                    }
-                    Err(error) => error
-                }
-            }
+            Ok(stream) => return stream,
             Err(error) => error,
         };
 
@@ -185,7 +165,7 @@ impl<P: Policy> Socket<P> {
     /// let request = "GET / HTTP/1.1\r\nHost: pubnub.com\r\n\r\n";
     /// socket.write(request);
     /// ```
-    pub(crate) fn write(&mut self, data: &str) {
+    pub(crate) fn write(&mut self, data: &str, data_on_reconnect: &str) {
         loop {
             let result = self.stream.write(data.as_bytes());
             match result {
@@ -195,12 +175,14 @@ impl<P: Policy> Socket<P> {
                     }
                     self.policy.disconnected("No data has been written.");
                     self.reconnect();
+                    self.write(data_on_reconnect, "");
                 }
                 Err(error) => {
                     let error = format!("{}", error);
                     self.policy.unwritable(&error);
                     self.policy.disconnected(&error);
                     self.reconnect();
+                    self.write(data_on_reconnect, "");
                 }
             };
         }
@@ -226,15 +208,16 @@ impl<P: Policy> Socket<P> {
     /// # let mut socket = Socket::new(policy);
     /// # let request = "GET / HTTP/1.1\r\nHost: pubnub.com\r\n\r\n";
     /// # socket.write(request);
-    /// let line = socket.readln();
+    /// let line = socket.readln(&"");
     /// ```
-    pub(crate) fn readln(&mut self) -> Line {
+    pub(crate) fn readln(&mut self, data_on_reconnect: &str) -> Line {
         let mut line = String::new();
         let result = self.reader.read_line(&mut line);
         let size = result.unwrap_or_else(|_| 0);
 
         if size == 0 {
             self.reconnect();
+            self.write(data_on_reconnect, "");
             return Line {
                 ok: false,
                 data: line,
@@ -308,11 +291,6 @@ mod socket_tests {
         fn unreachable(&self, error: &str) {
             self.log(error);
         }
-
-        // Socket Behaviors
-        fn data_on_connect(&self) -> String {
-            "SUB chan 1\r\n".into()
-        }
     }
 
     impl MySocketPolicy {
@@ -335,7 +313,7 @@ mod socket_tests {
         let mut socket = Socket::new(policy);
 
         let request = "GET / HTTP/1.1\r\nHost: pubnub.com\r\n\r\n";
-        socket.write(request);
+        socket.write(request, &"");
     }
 
     #[test]
@@ -345,13 +323,13 @@ mod socket_tests {
         let mut socket = Socket::new(policy);
 
         let request = "GET / HTTP/1.1\r\nHost: pubnub.com\r\n\r\n";
-        socket.write(request);
+        socket.write(request, &"");
 
-        let line = socket.readln();
+        let line = socket.readln(&"");
         assert!(line.ok);
         assert!(line.data.len() > 0);
 
-        let line = socket.readln();
+        let line = socket.readln(&"");
         assert!(line.ok);
         assert!(line.data.len() > 0);
     }
