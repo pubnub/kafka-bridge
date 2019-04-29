@@ -37,9 +37,7 @@ impl socket::Policy for Policy {
 
 impl Policy {
     fn new(host: &str) -> Self {
-        Self { 
-            host: host.into(),
-        }
+        Self { host: host.into() }
     }
 
     fn log(&self, message: &str) {
@@ -60,31 +58,21 @@ impl Client {
         channel: &str,
     ) -> Self {
         let policy = Policy::new(host.into());
-        let mut socket = Socket::new(policy);
+        let socket = Socket::new(policy);
 
-        Self {
+        let mut pubnub = Self {
             socket: socket,
-            channel: "0".into(),
+            channel: channel.into(),
             timetoken: "0".into(),
-        }
-    /*
-        let policy = SocketPolicy {
-            connected: &Self::connected,
         };
-        let mut socket = Socket::new("PubNub", host, policy);
-        let mut pubnub = Self {socket: socket, channel: channel};
-
-        pubnub.socket.connect();
 
         pubnub
-        */
     }
-}
 
-/*
-impl SocketConnectivityPolicy for PubNub {
-    fn connected(&self) {
-        println!("{} Connected!", self.socket.name);
+    fn subscribe_command(&mut self) -> String {
+        format!(
+            "SUB {channel}\r\n",
+            channel=self.channel,
+        )
     }
 }
-*/
