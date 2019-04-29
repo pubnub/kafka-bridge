@@ -3,6 +3,7 @@ use json::object;
 
 pub struct Client {
     socket: Socket<Policy>,
+    client_id: String,
 }
 pub struct Message {
     pub channel: String,
@@ -42,7 +43,9 @@ impl socket::Policy for Policy {
 
 impl Policy {
     fn new(host: &str) -> Self {
-        Self { host: host.into() }
+        Self { 
+            host: host.into(),
+        }
     }
 
     fn log(&self, message: &str) {
@@ -79,11 +82,19 @@ impl Client {
     pub fn new(host: &str) -> Self {
         let policy = Policy::new(host);
         let mut socket = Socket::new(policy);
-        let info = socket.readln();
-        println!("INFO: {}", info.data);
-        // TODO use info
 
-        Self { socket }
+        // Get Client ID
+        let infoln = socket.readln();
+        println!("{}",infoln.data);
+        let details: Vec<_> = infoln.data.trim().split_whitespace().collect();
+        assert!(!details.is_empty());
+        let info_json = json::parse(&details[1]).expect("Info JSON from NATS");
+        let client_id = info_json["client_id"].to_string();
+
+        Self {
+            socket:socket,
+            client_id:client_id,
+        }
     }
 
     /// ## Send NATS Messages
@@ -110,6 +121,10 @@ impl Client {
     /// ## Receive NATS Messages
     ///
     /// Subscribe to any NATS channel.
+    /// > Warning: This method can only be called once per client because
+    /// > NATS does not support multiplexing.
+    /// > If you need multiple channels, initialize one NATS client per
+    /// > channel and put each client into a thread.
     ///
     /// ```no_run
     /// use nats_bridge::nats::Client;
@@ -121,7 +136,11 @@ impl Client {
     /// let message = nats.next_message();
     /// ```
     pub fn subscribe(&mut self, channel: &str) {
-        let subscription = format!("SUB {} 1\r\n", channel);
+        let subscription = format!(
+            "SUB {channel} {client_id}\r\n",
+            channel=channel,
+            client_id=self.client_id,
+        );
         self.socket.write(&subscription);
     }
 
@@ -166,8 +185,6 @@ impl Client {
                         continue;
                     }
 
-                    // TODO Check length of detail iterator
-                    // TODO vecotr collection dealio
                     return Message {
                         channel: detail[1].into(),
                         my_id: detail[2].into(),
