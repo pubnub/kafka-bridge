@@ -1,21 +1,16 @@
-// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-// Imports
-// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-use crate::socket::{Socket, SocketPolicy, SocketConnectivityPolicy};
+use crate::socket::{Socket, SocketPolicy, HasSocketPolicy};
 
-// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-// PubNub Struct
-// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 pub(crate) struct PubNub {
     pub(crate) socket: Socket,
-    pub(crate) channel: &'static str,
+    pub(crate) channel: String,
 }
 
 impl PubNub {
     pub fn new(
-        host: &'static str,
-        channel: &'static str,
+        host: String,
+        channel: String,
     ) -> Self {
+    /*
         let policy = SocketPolicy {
             connected: &Self::connected,
         };
@@ -25,11 +20,14 @@ impl PubNub {
         pubnub.socket.connect();
 
         pubnub
+        */
     }
 }
 
+/*
 impl SocketConnectivityPolicy for PubNub {
     fn connected(&self) {
         println!("{} Connected!", self.socket.name);
     }
 }
+*/
