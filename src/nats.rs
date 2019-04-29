@@ -100,7 +100,6 @@ impl Client {
         };
 
         nats.subscribe();
-
         nats
     }
 
@@ -143,16 +142,20 @@ impl Client {
     /// let message = nats.next_message();
     /// ```
     fn subscribe(&mut self) {
+        if self.channel.len() <= 0 { return }
         let sub_cmd = self.subscribe_command();
         self.socket.write(&sub_cmd, &"");
     }
 
     fn subscribe_command(&mut self) -> String {
-        format!(
-            "SUB {channel} {client_id}\r\n",
-            channel=self.channel,
-            client_id=self.client_id,
-        )
+        if self.channel.len() <= 0 { "".into() }
+        else {
+            format!(
+                "SUB {channel} {client_id}\r\n",
+                channel=self.channel,
+                client_id=self.client_id,
+            )
+        }
     }
 
     /// ## Receive NATS Messages

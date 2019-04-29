@@ -175,14 +175,18 @@ impl<P: Policy> Socket<P> {
                     }
                     self.policy.disconnected("No data has been written.");
                     self.reconnect();
-                    self.write(data_on_reconnect, "");
+                    if data_on_reconnect.len() > 0 {
+                        self.write(data_on_reconnect, "");
+                    }
                 }
                 Err(error) => {
                     let error = format!("{}", error);
                     self.policy.unwritable(&error);
                     self.policy.disconnected(&error);
                     self.reconnect();
-                    self.write(data_on_reconnect, "");
+                    if data_on_reconnect.len() > 0 {
+                        self.write(data_on_reconnect, "");
+                    }
                 }
             };
         }
@@ -217,7 +221,9 @@ impl<P: Policy> Socket<P> {
 
         if size == 0 {
             self.reconnect();
-            self.write(data_on_reconnect, "");
+            if data_on_reconnect.len() > 0 {
+                self.write(data_on_reconnect, "");
+            }
             return Line {
                 ok: false,
                 data: line,
