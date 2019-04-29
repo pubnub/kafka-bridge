@@ -321,8 +321,8 @@ mod tests {
 
         let mut nats = Client::new(host, channel);
 
-        //let pong = nats.ping();
-        //assert_eq!(pong, "PONG\r\n");
+        let pong = nats.ping();
+        assert_eq!(pong, "PONG\r\n");
 
         nats.exit();
         t.join().expect("Thread died early...");
