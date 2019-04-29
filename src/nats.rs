@@ -304,8 +304,8 @@ mod tests {
         let mut nats = Client::new(host, channel);
 
         nats.publish(channel, "Hello");
-        //`j.let message = nats.next_message();
-        //`j.assert!(message.ok);
+        let message = nats.next_message();
+        assert!(message.ok);
 
         nats.exit();
         t.join().expect("Thread died early...");
