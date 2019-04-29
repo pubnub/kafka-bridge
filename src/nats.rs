@@ -140,7 +140,6 @@ impl Client {
     /// let mut nats = Client::new("0.0.0.0:4222", "channel");
     /// let channel = "demo";
     ///
-    /// nats.subscribe();
     /// let message = nats.next_message();
     /// ```
     fn subscribe(&mut self) {
