@@ -51,10 +51,13 @@ impl Policy {
     }
 }
 
-pub(crate) enum Error {
+#[derive(Debug)]
+pub enum Error {
     Initialize,
     Publish,
     Subscribe,
+    Ping,
+    Exit,
 }
 
 /*
@@ -213,17 +216,20 @@ impl SubscribeClient {
     }
 
     #[cfg(test)]
-    pub fn ping(&mut self) -> String {
-        let sub_cmd = self.subscribe_string();
-        self.socket.write("PING\r\n", &sub_cmd);
-        let ok = self.socket.readln("");
-        ok.data
+    pub fn ping(&mut self) -> Result<String, Error> {
+        self.socket.write("PING\r\n");
+        match self.socket.readln("") {
+            Ok(data) => Ok(data),
+            Error(error) => Err(Error::Ping),
+        }
     }
 
     #[cfg(test)]
-    pub fn exit(&mut self) {
-        let sub_cmd = self.subscribe_string();
-        self.socket.write("EXIT\r\n", &sub_cmd);
+    pub fn exit(&mut self) -> Result<(), Error> {
+        match self.socket.write("EXIT\r\n") {
+            Ok(data) => Ok(()),
+            Error(error) => Err(Error::Exit),
+        }
     }
 }
 
@@ -258,9 +264,7 @@ impl Drop for SubscribeClient {
 ///
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 impl PublishClient {
-    pub fn new(
-        host: &str
-    ) -> Result<Self, Error> {
+    pub fn new(host: &str) -> Result<Self, Error> {
         let policy = Policy::new(host);
         let mut socket = Socket::new(policy);
 
@@ -279,10 +283,12 @@ impl PublishClient {
         let json_info = json::parse(json).expect("NATS info JSON on Connect");
         let client_id = json_info["client_id"].to_string();
 
-        Ok(Self {
+        let pubnub = Self {
             socket: socket,
-            client_id: client_id,
-        })
+            _client_id: client_id,
+        };
+
+        Ok(pubnub)
     }
 
     /// ## Send NATS Messages
@@ -295,7 +301,7 @@ impl PublishClient {
     /// let mut nats = Client::new("0.0.0.0:4222", "channel");
     /// let channel = "demo";
     ///
-    /// nats.publish(channel, "Hello");
+    /// nats.publish(channel, "Hello").expect("publish sent");
     /// ```
     pub fn publish(&mut self, channel: &str, data: &str) -> Result<(), Error> {
         let pubcmd = &format!(
@@ -327,7 +333,7 @@ impl PublishClient {
 
 pub struct PublishClient {
     socket: Socket<Policy>,
-    client_id: String,
+    _client_id: String,
 }
 
 impl Drop for PublishClient {

@@ -27,11 +27,12 @@ fn main() {
     // Publish as fast as possible
     let nats_publisher_thread = thread::spawn(move || {
         let channel = "demo";
-        let mut nats = nats::Client::new("0.0.0.0:4222", channel);
+        let mut nats = nats::PublishClient::new("0.0.0.0:4222").expect("NATS");
         let mut counter = 0;
         loop {
             counter += 1;
-            nats.publish(channel, &format!("Hello {}", counter));
+            nats.publish(channel, &format!("Hello {}", counter))
+                .expect("message sent");
             thread::sleep(time::Duration::from_millis(300));
         };
     });
@@ -40,7 +41,8 @@ fn main() {
     // Subscribe as fast as possbile
     let nats_subscriber_thread = thread::spawn(move || {
         let channel = "demo";
-        let mut nats = nats::Client::new("0.0.0.0:4222", channel);
+        let mut nats = nats::SubscribeClient::new("0.0.0.0:4222", channel)
+            .expect("NATS Subscribe Client");
         let mut counter = 0;
         loop {
             let message = nats.next_message();
