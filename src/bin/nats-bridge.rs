@@ -45,12 +45,11 @@ fn main() {
             .expect("NATS Subscribe Client");
         let mut counter = 0;
         loop {
-            let message = nats.next_message();
-            if !message.ok {
-                continue;
-            }
+            let message = match nats.next_message() {
+                Ok(message) => message,
+                Err(_error) => continue,
+            };
             counter += 1;
-            assert!(message.ok);
             println!(
                 "[ {count} ] Channel:{channel} -> message:{message}",
                 count = counter,

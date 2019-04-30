@@ -6,7 +6,6 @@ pub struct Message {
     pub my_id: String,
     pub sender_id: String,
     pub data: String,
-    pub ok: bool,
 }
 
 struct Policy {
@@ -60,14 +59,6 @@ pub enum Error {
     Exit,
 }
 
-/*
-impl From <socket::Error> for Error {
-    fn from (error: socket::Error) -> Error {
-        Error::Socket(error)
-    }
-}
-*/
-
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 /// # NATS Subscribe Client
 ///
@@ -76,21 +67,18 @@ impl From <socket::Error> for Error {
 /// ```no_run
 /// use nats_bridge::nats::SubscribeClient;
 ///
-/// let mut nats = SubscribeClient::new("0.0.0.0:4222", "my_channel");
+/// let channel = "demo";
+/// let mut nats = SubscribeClient::new("0.0.0.0:4222", channel)
+///     .expect("NATS Subscribe Client");
 ///
-/// loop {
-///     let message = nats.next_message();
-///     assert!(message.is_ok());
-///     println!("{} -> {}", message.channel, message.data);
-/// }
+/// let result = nats.next_message();
+/// assert!(result.is_ok());
+/// let message = result.expect("Received Message");
+/// println!("{} -> {}", message.channel, message.data);
 /// ```
-///
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 impl SubscribeClient {
-    pub fn new(
-        host: &str,
-        channel: &str,
-    ) -> Result<Self, Error> {
+    pub fn new(host: &str, channel: &str) -> Result<Self, Error> {
         let policy = Policy::new(host);
         let mut socket = Socket::new(policy);
 
@@ -131,9 +119,10 @@ impl SubscribeClient {
     /// use nats_bridge::nats::SubscribeClient;
     ///
     /// let channel = "demo";
-    /// let mut nats = SubscribeClient::new("0.0.0.0:4222", channel);
+    /// let mut nats = SubscribeClient::new("0.0.0.0:4222", channel)
+    ///     .expect("NATS Subscribe Client");
     ///
-    /// let message = nats.next_message();
+    /// let message = nats.next_message().expect("Received Message");
     /// ```
     fn subscribe(&mut self) {
         loop {
@@ -160,11 +149,12 @@ impl SubscribeClient {
     /// use nats_bridge::nats::SubscribeClient;
     ///
     /// let channel = "demo";
-    /// let mut nats = SubscribeClient::new("0.0.0.0:4222", channel);
+    /// let mut nats = SubscribeClient::new("0.0.0.0:4222", channel)
+    ///     .expect("NATS Subscribe Client");
     ///
-    /// let message = nats.next_message();
+    /// let message = nats.next_message().expect("Received Message");
     /// ```
-    pub fn next_message(&mut self) -> Message {
+    pub fn next_message(&mut self) -> Result<Message, Error> {
         loop {
             let result = self.socket.readln();
             if result.is_err() {
@@ -202,13 +192,12 @@ impl SubscribeClient {
                         continue;
                     }
 
-                    return Message {
+                    return Ok(Message {
                         channel: detail[1].into(),
                         my_id: detail[2].into(),
                         sender_id: detail[3].into(),
                         data: data.trim().into(),
-                        ok: true,
-                    };
+                    });
                 },
                 _ => continue,
             }
@@ -217,18 +206,21 @@ impl SubscribeClient {
 
     #[cfg(test)]
     pub fn ping(&mut self) -> Result<String, Error> {
-        self.socket.write("PING\r\n");
-        match self.socket.readln("") {
+        let _size = match self.socket.write("PING\r\n") {
+            Ok(size) => size,
+            Err(_error) => return Err(Error::Ping),
+        };
+        match self.socket.readln() {
             Ok(data) => Ok(data),
-            Error(error) => Err(Error::Ping),
+            Err(_error) => Err(Error::Ping),
         }
     }
 
     #[cfg(test)]
     pub fn exit(&mut self) -> Result<(), Error> {
         match self.socket.write("EXIT\r\n") {
-            Ok(data) => Ok(()),
-            Error(error) => Err(Error::Exit),
+            Ok(_size) => Ok(()),
+            Err(_error) => Err(Error::Exit),
         }
     }
 }
@@ -254,7 +246,7 @@ impl Drop for SubscribeClient {
 /// ```no_run
 /// use nats_bridge::nats::PublishClient;
 ///
-/// let mut nats = PublishClient::new("0.0.0.0:4222");
+/// let mut nats = PublishClient::new("0.0.0.0:4222").expect("NATS PUB");
 ///
 /// loop {
 ///     let result = nats.publish("hello", "channel");
@@ -296,10 +288,11 @@ impl PublishClient {
     /// Easy way to send messages to any NATS channel.
     ///
     /// ```no_run
-    /// use nats_bridge::nats::Client;
+    /// use nats_bridge::nats::PublishClient;
     ///
-    /// let mut nats = Client::new("0.0.0.0:4222", "channel");
     /// let channel = "demo";
+    /// let mut nats = PublishClient::new("0.0.0.0:4222")
+    ///     .expect("NATS Publish Client");
     ///
     /// nats.publish(channel, "Hello").expect("publish sent");
     /// ```
@@ -317,17 +310,23 @@ impl PublishClient {
     }
 
     #[cfg(test)]
-    pub fn ping(&mut self) -> String {
-        let sub_cmd = self.subscribe_string();
-        self.socket.write("PING\r\n", &sub_cmd);
-        let ok = self.socket.readln("");
-        ok.data
+    pub fn ping(&mut self) -> Result<String, Error> {
+        let _size = match self.socket.write("PING\r\n") {
+            Ok(size) => size,
+            Err(_error) => return Err(Error::Ping),
+        };
+        match self.socket.readln() {
+            Ok(data) => Ok(data),
+            Err(_error) => Err(Error::Ping),
+        }
     }
 
     #[cfg(test)]
-    pub fn exit(&mut self) {
-        let sub_cmd = self.subscribe_string();
-        self.socket.write("EXIT\r\n", &sub_cmd);
+    pub fn exit(&mut self) -> Result<(), Error> {
+        match self.socket.write("EXIT\r\n") {
+            Ok(_size) => Ok(()),
+            Err(_error) => Err(Error::Exit),
+        }
     }
 }
 
@@ -366,12 +365,14 @@ mod tests {
                     socket.write_all(b"INFO {\"server_id\":\"asbLGfs3r7pgZwucUxYnPn\",\"version\":\"1.4.1\",\"proto\":1,\"git_commit\":\"3e64f0b\",\"go\":\"go1.11.5\",\"host\":\"0.0.0.0\",\"port\":4222,\"max_payload\":1048576,\"client_id\":94295}\r\n").expect("Could not send info");
 
                     let mut reader =
-                        BufReader::new(socket.try_clone().expect("Unable to clone socket"));
+                        BufReader::new(socket.try_clone()
+                            .expect("Unable to clone socket"));
                     let mut line = String::new();
 
                     loop {
                         line.clear();
-                        let size = reader.read_line(&mut line).expect("Unable to read line");
+                        let size = reader.read_line(&mut line)
+                            .expect("Unable to read line");
                         if size == 0 {
                             eprintln!("Socket disconnected while reading");
                             break;
@@ -382,7 +383,10 @@ mod tests {
                             "PING\r\n" => {
                                 socket.write_all(b"PONG\r\n").expect("Unable to write");
                             }
-                            "SUB demo 1\r\n" => continue,
+                            "SUB demo 1\r\n" => {
+                                socket.write_all(b"MSG demo 9999 5\r\nKNOCK\r\n")
+                                    .expect("Unable to write");
+                            },
                             "PUB demo 5\r\n" => {
                                 line.clear();
                                 reader.read_line(&mut line).expect("Unable to read line");
@@ -400,6 +404,22 @@ mod tests {
     }
 
     #[test]
+    fn publish_ok() {
+        let host = "0.0.0.0:4220";
+        let mock = NATSMock::new(host).expect("Unable to listen");
+        let t = thread::spawn(move || {
+            mock.process();
+        });
+
+        let channel = "demo";
+        let mut publisher = PublishClient::new(host).expect("NATS Publish Client");
+
+        publisher.publish(channel, "Hello").expect("Message Sent");
+        publisher.exit().expect("NATS Connection Closed");
+        t.join().expect("Mock TcpStream server");
+    }
+
+    #[test]
     fn subscribe_ok() {
         let host = "0.0.0.0:4221";
         let mock = NATSMock::new(host).expect("Unable to listen");
@@ -408,31 +428,32 @@ mod tests {
         });
 
         let channel = "demo";
-        let mut nats = Client::new(host, channel);
-
-        nats.publish(channel, "Hello");
-        let message = nats.next_message();
-        assert!(message.ok);
-
-        nats.exit();
-        t.join().expect("Thread died early...");
+        let mut subscriber = SubscribeClient::new(host, channel)
+            .expect("NATS Subscribe Client");
+        let result = subscriber.next_message();
+        assert!(result.is_ok());
+        /*
+        let message = result.expect("Received Message");
+        assert!(message.channel.len() > 0);
+        subscriber.exit().expect("NATS Socket Closed");
+        t.join().expect("Mock TcpStream server");
+        */
     }
 
     #[test]
     fn ping_ok() {
-        let channel = "demo";
         let host = "0.0.0.0:4223";
         let mock = NATSMock::new(host).expect("Unable to listen");
         let t = thread::spawn(move || {
             mock.process();
         });
 
-        let mut nats = Client::new(host, channel);
+        let mut nats = PublishClient::new(host).expect("NATS Publish Client");
 
-        let pong = nats.ping();
+        let pong = nats.ping().expect("Pong from Ping");
         assert_eq!(pong, "PONG\r\n");
 
-        nats.exit();
+        nats.exit().expect("NATS Connection Closed");
         t.join().expect("Thread died early...");
     }
 }
