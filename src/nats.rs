@@ -362,7 +362,7 @@ mod tests {
         fn process(&self) {
             match self.listener.accept() {
                 Ok((mut socket, _addr)) => {
-                    socket.write_all(b"INFO {\"server_id\":\"asbLGfs3r7pgZwucUxYnPn\",\"version\":\"1.4.1\",\"proto\":1,\"git_commit\":\"3e64f0b\",\"go\":\"go1.11.5\",\"host\":\"0.0.0.0\",\"port\":4222,\"max_payload\":1048576,\"client_id\":94295}\r\n").expect("Could not send info");
+                    socket.write_all(b"INFO {\"server_id\":\"asbLGfs3r7pgZwucUxYnPn\",\"version\":\"1.4.1\",\"proto\":1,\"git_commit\":\"3e64f0b\",\"go\":\"go1.11.5\",\"host\":\"0.0.0.0\",\"port\":4222,\"max_payload\":1048576,\"client_id\":9999}\r\n").expect("Could not send info");
 
                     let mut reader =
                         BufReader::new(socket.try_clone()
@@ -383,7 +383,7 @@ mod tests {
                             "PING\r\n" => {
                                 socket.write_all(b"PONG\r\n").expect("Unable to write");
                             }
-                            "SUB demo 1\r\n" => {
+                            "SUB demo 9999\r\n" => {
                                 socket.write_all(b"MSG demo 9999 5\r\nKNOCK\r\n")
                                     .expect("Unable to write");
                             },
@@ -432,12 +432,10 @@ mod tests {
             .expect("NATS Subscribe Client");
         let result = subscriber.next_message();
         assert!(result.is_ok());
-        /*
         let message = result.expect("Received Message");
         assert!(message.channel.len() > 0);
         subscriber.exit().expect("NATS Socket Closed");
         t.join().expect("Mock TcpStream server");
-        */
     }
 
     #[test]
