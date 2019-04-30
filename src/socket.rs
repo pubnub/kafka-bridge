@@ -30,9 +30,6 @@ use std::{thread, time};
 ///     }
 ///
 ///     // Socket Events
-///     fn initializing(&self) {
-///         self.log("NATS Initializing");
-///     }
 ///     fn connected(&self) {
 ///         self.log("NATS Connected Successfully");
 ///     }
@@ -60,9 +57,6 @@ pub(crate) trait Policy {
     fn host(&self) -> &str;
 
     // Events
-    fn initializing(&self) {
-        println!("initializing");
-    }
     fn connected(&self) {
         println!("connected");
     }
@@ -85,15 +79,27 @@ pub(crate) trait Policy {
     }
 }
 
+#[derive(Debug)]
+pub(crate) enum Error {
+    Write,
+    Read,
+}
+
+/*
+impl std::fmt::Debug for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Error::Write => write!(f, "Write"),
+            Error::Read => write!(f, "Read"),
+        }
+    }
+}
+*/
+
 pub(crate) struct Socket<P: Policy> {
     policy: P,
     stream: TcpStream,
     reader: BufReader<TcpStream>,
-}
-
-pub(crate) struct Line {
-    pub(crate) ok: bool,
-    pub(crate) data: String,
 }
 
 fn connect<P: Policy>(policy: &P) -> TcpStream {
@@ -102,7 +108,10 @@ fn connect<P: Policy>(policy: &P) -> TcpStream {
         // Open connection and send initialization data
         let host: String = policy.host().into();
         let error = match TcpStream::connect(host) {
-            Ok(stream) => return stream,
+            Ok(stream) => {
+                policy.connected();
+                return stream
+            },
             Err(error) => error,
         };
 
@@ -165,30 +174,22 @@ impl<P: Policy> Socket<P> {
     /// let request = "GET / HTTP/1.1\r\nHost: pubnub.com\r\n\r\n";
     /// socket.write(request);
     /// ```
-    pub(crate) fn write(&mut self, data: &str, data_on_reconnect: &str) {
-        loop {
-            let result = self.stream.write(data.as_bytes());
-            match result {
-                Ok(size) => {
-                    if size > 0 {
-                        break;
-                    }
-                    self.policy.disconnected("No data has been written.");
-                    self.reconnect();
-                    if data_on_reconnect.len() > 0 {
-                        self.write(data_on_reconnect, "");
-                    }
+    pub(crate) fn write(&mut self, data: &str) -> Result<usize, Error>{
+        let result = self.stream.write(data.as_bytes());
+        match result {
+            Ok(size) => {
+                if size > 0 {
+                    return Ok(size);
                 }
-                Err(error) => {
-                    let error = format!("{}", error);
-                    self.policy.unwritable(&error);
-                    self.policy.disconnected(&error);
-                    self.reconnect();
-                    if data_on_reconnect.len() > 0 {
-                        self.write(data_on_reconnect, "");
-                    }
-                }
-            };
+                self.policy.disconnected("No data has been written.");
+                Err(Error::Write)
+            }
+            Err(error) => {
+                let error = format!("{}", error);
+                self.policy.unwritable(&error);
+                self.policy.disconnected(&error);
+                Err(Error::Write)
+            }
         }
     }
 
@@ -212,28 +213,18 @@ impl<P: Policy> Socket<P> {
     /// # let mut socket = Socket::new(policy);
     /// # let request = "GET / HTTP/1.1\r\nHost: pubnub.com\r\n\r\n";
     /// # socket.write(request);
-    /// let line = socket.readln(&"");
+    /// let line = socket.readln("");
     /// ```
-    pub(crate) fn readln(&mut self, data_on_reconnect: &str) -> Line {
+    pub(crate) fn readln(&mut self) -> Result<String, Error> {
         let mut line = String::new();
         let result = self.reader.read_line(&mut line);
         let size = result.unwrap_or_else(|_| 0);
 
         if size == 0 {
-            self.reconnect();
-            if data_on_reconnect.len() > 0 {
-                self.write(data_on_reconnect, "");
-            }
-            return Line {
-                ok: false,
-                data: line,
-            };
+            Err(Error::Read)?;
         }
 
-        Line {
-            ok: true,
-            data: line,
-        }
+        Ok(line)
     }
 
     /// ## Disconnect
@@ -260,7 +251,7 @@ impl<P: Policy> Socket<P> {
         self.stream.shutdown(Shutdown::Both).unwrap_or_default();
     }
 
-    fn reconnect(&mut self) {
+    pub(crate) fn reconnect(&mut self) {
         let retry_delay = self.policy.retry_delay_after_disconnected();
         thread::sleep(time::Duration::new(retry_delay, 0));
         let stream = connect(&self.policy);
@@ -285,9 +276,6 @@ mod socket_tests {
         }
 
         // Socket Events
-        fn initializing(&self) {
-            self.log("NATS Initializing");
-        }
         fn connected(&self) {
             self.log("NATS Connected Successfully");
         }
@@ -319,7 +307,7 @@ mod socket_tests {
         let mut socket = Socket::new(policy);
 
         let request = "GET / HTTP/1.1\r\nHost: pubnub.com\r\n\r\n";
-        socket.write(request, &"");
+        let _ = socket.write(request).expect("data written");
     }
 
     #[test]
@@ -329,14 +317,18 @@ mod socket_tests {
         let mut socket = Socket::new(policy);
 
         let request = "GET / HTTP/1.1\r\nHost: pubnub.com\r\n\r\n";
-        socket.write(request, &"");
+        socket.write(request).expect("data written");
 
-        let line = socket.readln(&"");
-        assert!(line.ok);
-        assert!(line.data.len() > 0);
+        let result = socket.readln();
+        assert!(result.is_ok());
 
-        let line = socket.readln(&"");
-        assert!(line.ok);
-        assert!(line.data.len() > 0);
+        let data = result.expect("data");
+        assert!(data.len() > 0);
+
+        let result = socket.readln();
+        assert!(result.is_ok());
+
+        let data = result.expect("data");
+        assert!(data.len() > 0);
     }
 }

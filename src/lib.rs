@@ -2,5 +2,5 @@
 #![cfg_attr(feature = "nightly", doc(include = "../readme.md"))]
 
 pub mod nats;
-pub mod pubnub;
+//pub mod pubnub;
 mod socket;

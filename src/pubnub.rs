@@ -82,7 +82,7 @@ impl Client {
     }
 
     pub fn publish(&mut self, channel: &str, message: &str) {
-        let sub_cmd = self.subscribe_command();
+        let sub_cmd = self.subscribe_string();
         let json_message = json::stringify(message);
         let uri = format!(
             "/publish/{}/{}/0/{}/0/{}?pnsdk={}",
@@ -103,11 +103,11 @@ impl Client {
 
     fn subscribe(&mut self) {
         if self.channel.len() <= 0 { return }
-        let sub_cmd = self.subscribe_command();
+        let sub_cmd = self.subscribe_string();
         self.socket.write(&sub_cmd, &"");
     }
 
-    fn subscribe_command(&mut self) -> String {
+    fn subscribe_string(&mut self) -> String {
         if self.channel.len() <= 0 { "".into() }
         else {
             format!(
