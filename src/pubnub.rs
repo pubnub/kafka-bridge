@@ -1,8 +1,10 @@
 use crate::socket::{self, Socket};
 use json::object;
 use percent_encoding::{utf8_percent_encode, DEFAULT_ENCODE_SET};
+//use percent_encoding::percent_decode;
 
 pub struct Client {
+    // TODO Sub socket + Pub socket ?
     socket: Socket<Policy>,
     timetoken: String,
     channel: String,
@@ -26,6 +28,8 @@ pub enum Error {
     PublishWrite,
     PublishResponse,
     Subscribe,
+    SubscribeWrite,
+    SubscribeRead,
     MissingChannel,
 }
 
@@ -103,7 +107,7 @@ impl Client {
         let policy = Policy::new(host.into());
         let socket = Socket::new(policy);
 
-        let pubnub = Self {
+        let mut pubnub = Self {
             socket: socket,
             channel: channel.into(),
             timetoken: "0".into(),
@@ -113,8 +117,10 @@ impl Client {
             agent: "PubNub".into(),
         };
 
-        //pubnub.subscribe();
-        Ok(pubnub)
+        match pubnub.subscribe() {
+            Ok(()) => Ok(pubnub),
+            Err(_error) => Err(Error::Subscribe),
+        }
     }
 
     pub fn publish(
@@ -145,7 +151,7 @@ impl Client {
             Err(_error) => return Err(Error::PublishWrite),
         };
 
-        // TODO Capture Response Code
+        // TODO Capture Response Code and timetoken!!!
         loop {
             let data = match self.socket.readln() {
                 Ok(data) => data,
@@ -155,12 +161,14 @@ impl Client {
             // End of Request
             if data.len() == 2 {
                 let timetoken = "TODO TimeToken Here";
+                self.timetoken = timetoken.to_string();
                 return Ok(timetoken.to_string());
             }
         }
     }
 
     pub fn next_message() -> Result<Message, Error> {
+        // TODO if EOF, self.subscribe() again
         Ok(Message{
             channel: "TODO channel".to_string(),
             data: "TODO data".to_string(),
@@ -169,22 +177,24 @@ impl Client {
         })
     }
 
-    /*
-    fn subscribe(&mut self) {
-        if self.channel.len() <= 0 { return }
-        let subscribe_requet = &"";
-        self.socket.write(subscribe_requet);
+    fn subscribe(&mut self) -> Result<(), Error> {
+        if self.channel.len() <= 0 { return Ok(()) }
+        let uri = format!(
+            "/v2/subscribe/{subscribe_key}/{channel}/0/{timetoken}",
+            subscribe_key=self.subscribe_key,
+            channel=self.channel,
+            timetoken=self.timetoken,
+        );
+        let request = &format!(
+            "GET {} HTTP/1.1\r\nHost: pubnub\r\n\r\n",
+            uri,
+        );
+        let _size = match self.socket.write(request) {
+            Ok(_size) => return Ok(()),
+            Err(_error) => return Err(Error::SubscribeWrite),
+        };
+        //let _decoded = percent_decode(b"foo%20bar%3F").decode_utf8().unwrap();
+        //let subscribe_requet = &"";
+        //self.socket.write(subscribe_requet);
     }
-
-    fn subscribe_string(&mut self) -> String {
-        if self.channel.len() <= 0 { "".into() }
-        else {
-            format!(
-                "SUB {channel}{timetoken}\r\n",
-                channel=self.channel,
-                timetoken=self.timetoken,
-            )
-        }
-    }
-    */
 }
