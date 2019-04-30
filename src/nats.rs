@@ -186,17 +186,19 @@ impl SubscribeClient {
                     }
 
                     let result = self.socket.readln();
+
                     if result.is_err() {
                         self.socket.reconnect();
                         self.subscribe();
                         continue;
                     }
+                    let message = result.expect("Received Subscribe Message");
 
                     return Ok(Message {
                         channel: detail[1].into(),
                         my_id: detail[2].into(),
                         sender_id: detail[3].into(),
-                        data: data.trim().into(),
+                        data: message.trim().into(),
                     });
                 },
                 _ => continue,

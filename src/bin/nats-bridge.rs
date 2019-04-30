@@ -7,21 +7,38 @@ use std::sync::mpsc;
 
 fn main() {
     // Async Channels
-    let (nats_message_tx, _pubnub_publish_rx) = mpsc::channel();
+    let (nats_message_tx, pubnub_publish_rx) = mpsc::channel();
 
     // Send PubNub Messages
     // Publish as fast as possible
-    /*
     let pubnub_publisher_thread = thread::spawn(move || {
-        let mut pubnub = nats::Client::new("0.0.0.0:4222", "");
+        use nats_bridge::pubnub;
+        let host = "psdsn.pubnub.com:80";
+        let channel = "demo";
+        let publish_key = "demo";
+        let subscribe_key = "demo";
+        let secret_key = "secret";
+        let mut pubnub = pubnub::Client::new(
+            host,
+            channel,
+            publish_key,
+            subscribe_key,
+            secret_key,
+        ).expect("NATS Subscribe Client");
         loop {
-            let message: nats::Message = pubnub_publish_rx.recv().expect("MPSC Channel receiver");
-            let channel = message.channel;
-            let data = message.data;
-            pubnub.publish(&channel, &data);
+            let message: nats::Message = pubnub_publish_rx.recv()
+                .expect("MPSC Channel Receiver");
+            let channel = &message.channel;
+            let data = &message.data;
+
+            loop {
+                match pubnub.publish(channel, data) { 
+                    Ok(_timetoken) => break,
+                    Err(_error) => thread::sleep(time::Duration::new(1, 0)),
+                };
+            }
         };
     } );
-    */
 
     // Send NATS Messages
     // Publish as fast as possible
@@ -60,7 +77,7 @@ fn main() {
         };
     });
 
-    //pubnub_publisher_thread.join().expect("Error while joining thread");
+    pubnub_publisher_thread.join().expect("Error while joining thread");
     nats_publisher_thread.join().expect("Error while joining thread");
     nats_subscriber_thread.join().expect("Error while joining thread");
 }
