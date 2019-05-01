@@ -128,15 +128,17 @@ impl SubscribeClient {
         loop {
             let sub = &format!(
                 "SUB {channel} {client_id}\r\n",
-                channel=self.channel,
-                client_id=self.client_id,
+                channel = self.channel,
+                client_id = self.client_id,
             );
             match self.socket.write(sub) {
-                Ok(_) => { break; },
+                Ok(_) => {
+                    break;
+                }
                 Err(_) => {
                     self.socket.reconnect();
                     self.subscribe();
-                },
+                }
             };
         }
     }
@@ -173,13 +175,13 @@ impl SubscribeClient {
             match command {
                 "PING" => {
                     match self.socket.write("PONG\r\n") {
-                        Ok(_) => { },
+                        Ok(_) => {}
                         Err(_) => {
                             self.socket.reconnect();
                             self.subscribe();
-                        },
+                        }
                     };
-                },
+                }
                 "MSG" => {
                     if detail.len() != 4 {
                         continue;
@@ -200,7 +202,7 @@ impl SubscribeClient {
                         sender_id: detail[3].into(),
                         data: message.trim().into(),
                     });
-                },
+                }
                 _ => continue,
             }
         }
@@ -238,7 +240,6 @@ impl Drop for SubscribeClient {
         self.socket.disconnect();
     }
 }
-
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 /// # NATS Publish Client
@@ -298,7 +299,11 @@ impl PublishClient {
     ///
     /// nats.publish(channel, "Hello").expect("publish sent");
     /// ```
-    pub fn publish(&mut self, channel: &str, data: &str) -> Result<(), Error> {
+    pub fn publish(
+        &mut self,
+        channel: &str,
+        data: &str,
+    ) -> Result<(), Error> {
         let pubcmd = &format!(
             "PUB {channel} {length}\r\n{data}\r\n",
             channel = channel,
@@ -310,7 +315,7 @@ impl PublishClient {
             Err(_) => {
                 self.socket.reconnect();
                 Err(Error::Publish)
-            },
+            }
         }
     }
 
@@ -346,7 +351,6 @@ impl Drop for PublishClient {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -369,14 +373,15 @@ mod tests {
                 Ok((mut socket, _addr)) => {
                     socket.write_all(b"INFO {\"server_id\":\"asbLGfs3r7pgZwucUxYnPn\",\"version\":\"1.4.1\",\"proto\":1,\"git_commit\":\"3e64f0b\",\"go\":\"go1.11.5\",\"host\":\"0.0.0.0\",\"port\":4222,\"max_payload\":1048576,\"client_id\":9999}\r\n").expect("Could not send info");
 
-                    let mut reader =
-                        BufReader::new(socket.try_clone()
-                            .expect("Unable to clone socket"));
+                    let mut reader = BufReader::new(
+                        socket.try_clone().expect("Unable to clone socket"),
+                    );
                     let mut line = String::new();
 
                     loop {
                         line.clear();
-                        let size = reader.read_line(&mut line)
+                        let size = reader
+                            .read_line(&mut line)
                             .expect("Unable to read line");
                         if size == 0 {
                             eprintln!("Socket disconnected while reading");
@@ -386,18 +391,27 @@ mod tests {
                         match line.as_ref() {
                             "EXIT\r\n" => break,
                             "PING\r\n" => {
-                                socket.write_all(b"PONG\r\n").expect("Unable to write");
+                                socket
+                                    .write_all(b"PONG\r\n")
+                                    .expect("Unable to write");
                             }
                             "SUB demo 9999\r\n" => {
-                                socket.write_all(b"MSG demo 9999 5\r\nKNOCK\r\n")
+                                socket
+                                    .write_all(
+                                        b"MSG demo 9999 5\r\nKNOCK\r\n",
+                                    )
                                     .expect("Unable to write");
-                            },
+                            }
                             "PUB demo 5\r\n" => {
                                 line.clear();
-                                reader.read_line(&mut line).expect("Unable to read line");
+                                reader
+                                    .read_line(&mut line)
+                                    .expect("Unable to read line");
 
                                 let cmd = format!("MSG demo 1 1\r\n{}", line);
-                                socket.write_all(cmd.as_bytes()).expect("Unable to write");
+                                socket
+                                    .write_all(cmd.as_bytes())
+                                    .expect("Unable to write");
                             }
                             _ => eprintln!("Unexpected line: `{}`", line),
                         };
@@ -417,7 +431,8 @@ mod tests {
         });
 
         let channel = "demo";
-        let mut publisher = PublishClient::new(host).expect("NATS Publish Client");
+        let mut publisher =
+            PublishClient::new(host).expect("NATS Publish Client");
 
         publisher.publish(channel, "Hello").expect("Message Sent");
         publisher.exit().expect("NATS Connection Closed");

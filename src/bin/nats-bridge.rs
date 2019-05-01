@@ -2,8 +2,8 @@
 #![deny(clippy::pedantic)]
 
 use nats_bridge::nats;
-use std::{thread, time};
 use std::sync::mpsc;
+use std::{thread, time};
 
 fn main() {
     // Async Channels
@@ -24,34 +24,36 @@ fn main() {
             publish_key,
             subscribe_key,
             secret_key,
-        ).expect("NATS Subscribe Client");
+        )
+        .expect("NATS Subscribe Client");
         loop {
-            let message: nats::Message = pubnub_publish_rx.recv()
-                .expect("MPSC Channel Receiver");
+            let message: nats::Message =
+                pubnub_publish_rx.recv().expect("MPSC Channel Receiver");
             let channel = &message.channel;
             let data = &message.data;
 
             loop {
-                match pubnub.publish(channel, data) { 
+                match pubnub.publish(channel, data) {
                     Ok(_timetoken) => break,
                     Err(_error) => thread::sleep(time::Duration::new(1, 0)),
                 };
             }
-        };
-    } );
+        }
+    });
 
     // Send NATS Messages
     // Publish as fast as possible
     let nats_publisher_thread = thread::spawn(move || {
         let channel = "demo";
-        let mut nats = nats::PublishClient::new("0.0.0.0:4222").expect("NATS");
+        let mut nats =
+            nats::PublishClient::new("0.0.0.0:4222").expect("NATS");
         let mut counter = 0;
         loop {
             counter += 1;
             nats.publish(channel, &format!("Hello {}", counter))
                 .expect("message sent");
             thread::sleep(time::Duration::from_millis(300));
-        };
+        }
     });
 
     // Receive NATS Messages
@@ -73,11 +75,19 @@ fn main() {
                 channel = message.channel,
                 message = message.data
             );
-            nats_message_tx.send(message).expect("NATS mpsc::channel channel write");
-        };
+            nats_message_tx
+                .send(message)
+                .expect("NATS mpsc::channel channel write");
+        }
     });
 
-    pubnub_publisher_thread.join().expect("Error while joining thread");
-    nats_publisher_thread.join().expect("Error while joining thread");
-    nats_subscriber_thread.join().expect("Error while joining thread");
+    pubnub_publisher_thread
+        .join()
+        .expect("Error while joining thread");
+    nats_publisher_thread
+        .join()
+        .expect("Error while joining thread");
+    nats_subscriber_thread
+        .join()
+        .expect("Error while joining thread");
 }

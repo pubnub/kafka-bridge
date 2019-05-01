@@ -110,8 +110,8 @@ fn connect<P: Policy>(policy: &P) -> TcpStream {
         let error = match TcpStream::connect(host) {
             Ok(stream) => {
                 policy.connected();
-                return stream
-            },
+                return stream;
+            }
             Err(error) => error,
         };
 
@@ -174,7 +174,7 @@ impl<P: Policy> Socket<P> {
     /// let request = "GET / HTTP/1.1\r\nHost: pubnub.com\r\n\r\n";
     /// socket.write(request);
     /// ```
-    pub(crate) fn write(&mut self, data: &str) -> Result<usize, Error>{
+    pub(crate) fn write(&mut self, data: &str) -> Result<usize, Error> {
         let result = self.stream.write(data.as_bytes());
         match result {
             Ok(size) => {

@@ -61,11 +61,14 @@ impl Policy {
     }
 
     fn log(&self, message: &str) {
-        println!("{}", json::stringify(object!{
-            "message" => message,
-            "client" => "NATS",
-            "host" => self.host.clone(),
-        }));
+        println!(
+            "{}",
+            json::stringify(object! {
+                "message" => message,
+                "client" => "NATS",
+                "host" => self.host.clone(),
+            })
+        );
     }
 }
 
@@ -127,12 +130,11 @@ impl Client {
         &mut self,
         channel: &str,
         message: &str,
-    ) -> Result<String, Error>{
+    ) -> Result<String, Error> {
         let json_message = json::stringify(message);
-        let encoded_message = utf8_percent_encode(
-            &json_message,
-            DEFAULT_ENCODE_SET,
-        ).to_string();
+        let encoded_message =
+            utf8_percent_encode(&json_message, DEFAULT_ENCODE_SET)
+                .to_string();
         let uri = format!(
             "/publish/{}/{}/0/{}/0/{}?pnsdk={}",
             self.publish_key,
@@ -142,16 +144,14 @@ impl Client {
             self.agent
         );
 
-        let request = &format!(
-            "GET {} HTTP/1.1\r\nHost: pubnub\r\n\r\n",
-            uri,
-        );
+        let request =
+            &format!("GET {} HTTP/1.1\r\nHost: pubnub\r\n\r\n", uri,);
         let _size = match self.socket.write(request) {
             Ok(size) => size,
             Err(_error) => {
                 self.socket.reconnect();
-                return Err(Error::PublishWrite)
-            },
+                return Err(Error::PublishWrite);
+            }
         };
 
         // TODO Capture Response Code and timetoken!!!
@@ -172,7 +172,7 @@ impl Client {
 
     pub fn next_message() -> Result<Message, Error> {
         // TODO if EOF, self.subscribe() again
-        Ok(Message{
+        Ok(Message {
             channel: "TODO channel".to_string(),
             data: "TODO data".to_string(),
             metadata: "TODO metadata".to_string(),
@@ -181,25 +181,23 @@ impl Client {
     }
 
     fn subscribe(&mut self) -> Result<(), Error> {
-        if self.channel.len() <= 0 { return Ok(()) }
+        if self.channel.len() <= 0 {
+            return Ok(());
+        }
         let uri = format!(
             "/v2/subscribe/{subscribe_key}/{channel}/0/{timetoken}",
-            subscribe_key=self.subscribe_key,
-            channel=self.channel,
-            timetoken=self.timetoken,
+            subscribe_key = self.subscribe_key,
+            channel = self.channel,
+            timetoken = self.timetoken,
         );
-        let request = &format!(
-            "GET {} HTTP/1.1\r\nHost: pubnub\r\n\r\n",
-            uri,
-        );
+        let request =
+            &format!("GET {} HTTP/1.1\r\nHost: pubnub\r\n\r\n", uri,);
         let _size = match self.socket.write(request) {
             Ok(_size) => return Ok(()),
             Err(_error) => {
                 self.socket.reconnect();
-                return Err(Error::SubscribeWrite)
-            },
+                return Err(Error::SubscribeWrite);
+            }
         };
-        //let _decoded = percent_decode(b"foo%20bar%3F").decode_utf8().unwrap();
-        //let subscribe_requet = &"";
     }
 }
