@@ -10,7 +10,7 @@ pub struct Client {
     channel: String,
     publish_key: String,
     subscribe_key: String,
-    secret_key: String,
+    _secret_key: String,
     agent: String,
 }
 
@@ -81,13 +81,13 @@ impl Policy {
 /// let channel = "demo";
 /// let publish_key = "demo";
 /// let subscribe_key = "demo";
-/// let secret_key = "secret";
+/// let _secret_key = "secret";
 /// let mut pubnub = PubNub::new(
 ///     host,
 ///     channel,
 ///     publish_key,
 ///     subscribe_key,
-///     secret_key,
+///     _secret_key,
 ///  ).expect("NATS Subscribe Client");
 ///
 /// let result = pubnub.next_message();
@@ -102,7 +102,7 @@ impl Client {
         channel: &str,
         publish_key: &str,
         subscribe_key: &str,
-        secret_key: &str,
+        _secret_key: &str,
     ) -> Result<Self, Error> {
         let policy = Policy::new(host.into());
         let socket = Socket::new(policy);
@@ -113,7 +113,7 @@ impl Client {
             timetoken: "0".into(),
             publish_key: publish_key.into(),
             subscribe_key: subscribe_key.into(),
-            secret_key: secret_key.into(),
+            _secret_key: _secret_key.into(),
             agent: "PubNub".into(),
         };
 
@@ -148,7 +148,10 @@ impl Client {
         );
         let _size = match self.socket.write(request) {
             Ok(size) => size,
-            Err(_error) => return Err(Error::PublishWrite),
+            Err(_error) => {
+                self.socket.reconnect();
+                return Err(Error::PublishWrite)
+            },
         };
 
         // TODO Capture Response Code and timetoken!!!
@@ -191,10 +194,12 @@ impl Client {
         );
         let _size = match self.socket.write(request) {
             Ok(_size) => return Ok(()),
-            Err(_error) => return Err(Error::SubscribeWrite),
+            Err(_error) => {
+                self.socket.reconnect();
+                return Err(Error::SubscribeWrite)
+            },
         };
         //let _decoded = percent_decode(b"foo%20bar%3F").decode_utf8().unwrap();
         //let subscribe_requet = &"";
-        //self.socket.write(subscribe_requet);
     }
 }

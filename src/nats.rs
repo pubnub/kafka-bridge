@@ -307,7 +307,10 @@ impl PublishClient {
         );
         match self.socket.write(pubcmd) {
             Ok(_) => Ok(()),
-            Err(_) => Err(Error::Publish),
+            Err(_) => {
+                self.socket.reconnect();
+                Err(Error::Publish)
+            },
         }
     }
 
