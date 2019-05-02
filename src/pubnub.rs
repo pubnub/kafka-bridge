@@ -170,12 +170,17 @@ impl Client {
 
     pub fn next_message(&mut self) -> Result<Message, Error> {
         // Return next saved mesasge
+        if let Some(message) = self.messages.pop() {
+            return Ok(message)
+        }
+        /*
         if !self.messages.is_empty() {
             match self.messages.pop() {
                 Some(message) => return Ok(message),
                 None => {}
             };
         }
+        */
 
         // Capture
         let response: JsonValue = match self.http_response("subscribe") {
@@ -217,8 +222,8 @@ impl Client {
         let request =
             format!("GET {} HTTP/1.1\r\nHost: pubnub\r\n\r\n", uri,);
         match self.subscribe_socket.write(request) {
-            Ok(_size) => return Ok(()),
-            Err(_error) => return Err(Error::SubscribeWrite),
-        };
+            Ok(_size) => Ok(()),
+            Err(_error) => Err(Error::SubscribeWrite),
+        }
     }
 }
