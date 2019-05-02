@@ -34,7 +34,10 @@ fn main() {
 
             loop {
                 match pubnub.publish(channel, data) {
-                    Ok(timetoken) => {println!("MessageID: {}",timetoken);break},
+                    Ok(timetoken) => {
+                        println!("MessageID: {}", timetoken);
+                        break;
+                    }
                     Err(_error) => thread::sleep(time::Duration::new(1, 0)),
                 };
             }

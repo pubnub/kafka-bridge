@@ -121,10 +121,12 @@ impl Client {
             Err(_error) => return Err(Error::PublishResponse),
         };
         Ok(response[2].to_string())
-
     }
 
-    fn http_response(&mut self, which_socket: &str) -> Result<JsonValue, Error> {
+    fn http_response(
+        &mut self,
+        which_socket: &str,
+    ) -> Result<JsonValue, Error> {
         let mut body_length: usize = 0;
         let socket = match which_socket {
             "publish" => &mut self.publish_socket,
@@ -187,8 +189,16 @@ impl Client {
         let request =
             format!("GET {} HTTP/1.1\r\nHost: pubnub\r\n\r\n", uri,);
         let _size = match self.subscribe_socket.write(request) {
-            Ok(_size) => return Ok(()),
+            Ok(_size) => {}
             Err(_error) => return Err(Error::SubscribeWrite),
         };
+
+        // Capture TimeToken
+        let _response: JsonValue = match self.http_response("subscribe") {
+            Ok(data) => data,
+            Err(_error) => return Err(Error::PublishResponse),
+        };
+        Ok(())
+        //Ok(response[2].to_string())
     }
 }

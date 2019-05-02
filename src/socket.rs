@@ -1,4 +1,4 @@
-use std::io::{Read, BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{Shutdown, TcpStream};
 use std::{thread, time};
 
@@ -16,11 +16,14 @@ pub struct Socket {
 }
 
 pub fn log(host: &str, message: &str) {
-    println!("{}", json::stringify(json::object!{
-        "message" => message,
-        "client" => "MyClient",
-        "host" => host,
-    }));
+    println!(
+        "{}",
+        json::stringify(json::object! {
+            "message" => message,
+            "client" => "MyClient",
+            "host" => host,
+        })
+    );
 }
 
 /// # Socket
@@ -49,7 +52,9 @@ impl Socket {
     }
 
     pub fn check_reconnect(&mut self) {
-        if self.connected { return }
+        if self.connected {
+            return;
+        }
         self.reconnect();
         self.connected = true;
     }
@@ -122,7 +127,7 @@ impl Socket {
     ///
     /// ```no_run
     /// use nats_bridge::socket::Socket;
-    /// 
+    ///
     /// let host = "pubsub.pubnub.com:80";
     /// let mut socket = Socket::new(host.into());
     /// let request = "GET / HTTP/1.1\r\nHost: pubnub.com\r\n\r\n";
