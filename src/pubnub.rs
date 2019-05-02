@@ -74,8 +74,8 @@ impl Client {
         let subscribe_socket = Socket::new(host, "PubNub Subscriber");
 
         let mut pubnub = Self {
-            publish_socket: publish_socket,
-            subscribe_socket: subscribe_socket,
+            publish_socket,
+            subscribe_socket,
             messages: Vec::new(),
             channel: channel.into(),
             timetoken: "0".into(),
@@ -144,7 +144,7 @@ impl Client {
 
             // Capture Content Length of Payload
             if body_length == 0 && data.contains("Content-Length") {
-                let result = match data.split_whitespace().skip(1).next() {
+                let result = match data.split_whitespace().nth(1) {
                     Some(length) => length.parse(),
                     None => return Err(Error::HTTPResponse),
                 };
@@ -200,12 +200,12 @@ impl Client {
         }
 
         // Loop
-        return self.next_message();
+        self.next_message()
     }
 
     fn subscribe(&mut self) -> Result<(), Error> {
         // Don't subscribe if without a channel
-        if self.channel.len() == 0 {
+        if self.channel.is_empty() {
             return Ok(());
         }
         let uri = format!(
@@ -216,7 +216,7 @@ impl Client {
         );
         let request =
             format!("GET {} HTTP/1.1\r\nHost: pubnub\r\n\r\n", uri,);
-        let _size = match self.subscribe_socket.write(request) {
+        match self.subscribe_socket.write(request) {
             Ok(_size) => return Ok(()),
             Err(_error) => return Err(Error::SubscribeWrite),
         };

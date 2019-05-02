@@ -43,19 +43,19 @@ impl SubscribeClient {
             Ok(data) => data,
             Err(_) => return Err(Error::Initialize),
         };
-        let json = infoln
+        let infojson = infoln
             .trim()
             .split_whitespace()
-            .skip(1)
-            .next()
+            .nth(1)
             .expect("NATS info missing JSON");
 
-        let json_info = json::parse(json).expect("NATS info JSON on Connect");
+        println!("{}",infojson);
+        let json_info = json::parse(infojson).expect("NATS info JSON on Connect");
         let client_id = json_info["client_id"].to_string();
 
         let mut nats = Self {
-            socket: socket,
-            client_id: client_id,
+            socket,
+            client_id,
             channel: channel.into(),
         };
 
@@ -213,18 +213,18 @@ impl PublishClient {
             Ok(data) => data,
             Err(_) => return Err(Error::Initialize),
         };
-        let json = infoln
+        let infojson = infoln
             .trim()
             .split_whitespace()
-            .skip(1)
-            .next()
+            .nth(1)
             .expect("NATS info missing JSON");
 
-        let json_info = json::parse(json).expect("NATS info JSON on Connect");
+        println!("{}",infojson);
+        let json_info = json::parse(infojson).expect("NATS info JSON on Connect");
         let client_id = json_info["client_id"].to_string();
 
         let pubnub = Self {
-            socket: socket,
+            socket,
             _client_id: client_id,
         };
 
