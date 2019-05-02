@@ -41,7 +41,7 @@ pub enum Error {
 /// This client lib offers publish/subscribe support to PubNub.
 ///
 /// ```no_run
-/// use nats_bridge::pubnub::Client;
+/// use wanbus::pubnub::Client;
 ///
 /// let host = "psdsn.pubnub.com:80";
 /// let channel = "demo";

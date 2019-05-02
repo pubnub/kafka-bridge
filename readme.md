@@ -1,4 +1,5 @@
-# PubNub NATs Bridge
+# PubNub WANBUS
+## NATS, Kafka, Redis, RabbitMQ and more
 
  - TODO - add a STATS thread that collects counters and sends them over a PubNub channel.
  -      - this allows for a dashboard to see that status of the container.
@@ -12,7 +13,7 @@
  - TODO - Secret Key Signing on Publish
  - TODO - agent and sec key PubNub struct
  - TODO - &str vs String?
- - TODO - pnsdk=nats-to-mobile / nats-bridge
+ - TODO - pnsdk=nats-to-mobile / nats-wanbus
  - TODO - CONNECT string for NATS
  - TODO - AsyncAwait & EPOLL ( https://jsdw.me/posts/rust-asyncawait-preview/  )
  - TODO - socket hangout needs to reconnect
@@ -42,7 +43,7 @@ Built-in security model allows encyrpted data in motion using 2048bit TLS.
 Production runtime Alpine image size is 9MB.
 
 ```shell
-docker build --cpuset-cpus 3 -t nats-bridge .
+docker build --cpuset-cpus 3 -t nats-wanbus .
 ```
 
 ```shell
@@ -68,7 +69,7 @@ Add YAML sidecar
 ## Deploying Docker Compose
 
 ```shell
-docker run -e "NATS_HOST=0.0.0.0:4222" -e "NATS_CHANNELS=a,b,c" nats-bridge
+docker run -e "NATS_HOST=0.0.0.0:4222" -e "NATS_CHANNELS=a,b,c" nats-wanbus
 ```
 
 ##  Easy NATS Terminal Test

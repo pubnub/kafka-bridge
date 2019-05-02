@@ -32,7 +32,7 @@ pub fn log(host: &str, agent: &str, message: &str) {
 /// The user interface for this library.
 ///
 /// ```no_run
-/// use nats_bridge::socket::Socket;
+/// use wanbus::socket::Socket;
 ///
 /// let host = "pubsub.pubnub.com:80";
 /// let mut socket = Socket::new(host, "HTTP Agent");
@@ -66,7 +66,7 @@ impl Socket {
     /// Write string data to the stream.
     ///
     /// ```no_run
-    /// use nats_bridge::socket::Socket;
+    /// use wanbus::socket::Socket;
     /// let host = "pubsub.pubnub.com:80";
     /// let mut socket = Socket::new(host, "HTTP Agent");
     /// let request = "GET / HTTP/1.1\r\nHost: pubnub.com\r\n\r\n";
@@ -100,7 +100,7 @@ impl Socket {
     /// Read a line of data from the stream.
     ///
     /// ```no_run
-    /// use nats_bridge::socket::Socket;
+    /// use wanbus::socket::Socket;
     /// let host = "pubsub.pubnub.com:80";
     /// let mut socket = Socket::new(host.into(), "HTTP Agent");
     /// let request = "GET / HTTP/1.1\r\nHost: pubnub.com\r\n\r\n";
@@ -128,7 +128,7 @@ impl Socket {
     /// Read specified amount of data from the stream.
     ///
     /// ```no_run
-    /// use nats_bridge::socket::Socket;
+    /// use wanbus::socket::Socket;
     ///
     /// let host = "pubsub.pubnub.com:80";
     /// let mut socket = Socket::new(host.into(), "HTTP Agent");
@@ -157,7 +157,7 @@ impl Socket {
     /// This will courteously turn off the connection of your socket.
     ///
     /// ```no_run
-    /// use nats_bridge::socket::Socket;
+    /// use wanbus::socket::Socket;
     /// let host = "pubsub.pubnub.com:80";
     /// let mut socket = Socket::new(host.into(), "HTTP Agent");
     /// socket.disconnect();

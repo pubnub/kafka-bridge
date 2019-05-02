@@ -1,9 +1,9 @@
 #![deny(clippy::all)]
 #![deny(clippy::pedantic)]
 
-use nats_bridge::nats;
 use std::sync::mpsc;
 use std::{thread, time};
+use wanbus::nats;
 
 fn main() {
     // Async Channels
@@ -15,7 +15,7 @@ fn main() {
     let pubnub_subscriber_thread = thread::Builder::new()
         .name("PubNub Subscriber Thread".into())
         .spawn(move || loop {
-            use nats_bridge::pubnub;
+            use wanbus::pubnub;
             let host = "psdsn.pubnub.com:80";
             let channel = "my_channel";
             let publish_key = "demo";
@@ -52,7 +52,7 @@ fn main() {
     let pubnub_publisher_thread = thread::Builder::new()
         .name("PubNub Publisher Thread".into())
         .spawn(move || loop {
-            use nats_bridge::pubnub;
+            use wanbus::pubnub;
             let host = "psdsn.pubnub.com:80";
             let channel = "";
             let publish_key = "demo";
@@ -114,7 +114,7 @@ fn main() {
             };
 
             loop {
-                let message: nats_bridge::pubnub::Message =
+                let message: wanbus::pubnub::Message =
                     nats_publish_rx.recv().expect("MPSC Channel Receiver");
                 //let jsonmsg =
                 println!(

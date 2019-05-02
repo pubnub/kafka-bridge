@@ -4,15 +4,12 @@ version: '3'
 ## - TODO containers:
 ## - TODO ===================
 ## - TODO nats
-## - TODO nats-bridge
-## - TODO nats-producer-test
-## - TODO pubnub-consumer-test
-## - TODO 
+## - TODO nats-wanbus
 ## - TODO ===================
 ## - TODO 
 
 services:
-  nats-bridge:
+  nats-wanbus:
     environment:
       - PUBNUB_SUBKEY=demo
       - PUBNUB_PUBKEY=demo
@@ -24,7 +21,7 @@ services:
       - NATS_AUTH_TOKEN=
       - RUST_BACKTRACE=1
     build: .
-    image: nats-bridge
+    image: nats-wanbus
     restart: on-failure
     links:
       - nats

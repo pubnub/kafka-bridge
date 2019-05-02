@@ -22,7 +22,7 @@ pub enum Error {
 /// This client lib offers subscribe support to NATS.
 ///
 /// ```no_run
-/// use nats_bridge::nats::SubscribeClient;
+/// use wanbus::nats::SubscribeClient;
 ///
 /// let channel = "demo";
 /// let mut nats = SubscribeClient::new("0.0.0.0:4222", channel)
@@ -72,7 +72,7 @@ impl SubscribeClient {
     /// > channel and put each client into a thread.
     ///
     /// ```no_run
-    /// use nats_bridge::nats::SubscribeClient;
+    /// use wanbus::nats::SubscribeClient;
     ///
     /// let channel = "demo";
     /// let mut nats = SubscribeClient::new("0.0.0.0:4222", channel)
@@ -99,7 +99,7 @@ impl SubscribeClient {
     /// Easy way to get messages from the initialized channel.
     ///
     /// ```no_run
-    /// use nats_bridge::nats::SubscribeClient;
+    /// use wanbus::nats::SubscribeClient;
     ///
     /// let channel = "demo";
     /// let mut nats = SubscribeClient::new("0.0.0.0:4222", channel)
@@ -193,7 +193,7 @@ impl Drop for SubscribeClient {
 /// This client lib offers publish support to NATS.
 ///
 /// ```no_run
-/// use nats_bridge::nats::PublishClient;
+/// use wanbus::nats::PublishClient;
 ///
 /// let mut nats = PublishClient::new("0.0.0.0:4222").expect("NATS PUB");
 ///
@@ -236,7 +236,7 @@ impl PublishClient {
     /// Easy way to send messages to any NATS channel.
     ///
     /// ```no_run
-    /// use nats_bridge::nats::PublishClient;
+    /// use wanbus::nats::PublishClient;
     ///
     /// let channel = "demo";
     /// let mut nats = PublishClient::new("0.0.0.0:4222")
