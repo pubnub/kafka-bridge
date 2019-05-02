@@ -19,7 +19,6 @@ services:
       - NATS_USER=
       - NATS_PASSWORD=
       - NATS_AUTH_TOKEN=
-      - RUST_BACKTRACE=1
     build: .
     image: nats-wanbus
     restart: on-failure

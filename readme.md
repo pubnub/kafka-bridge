@@ -1,21 +1,24 @@
 # PubNub WANBus
 > Bring NATS, Kafka, Redis and RabbitMQ to the real world.
 
-![WANBus](https://repository-images.githubusercontent.com/178954890/dcda8900-6ce9-11e9-9cc5-a6b7b476ad65)
-
-Bring push notifications and streaming events to Mobile and Web clients
-based on a NATs channels.
+Add push notifications and streaming events to Mobile and Web clients
+based on a NATs subjects.
+Works with Kafka, Redis, RabbitMQ and more.
 Easy drop-in sidecar.
 Dashboard management page included.
 
-The application is written in Rust.
-The application will listen on NATS channels specified by runtime
+![WANBus](https://repository-images.githubusercontent.com/178954890/dcda8900-6ce9-11e9-9cc5-a6b7b476ad65)
+
+This application is written in Rust.
+The application will listen on your data channels specified by runtime
 and deploytime configuration.
 Built-in security model allows encyrpted data in motion using 2048bit TLS.
+Access management allows you to control
+who can read/write on your message bus.
 
-## Build and Run the Docker Container
+## Build and Run with Docker Container
 
-Production runtime Alpine image size is 9MB.
+Production runtime Alpine image size is 6MB.
 
 ```shell
 docker build --cpuset-cpus 3 -t nats-wanbus .
@@ -23,6 +26,14 @@ docker build --cpuset-cpus 3 -t nats-wanbus .
 
 ```shell
 docker run .................
+    -e PUBNUB_SUBKEY=demo
+    -e PUBNUB_PUBKEY=demo
+    -e PUBNUB_SECKEY=demo
+    -e NATS_SUBJECTS=* ## comma delimited list of subjects to sync
+    -e NATS_HOST=nats
+    -e NATS_USER=
+    -e NATS_PASSWORD=
+    -e NATS_AUTH_TOKEN=
 ```
 
 ## Test Runtime with Docker Compose
