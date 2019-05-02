@@ -14,21 +14,27 @@ fn main() {
     // Subscribe to PubNub messages
     let pubnub_subscriber_thread = thread::Builder::new()
         .name("PubNub Subscriber Thread".into())
-        .spawn(move || {
+        .spawn(move || loop {
             use nats_bridge::pubnub;
             let host = "psdsn.pubnub.com:80";
             let channel = "my_channel";
             let publish_key = "demo";
             let subscribe_key = "demo";
             let secret_key = "secret";
-            let mut pubnub = pubnub::Client::new(
+            let mut pubnub = match pubnub::Client::new(
                 host,
                 channel,
                 publish_key,
                 subscribe_key,
                 secret_key,
-            )
-            .expect("PubNub Subscribe Client");
+            ) {
+                Ok(pubnub) => pubnub,
+                Err(_error) => {
+                    thread::sleep(time::Duration::new(1, 0));
+                    continue;
+                }
+            };
+
             loop {
                 let message = match pubnub.next_message() {
                     Ok(message) => message,
@@ -45,21 +51,26 @@ fn main() {
     // Publish as fast as possible
     let pubnub_publisher_thread = thread::Builder::new()
         .name("PubNub Publisher Thread".into())
-        .spawn(move || {
+        .spawn(move || loop {
             use nats_bridge::pubnub;
             let host = "psdsn.pubnub.com:80";
-            let channel = "my_second_channel";
+            let channel = "";
             let publish_key = "demo";
             let subscribe_key = "demo";
             let secret_key = "secret";
-            let mut pubnub = pubnub::Client::new(
+            let mut pubnub = match pubnub::Client::new(
                 host,
                 channel,
                 publish_key,
                 subscribe_key,
                 secret_key,
-            )
-            .expect("PubNub Client");
+            ) {
+                Ok(pubnub) => pubnub,
+                Err(_error) => {
+                    thread::sleep(time::Duration::new(1, 0));
+                    continue;
+                }
+            };
 
             // Message Receiver Loop
             loop {
@@ -92,9 +103,16 @@ fn main() {
     // Publish as fast as possible
     let nats_publisher_thread = thread::Builder::new()
         .name("NATS Publisher Thread".into())
-        .spawn(move || {
-            let mut nats =
-                nats::PublishClient::new("0.0.0.0:4222").expect("NATS");
+        .spawn(move || loop {
+            let host = "0.0.0.0:4222";
+            let mut nats = match nats::PublishClient::new(host) {
+                Ok(nats) => nats,
+                Err(_error) => {
+                    thread::sleep(time::Duration::from_millis(1000));
+                    continue;
+                }
+            };
+
             loop {
                 let message: nats_bridge::pubnub::Message =
                     nats_publish_rx.recv().expect("MPSC Channel Receiver");
@@ -106,7 +124,7 @@ fn main() {
                 match nats.publish(message.channel, message.data) {
                     Ok(()) => {}
                     Err(_error) => {
-                        thread::sleep(time::Duration::from_millis(1000))
+                        thread::sleep(time::Duration::from_millis(1000));
                     }
                 };
             }
@@ -116,12 +134,17 @@ fn main() {
     // Subscribe as fast as possbile
     let nats_subscriber_thread = thread::Builder::new()
         .name("NATS Subscriber Thread".into())
-        .spawn(move || {
+        .spawn(move || loop {
+            let host = "0.0.0.0:4222";
             let channel = "my_channel";
-            let mut nats =
-                nats::SubscribeClient::new("0.0.0.0:4222", channel)
-                    .expect("NATS Subscribe Client");
             let mut counter = 0;
+            let mut nats = match nats::SubscribeClient::new(host, channel) {
+                Ok(nats) => nats,
+                Err(_error) => {
+                    thread::sleep(time::Duration::from_millis(1000));
+                    continue;
+                }
+            };
             loop {
                 let message = match nats.next_message() {
                     Ok(message) => message,

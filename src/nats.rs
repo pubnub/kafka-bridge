@@ -49,7 +49,6 @@ impl SubscribeClient {
             .nth(1)
             .expect("NATS info missing JSON");
 
-        println!("{}", infojson);
         let json_info =
             json::parse(infojson).expect("NATS info JSON on Connect");
         let client_id = json_info["client_id"].to_string();
@@ -220,7 +219,6 @@ impl PublishClient {
             .nth(1)
             .expect("NATS info missing JSON");
 
-        println!("{}", infojson);
         let json_info =
             json::parse(infojson).expect("NATS info JSON on Connect");
         let client_id = json_info["client_id"].to_string();
