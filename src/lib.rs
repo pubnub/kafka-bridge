@@ -3,4 +3,4 @@
 
 pub mod nats;
 pub mod pubnub;
-mod socket;
+pub mod socket;

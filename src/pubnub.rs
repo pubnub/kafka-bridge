@@ -1,11 +1,12 @@
-use crate::socket::{self, Socket};
-use json::object;
+use crate::socket::Socket;
+use json;
+use json::JsonValue;
 use percent_encoding::{utf8_percent_encode, DEFAULT_ENCODE_SET};
 //use percent_encoding::percent_decode;
 
 pub struct Client {
-    // TODO Sub socket + Pub socket ?
-    socket: Socket<Policy>,
+    publish_socket: Socket,
+    subscribe_socket: Socket,
     timetoken: String,
     channel: String,
     publish_key: String,
@@ -31,45 +32,7 @@ pub enum Error {
     SubscribeWrite,
     SubscribeRead,
     MissingChannel,
-}
-
-struct Policy {
-    host: String,
-}
-
-impl socket::Policy for Policy {
-    fn host(&self) -> &str {
-        &self.host
-    }
-    fn connected(&self) {
-        self.log("PubNub Connected Successfully");
-    }
-    fn disconnected(&self, error: &str) {
-        self.log(error);
-    }
-    fn unreachable(&self, error: &str) {
-        self.log(error);
-    }
-    fn unwritable(&self, error: &str) {
-        self.log(error);
-    }
-}
-
-impl Policy {
-    fn new(host: &str) -> Self {
-        Self { host: host.into() }
-    }
-
-    fn log(&self, message: &str) {
-        println!(
-            "{}",
-            json::stringify(object! {
-                "message" => message,
-                "client" => "NATS",
-                "host" => self.host.clone(),
-            })
-        );
-    }
+    HTTPResponse,
 }
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -78,14 +41,14 @@ impl Policy {
 /// This client lib offers publish/subscribe support to PubNub.
 ///
 /// ```no_run
-/// use nats_bridge::nats::PubNub;
+/// use nats_bridge::pubnub::Client;
 ///
 /// let host = "psdsn.pubnub.com:80";
 /// let channel = "demo";
 /// let publish_key = "demo";
 /// let subscribe_key = "demo";
 /// let _secret_key = "secret";
-/// let mut pubnub = PubNub::new(
+/// let mut pubnub = Client::new(
 ///     host,
 ///     channel,
 ///     publish_key,
@@ -93,10 +56,10 @@ impl Policy {
 ///     _secret_key,
 ///  ).expect("NATS Subscribe Client");
 ///
-/// let result = pubnub.next_message();
-/// assert!(result.is_ok());
-/// let message = result.expect("Received Message");
-/// println!("{} -> {}", message.channel, message.data);
+/// //let result = pubnub.next_message();
+/// //assert!(result.is_ok());
+/// //let message = result.expect("Received Message");
+/// //println!("{} -> {}", message.channel, message.data);
 /// ```
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 impl Client {
@@ -107,11 +70,12 @@ impl Client {
         subscribe_key: &str,
         _secret_key: &str,
     ) -> Result<Self, Error> {
-        let policy = Policy::new(host.into());
-        let socket = Socket::new(policy);
+        let publish_socket = Socket::new(host);
+        let subscribe_socket = Socket::new(host);
 
         let mut pubnub = Self {
-            socket: socket,
+            publish_socket: publish_socket,
+            subscribe_socket: subscribe_socket,
             channel: channel.into(),
             timetoken: "0".into(),
             publish_key: publish_key.into(),
@@ -146,26 +110,80 @@ impl Client {
 
         let request =
             &format!("GET {} HTTP/1.1\r\nHost: pubnub\r\n\r\n", uri,);
-        let _size = match self.socket.write(request) {
+        let _size = match self.publish_socket.write(request) {
             Ok(size) => size,
             Err(_error) => {
-                self.socket.reconnect();
+                self.publish_socket.reconnect();
                 return Err(Error::PublishWrite);
             }
         };
 
-        // TODO Capture Response Code and timetoken!!!
+        // Capture and return TimeToken
+        let response: JsonValue = match self.http_response("publish") {
+            Ok(data) => data,
+            // TODO _error ( RECONNECT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)yypppp
+            // TODO _error ( RECONNECT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)yypppp
+            // TODO _error ( RECONNECT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)yypppp
+            // TODO _error ( RECONNECT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)yypppp
+            // TODO _error ( RECONNECT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)yypppp
+            // TODO _error ( RECONNECT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)yypppp
+            // TODO _error ( RECONNECT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)yypppp
+            // TODO _error ( RECONNECT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)yypppp
+            // TODO _error ( RECONNECT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)yypppp
+            // TODO _error ( RECONNECT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)yypppp
+            // EVERWHERE>...... _error
+            // EVERWHERE>...... _error
+            // EVERWHERE>...... _error
+            // EVERWHERE>...... _error
+            // EVERWHERE>...... _error
+            // EVERWHERE>...... _error
+            // EVERWHERE>...... _error
+            // EVERWHERE>...... _error
+            // EVERWHERE>...... _error
+            // EVERWHERE>...... _error
+            // EVERWHERE>...... _error
+            Err(_error) => return Err(Error::PublishResponse),
+        };
+        Ok(response[2].to_string())
+
+    }
+
+    fn http_response(&mut self, which_socket: &str) -> Result<JsonValue, Error> {
+        let mut body_length: usize = 0;
+        let socket = match which_socket {
+            "publish" => &mut self.publish_socket,
+            "subscribe" => &mut self.subscribe_socket,
+            _ => return Err(Error::HTTPResponse),
+        };
         loop {
-            let data = match self.socket.readln() {
+            let data = match socket.readln() {
                 Ok(data) => data,
-                Err(_error) => return Err(Error::PublishResponse),
+                Err(_error) => return Err(Error::HTTPResponse),
             };
 
-            // End of Request
+            // Capture Content Length of Payload
+            if body_length == 0 && data.contains("Content-Length") {
+                let result = match data.split_whitespace().skip(1).next() {
+                    Some(length) => length.parse(),
+                    None => return Err(Error::HTTPResponse),
+                };
+                body_length = match result {
+                    Ok(length) => length,
+                    Err(_error) => return Err(Error::HTTPResponse),
+                };
+            }
+
+            // End of Headers
             if data.len() == 2 {
-                let timetoken = "TODO TimeToken Here";
-                self.timetoken = timetoken.to_string();
-                return Ok(timetoken.to_string());
+                let paylaod = match socket.read(body_length) {
+                    Ok(data) => data,
+                    Err(_error) => return Err(Error::HTTPResponse),
+                };
+                let response = match json::parse(&paylaod) {
+                    Ok(response) => response,
+                    Err(_error) => return Err(Error::HTTPResponse),
+                };
+                return Ok(response);
             }
         }
     }
@@ -192,10 +210,10 @@ impl Client {
         );
         let request =
             &format!("GET {} HTTP/1.1\r\nHost: pubnub\r\n\r\n", uri,);
-        let _size = match self.socket.write(request) {
+        let _size = match self.subscribe_socket.write(request) {
             Ok(_size) => return Ok(()),
             Err(_error) => {
-                self.socket.reconnect();
+                self.subscribe_socket.reconnect();
                 return Err(Error::SubscribeWrite);
             }
         };

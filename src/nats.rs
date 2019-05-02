@@ -1,53 +1,10 @@
-use crate::socket::{self, Socket};
-use json::object;
+use crate::socket::Socket;
 
 pub struct Message {
     pub channel: String,
     pub my_id: String,
     pub sender_id: String,
     pub data: String,
-}
-
-struct Policy {
-    host: String,
-}
-
-impl socket::Policy for Policy {
-    // Socket Attributes
-    fn host(&self) -> &str {
-        &self.host
-    }
-
-    // Socket Events
-    fn connected(&self) {
-        self.log("NATS Connected Successfully");
-    }
-    fn disconnected(&self, error: &str) {
-        self.log(error);
-    }
-    fn unreachable(&self, error: &str) {
-        self.log(error);
-    }
-    fn unwritable(&self, error: &str) {
-        self.log(error);
-    }
-}
-
-impl Policy {
-    fn new(host: &str) -> Self {
-        Self { host: host.into() }
-    }
-
-    fn log(&self, message: &str) {
-        println!(
-            "{}",
-            json::stringify(object! {
-                "message" => message,
-                "client" => "NATS",
-                "host" => self.host.clone(),
-            })
-        );
-    }
 }
 
 #[derive(Debug)]
@@ -79,8 +36,7 @@ pub enum Error {
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 impl SubscribeClient {
     pub fn new(host: &str, channel: &str) -> Result<Self, Error> {
-        let policy = Policy::new(host);
-        let mut socket = Socket::new(policy);
+        let mut socket = Socket::new(host);
 
         // Get Client ID
         let infoln = match socket.readln() {
@@ -230,7 +186,7 @@ impl SubscribeClient {
 }
 
 pub struct SubscribeClient {
-    socket: Socket<Policy>,
+    socket: Socket,
     client_id: String,
     channel: String,
 }
@@ -260,8 +216,7 @@ impl Drop for SubscribeClient {
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 impl PublishClient {
     pub fn new(host: &str) -> Result<Self, Error> {
-        let policy = Policy::new(host);
-        let mut socket = Socket::new(policy);
+        let mut socket = Socket::new(host);
 
         // Get Client ID
         let infoln = match socket.readln() {
@@ -341,7 +296,7 @@ impl PublishClient {
 }
 
 pub struct PublishClient {
-    socket: Socket<Policy>,
+    socket: Socket,
     _client_id: String,
 }
 
