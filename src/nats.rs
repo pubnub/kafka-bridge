@@ -246,14 +246,14 @@ impl PublishClient {
     /// ```
     pub fn publish(
         &mut self,
-        channel: &str,
-        data: &str,
+        channel: impl AsRef<str>,
+        data: impl AsRef<str>,
     ) -> Result<(), Error> {
         let pubcmd = format!(
             "PUB {channel} {length}\r\n{data}\r\n",
-            channel = channel,
-            length = data.len(),
-            data = data,
+            channel = channel.as_ref(),
+            length = data.as_ref().len(),
+            data = data.as_ref(),
         );
         match self.socket.write(pubcmd) {
             Ok(_) => Ok(()),

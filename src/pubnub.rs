@@ -1,5 +1,4 @@
 use crate::socket::Socket;
-use json;
 use json::JsonValue;
 use percent_encoding::{utf8_percent_encode, DEFAULT_ENCODE_SET};
 //use percent_encoding::percent_decode;
@@ -7,6 +6,7 @@ use percent_encoding::{utf8_percent_encode, DEFAULT_ENCODE_SET};
 pub struct Client {
     publish_socket: Socket,
     subscribe_socket: Socket,
+    messages: Vec<Message>,
     timetoken: String,
     channel: String,
     publish_key: String,
@@ -19,7 +19,7 @@ pub struct Message {
     pub channel: String,
     pub data: String,
     pub metadata: String,
-    pub timetoken: String,
+    pub id: String,
 }
 
 #[derive(Debug)]
@@ -76,6 +76,7 @@ impl Client {
         let mut pubnub = Self {
             publish_socket: publish_socket,
             subscribe_socket: subscribe_socket,
+            messages: Vec::new(),
             channel: channel.into(),
             timetoken: "0".into(),
             publish_key: publish_key.into(),
@@ -166,18 +167,42 @@ impl Client {
         }
     }
 
-    pub fn next_message() -> Result<Message, Error> {
-        // TODO if EOF, self.subscribe() again
-        Ok(Message {
-            channel: "TODO channel".to_string(),
-            data: "TODO data".to_string(),
-            metadata: "TODO metadata".to_string(),
-            timetoken: "TODO timetoken".to_string(),
-        })
+    pub fn next_message(&mut self) -> Result<Message, Error> {
+        // Return next saved mesasge
+        if !self.messages.is_empty() {
+            match self.messages.pop() {
+                Some(message) => return Ok(message),
+                None => {},
+            };
+        }
+
+        // Capture 
+        let response: JsonValue = match self.http_response("subscribe") {
+            Ok(data) => data,
+            Err(_error) => return Err(Error::SubscribeRead),
+        };
+
+        // Ask for more messages from network
+        self.subscribe()?;
+        self.timetoken = response["t"]["t"].to_string();
+
+        // Capture Messages in Vec Buffer
+        for message in response["m"].members() {
+            self.messages.push(Message{
+                channel: message["c"].to_string(),
+                data: message["d"].to_string(),
+                metadata: "TODO metadata".to_string(),
+                id: message["p"]["t"].to_string(),
+            });
+        }
+
+        // Loop
+        return self.next_message();
     }
 
     fn subscribe(&mut self) -> Result<(), Error> {
-        if self.channel.len() <= 0 {
+        // Don't subscribe if without a channel
+        if self.channel.len() == 0 {
             return Ok(());
         }
         let uri = format!(
@@ -189,16 +214,8 @@ impl Client {
         let request =
             format!("GET {} HTTP/1.1\r\nHost: pubnub\r\n\r\n", uri,);
         let _size = match self.subscribe_socket.write(request) {
-            Ok(_size) => {}
+            Ok(_size) => return Ok(()),
             Err(_error) => return Err(Error::SubscribeWrite),
         };
-
-        // Capture TimeToken
-        let _response: JsonValue = match self.http_response("subscribe") {
-            Ok(data) => data,
-            Err(_error) => return Err(Error::PublishResponse),
-        };
-        Ok(())
-        //Ok(response[2].to_string())
     }
 }
