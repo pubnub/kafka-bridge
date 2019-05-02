@@ -171,7 +171,7 @@ impl Client {
     pub fn next_message(&mut self) -> Result<Message, Error> {
         // Return next saved mesasge
         if let Some(message) = self.messages.pop() {
-            return Ok(message)
+            return Ok(message);
         }
         /*
         if !self.messages.is_empty() {
