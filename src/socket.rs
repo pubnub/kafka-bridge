@@ -65,11 +65,11 @@ impl Socket {
     /// let request = "GET / HTTP/1.1\r\nHost: pubnub.com\r\n\r\n";
     /// socket.write(request).expect("data written");
     /// ```
-    pub fn write(&mut self, data: &str) -> Result<usize, Error> {
+    pub fn write(&mut self, data: impl AsRef<str>) -> Result<usize, Error> {
         // Reconnect if not connected
         self.check_reconnect();
 
-        let result = self.stream.write(data.as_bytes());
+        let result = self.stream.write(data.as_ref().as_bytes());
         match result {
             Ok(size) => {
                 if size > 0 {

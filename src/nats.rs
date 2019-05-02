@@ -82,7 +82,7 @@ impl SubscribeClient {
     /// ```
     fn subscribe(&mut self) {
         loop {
-            let sub = &format!(
+            let sub = format!(
                 "SUB {channel} {client_id}\r\n",
                 channel = self.channel,
                 client_id = self.client_id,
@@ -249,7 +249,7 @@ impl PublishClient {
         channel: &str,
         data: &str,
     ) -> Result<(), Error> {
-        let pubcmd = &format!(
+        let pubcmd = format!(
             "PUB {channel} {length}\r\n{data}\r\n",
             channel = channel,
             length = data.len(),

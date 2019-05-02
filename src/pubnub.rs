@@ -109,7 +109,7 @@ impl Client {
         );
 
         let request =
-            &format!("GET {} HTTP/1.1\r\nHost: pubnub\r\n\r\n", uri,);
+            format!("GET {} HTTP/1.1\r\nHost: pubnub\r\n\r\n", uri,);
         let _size = match self.publish_socket.write(request) {
             Ok(size) => size,
             Err(_error) => return Err(Error::PublishWrite),
@@ -185,7 +185,7 @@ impl Client {
             timetoken = self.timetoken,
         );
         let request =
-            &format!("GET {} HTTP/1.1\r\nHost: pubnub\r\n\r\n", uri,);
+            format!("GET {} HTTP/1.1\r\nHost: pubnub\r\n\r\n", uri,);
         let _size = match self.subscribe_socket.write(request) {
             Ok(_size) => return Ok(()),
             Err(_error) => return Err(Error::SubscribeWrite),
