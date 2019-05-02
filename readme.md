@@ -16,6 +16,12 @@ Built-in security model allows encyrpted data in motion using 2048bit TLS.
 Access management allows you to control
 who can read/write on your message bus.
 
+## Dashboard Mockups
+
+![](https://i.imgur.com/BjC73ZN.png)
+
+![](https://i.imgur.com/qP6nNBr.png)
+
 ## Build and Run with Docker Container
 
 Production runtime Alpine image size is 6MB.
@@ -41,10 +47,10 @@ docker run .................
 Easily test with `docker-compose`.
 
 ```shell
+cd nats
 docker-compose up
 ```
 
-The output will ... #TODO
 
 ## Deploying Sidecar in Kubernetes (K8s)
 
