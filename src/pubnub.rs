@@ -56,10 +56,10 @@ pub enum Error {
 ///     _secret_key,
 ///  ).expect("NATS Subscribe Client");
 ///
-/// //let result = pubnub.next_message();
-/// //assert!(result.is_ok());
-/// //let message = result.expect("Received Message");
-/// //println!("{} -> {}", message.channel, message.data);
+/// let result = pubnub.next_message();
+/// assert!(result.is_ok());
+/// let message = result.expect("Received Message");
+/// println!("{} -> {}", message.channel, message.data);
 /// ```
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 impl Client {
@@ -70,8 +70,8 @@ impl Client {
         subscribe_key: &str,
         _secret_key: &str,
     ) -> Result<Self, Error> {
-        let publish_socket = Socket::new(host);
-        let subscribe_socket = Socket::new(host);
+        let publish_socket = Socket::new(host, "PubNub Publisher");
+        let subscribe_socket = Socket::new(host, "PubNub Subscriber");
 
         let mut pubnub = Self {
             publish_socket: publish_socket,
@@ -96,10 +96,12 @@ impl Client {
         channel: &str,
         message: &str,
     ) -> Result<String, Error> {
-        let json_message = json::stringify(message);
-        let encoded_message =
-            utf8_percent_encode(&json_message, DEFAULT_ENCODE_SET)
-                .to_string();
+        //let json_message = json::parse(message);
+        let encoded_message = utf8_percent_encode(
+            /*&json_message*/ message,
+            DEFAULT_ENCODE_SET,
+        )
+        .to_string();
         let uri = format!(
             "/publish/{}/{}/0/{}/0/{}?pnsdk={}",
             self.publish_key,
@@ -158,11 +160,10 @@ impl Client {
                     Ok(data) => data,
                     Err(_error) => return Err(Error::HTTPResponse),
                 };
-                let response = match json::parse(&paylaod) {
-                    Ok(response) => response,
+                match json::parse(&paylaod) {
+                    Ok(response) => return Ok(response),
                     Err(_error) => return Err(Error::HTTPResponse),
                 };
-                return Ok(response);
             }
         }
     }
@@ -172,23 +173,25 @@ impl Client {
         if !self.messages.is_empty() {
             match self.messages.pop() {
                 Some(message) => return Ok(message),
-                None => {},
+                None => {}
             };
         }
 
-        // Capture 
+        // Capture
         let response: JsonValue = match self.http_response("subscribe") {
             Ok(data) => data,
             Err(_error) => return Err(Error::SubscribeRead),
         };
 
+        // Save Last Received Netwrok Queue ID
+        self.timetoken = response["t"]["t"].to_string();
+
         // Ask for more messages from network
         self.subscribe()?;
-        self.timetoken = response["t"]["t"].to_string();
 
         // Capture Messages in Vec Buffer
         for message in response["m"].members() {
-            self.messages.push(Message{
+            self.messages.push(Message {
                 channel: message["c"].to_string(),
                 data: message["d"].to_string(),
                 metadata: "TODO metadata".to_string(),

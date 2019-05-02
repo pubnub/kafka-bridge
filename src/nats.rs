@@ -36,7 +36,7 @@ pub enum Error {
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 impl SubscribeClient {
     pub fn new(host: &str, channel: &str) -> Result<Self, Error> {
-        let mut socket = Socket::new(host);
+        let mut socket = Socket::new(host, "NATS Subscriber");
 
         // Get Client ID
         let infoln = match socket.readln() {
@@ -206,7 +206,7 @@ impl Drop for SubscribeClient {
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 impl PublishClient {
     pub fn new(host: &str) -> Result<Self, Error> {
-        let mut socket = Socket::new(host);
+        let mut socket = Socket::new(host, "NATS Publisher");
 
         // Get Client ID
         let infoln = match socket.readln() {

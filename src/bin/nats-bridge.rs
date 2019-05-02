@@ -15,7 +15,7 @@ fn main() {
     let pubnub_subscriber_thread = thread::spawn(move || {
         use nats_bridge::pubnub;
         let host = "psdsn.pubnub.com:80";
-        let channel = "demo";
+        let channel = "my_channel";
         let publish_key = "demo";
         let subscribe_key = "demo";
         let secret_key = "secret";
@@ -26,13 +26,13 @@ fn main() {
             subscribe_key,
             secret_key,
         )
-        .expect("PubNub Client");
+        .expect("PubNub Subscribe Client");
         loop {
             let message = match pubnub.next_message() {
                 Ok(message) => message,
                 Err(_error) => continue,
             };
-            println!("SUBSCRIBED>>>>>>>>: {}",message.data);
+            println!("SUBSCRIBED>>>>>>>>: {}", message.data);
             pubnub_message_tx
                 .send(message)
                 .expect("NATS mpsc::channel channel write");
@@ -44,7 +44,7 @@ fn main() {
     let pubnub_publisher_thread = thread::spawn(move || {
         use nats_bridge::pubnub;
         let host = "psdsn.pubnub.com:80";
-        let channel = "";
+        let channel = "my_second_channel";
         let publish_key = "demo";
         let subscribe_key = "demo";
         let secret_key = "secret";
@@ -56,12 +56,20 @@ fn main() {
             secret_key,
         )
         .expect("PubNub Client");
+
+        // Message Receiver Loop
         loop {
             let message: nats::Message =
                 pubnub_publish_rx.recv().expect("MPSC Channel Receiver");
             let channel = &message.channel;
             let data = &message.data;
 
+            println!(
+                "SENDING TO PUBNUB: --> {} -> {}",
+                message.channel, message.data
+            );
+
+            // Retry Loop on Failure
             loop {
                 match pubnub.publish(channel, data) {
                     Ok(timetoken) => {
@@ -82,16 +90,24 @@ fn main() {
         loop {
             let message: nats_bridge::pubnub::Message =
                 nats_publish_rx.recv().expect("MPSC Channel Receiver");
-            nats.publish(message.channel, message.data)
-                .expect("message sent");
-            thread::sleep(time::Duration::from_millis(1000));
+            //let jsonmsg =
+            println!(
+                "SENDING TO NATS: --> {} -> {}",
+                message.channel, message.data
+            );
+            match nats.publish(message.channel, message.data) {
+                Ok(()) => {}
+                Err(_error) => {
+                    thread::sleep(time::Duration::from_millis(1000))
+                }
+            };
         }
     });
 
     // Receive NATS Messages
     // Subscribe as fast as possbile
     let nats_subscriber_thread = thread::spawn(move || {
-        let channel = "demo";
+        let channel = "my_channel";
         let mut nats = nats::SubscribeClient::new("0.0.0.0:4222", channel)
             .expect("NATS Subscribe Client");
         let mut counter = 0;
@@ -102,7 +118,7 @@ fn main() {
             };
             counter += 1;
             println!(
-                "[ {count} ] Channel:{channel} -> message:{message}",
+                " - [ {count} ] Channel:{channel} -> message:{message}",
                 count = counter,
                 channel = message.channel,
                 message = message.data
