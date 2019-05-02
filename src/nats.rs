@@ -88,13 +88,8 @@ impl SubscribeClient {
                 client_id = self.client_id,
             );
             match self.socket.write(sub) {
-                Ok(_) => {
-                    break;
-                }
-                Err(_) => {
-                    self.socket.reconnect();
-                    self.subscribe();
-                }
+                Ok(_) => break,
+                Err(_) => self.subscribe(),
             };
         }
     }
@@ -116,7 +111,6 @@ impl SubscribeClient {
         loop {
             let result = self.socket.readln();
             if result.is_err() {
-                self.socket.reconnect();
                 self.subscribe();
                 continue;
             }
@@ -132,10 +126,7 @@ impl SubscribeClient {
                 "PING" => {
                     match self.socket.write("PONG\r\n") {
                         Ok(_) => {}
-                        Err(_) => {
-                            self.socket.reconnect();
-                            self.subscribe();
-                        }
+                        Err(_) => self.subscribe(),
                     };
                 }
                 "MSG" => {
@@ -146,7 +137,6 @@ impl SubscribeClient {
                     let result = self.socket.readln();
 
                     if result.is_err() {
-                        self.socket.reconnect();
                         self.subscribe();
                         continue;
                     }
@@ -267,10 +257,7 @@ impl PublishClient {
         );
         match self.socket.write(pubcmd) {
             Ok(_) => Ok(()),
-            Err(_) => {
-                self.socket.reconnect();
-                Err(Error::Publish)
-            }
+            Err(_) => Err(Error::Publish),
         }
     }
 

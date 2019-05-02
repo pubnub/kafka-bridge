@@ -112,36 +112,12 @@ impl Client {
             &format!("GET {} HTTP/1.1\r\nHost: pubnub\r\n\r\n", uri,);
         let _size = match self.publish_socket.write(request) {
             Ok(size) => size,
-            Err(_error) => {
-                self.publish_socket.reconnect();
-                return Err(Error::PublishWrite);
-            }
+            Err(_error) => return Err(Error::PublishWrite),
         };
 
         // Capture and return TimeToken
         let response: JsonValue = match self.http_response("publish") {
             Ok(data) => data,
-            // TODO _error ( RECONNECT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)yypppp
-            // TODO _error ( RECONNECT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)yypppp
-            // TODO _error ( RECONNECT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)yypppp
-            // TODO _error ( RECONNECT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)yypppp
-            // TODO _error ( RECONNECT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)yypppp
-            // TODO _error ( RECONNECT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)yypppp
-            // TODO _error ( RECONNECT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)yypppp
-            // TODO _error ( RECONNECT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)yypppp
-            // TODO _error ( RECONNECT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)yypppp
-            // TODO _error ( RECONNECT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)yypppp
-            // EVERWHERE>...... _error
-            // EVERWHERE>...... _error
-            // EVERWHERE>...... _error
-            // EVERWHERE>...... _error
-            // EVERWHERE>...... _error
-            // EVERWHERE>...... _error
-            // EVERWHERE>...... _error
-            // EVERWHERE>...... _error
-            // EVERWHERE>...... _error
-            // EVERWHERE>...... _error
-            // EVERWHERE>...... _error
             Err(_error) => return Err(Error::PublishResponse),
         };
         Ok(response[2].to_string())
@@ -212,10 +188,7 @@ impl Client {
             &format!("GET {} HTTP/1.1\r\nHost: pubnub\r\n\r\n", uri,);
         let _size = match self.subscribe_socket.write(request) {
             Ok(_size) => return Ok(()),
-            Err(_error) => {
-                self.subscribe_socket.reconnect();
-                return Err(Error::SubscribeWrite);
-            }
+            Err(_error) => return Err(Error::SubscribeWrite),
         };
     }
 }

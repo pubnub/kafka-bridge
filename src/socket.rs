@@ -10,6 +10,7 @@ pub enum Error {
 
 pub struct Socket {
     host: String,
+    connected: bool,
     stream: TcpStream,
     reader: BufReader<TcpStream>,
 }
@@ -37,6 +38,7 @@ impl Socket {
         let stream = Socket::connect(host);
         Self {
             host: host.into(),
+            connected: true,
             stream: stream.try_clone().expect("Unable to clone stream"),
             reader: BufReader::new(stream),
         }
@@ -44,6 +46,12 @@ impl Socket {
 
     pub fn log(&mut self, message: &str) {
         log(&self.host, message);
+    }
+
+    pub fn check_reconnect(&mut self) {
+        if self.connected { return }
+        self.reconnect();
+        self.connected = true;
     }
 
     /// ## Write Data
@@ -58,6 +66,9 @@ impl Socket {
     /// socket.write(request).expect("data written");
     /// ```
     pub fn write(&mut self, data: &str) -> Result<usize, Error> {
+        // Reconnect if not connected
+        self.check_reconnect();
+
         let result = self.stream.write(data.as_bytes());
         match result {
             Ok(size) => {
@@ -65,11 +76,13 @@ impl Socket {
                     return Ok(size);
                 }
                 self.log("No data has been written.");
+                self.connected = false;
                 Err(Error::Write)
             }
             Err(error) => {
                 self.log(&format!("Unwrittable: {}", error));
                 self.log(&format!("Disconnected: {}", error));
+                self.connected = false;
                 Err(Error::Write)
             }
         }
@@ -88,11 +101,15 @@ impl Socket {
     /// let line = socket.readln();
     /// ```
     pub fn readln(&mut self) -> Result<String, Error> {
+        // Reconnect if not connected
+        self.check_reconnect();
+
         let mut line = String::new();
         let result = self.reader.read_line(&mut line);
         let size = result.unwrap_or_else(|_| 0);
 
         if size == 0 {
+            self.connected = false;
             Err(Error::Read)?;
         }
 
@@ -114,10 +131,14 @@ impl Socket {
     /// println!("{}", data);
     /// ```
     pub fn read(&mut self, bytes: usize) -> Result<String, Error> {
+        // Reconnect if not connected
+        self.check_reconnect();
+
         let mut buffer = vec![0u8; bytes];
         let result = self.reader.read(&mut buffer);
 
         if result.is_err() {
+            self.connected = false;
             Err(Error::Read)?;
         }
 
@@ -141,6 +162,7 @@ impl Socket {
     pub fn reconnect(&mut self) {
         thread::sleep(time::Duration::new(1, 0));
         let stream = Socket::connect(&self.host);
+        self.connected = true;
         self.stream = stream.try_clone().expect("Unable to clone stream");
         self.reader = BufReader::new(stream);
     }
