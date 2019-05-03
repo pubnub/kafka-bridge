@@ -102,6 +102,12 @@ done
 
 ## TODOs List
 
+ - TODO - 
+ - TODO - 
+ - TODO - add improved pubnub subscribe
+ - TODO - add improved pubnub publish
+ - TODO - add socket response timeout
+ - TODO - prevent broadcast loop ( message filter + metadata )
  - TODO - add a STATS thread that collects counters and sends them over a PubNub channel.
  -      - this allows for a dashboard to see that status of the container.
  - TODO - multiple channels NATS - https://doc.rust-lang.org/std/sync/mpsc/#examples
@@ -113,13 +119,9 @@ done
  - TODO - JSON
  - TODO - Secret Key Signing on Publish
  - TODO - agent and sec key PubNub struct
- - TODO - &str vs String?
  - TODO - pnsdk=nats-to-mobile / nats-wanbus
- - TODO - CONNECT string for NATS
  - TODO - AsyncAwait & EPOLL ( https://jsdw.me/posts/rust-asyncawait-preview/  )
  - TODO - socket hangout needs to reconnect
- - TODO - error handeling ( unwarp() )
- - TODO - error enum for unrecoverables
  - TODO - recover from disconnect or restart?
  - TODO - http parser?
  - TODO - pubnub.subscribe via /v2/stream endpoint
