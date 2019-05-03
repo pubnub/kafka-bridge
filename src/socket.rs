@@ -39,7 +39,9 @@ pub fn log(host: &str, agent: &str, message: &str) {
 /// ```
 impl Socket {
     pub fn new(host: &str, agent: &str) -> Self {
-        let stream = Socket::connect(host, agent);
+        // TODO configurable timeouts
+        let stream = Socket::connect(host, agent /*, TODO timeout*/);
+        // TODO configurable timeouts
         Self {
             host: host.into(),
             agent: agent.into(),
@@ -76,6 +78,7 @@ impl Socket {
         // Reconnect if not connected
         self.check_reconnect();
 
+        println!("{}", data.as_ref());
         let result = self.stream.write(data.as_ref().as_bytes());
         match result {
             Ok(size) => {
@@ -112,12 +115,17 @@ impl Socket {
         self.check_reconnect();
 
         let mut line = String::new();
-        let result = self.reader.read_line(&mut line);
-        let size = result.unwrap_or_else(|_| 0);
+        let size = match self.reader.read_line(&mut line) {
+            Ok(size) => size,
+            Err(_error) => {
+                self.connected = false;
+                return Err(Error::Read);
+            }
+        };
 
         if size == 0 {
             self.connected = false;
-            Err(Error::Read)?;
+            return Err(Error::Read);
         }
 
         Ok(line)
@@ -142,11 +150,17 @@ impl Socket {
         self.check_reconnect();
 
         let mut buffer = vec![0u8; bytes];
-        let result = self.reader.read(&mut buffer);
+        let size = match self.reader.read(&mut buffer) {
+            Ok(size) => size,
+            Err(_error) => {
+                self.connected = false;
+                return Err(Error::Read);
+            }
+        };
 
-        if result.is_err() {
+        if size == 0 {
             self.connected = false;
-            Err(Error::Read)?;
+            return Err(Error::Read);
         }
 
         Ok(String::from_utf8_lossy(&buffer).to_string())
@@ -168,6 +182,7 @@ impl Socket {
 
     pub fn reconnect(&mut self) {
         thread::sleep(time::Duration::new(1, 0));
+        self.log("Reconnecting");
         let stream = Socket::connect(&self.host, &self.agent);
         self.connected = true;
         self.stream = stream.try_clone().expect("Unable to clone stream");
@@ -178,9 +193,16 @@ impl Socket {
         loop {
             // Open connection and send initialization data
             let host: String = ip_port.into();
+            // TODO TcpStream::connect_timeout
             let error = match TcpStream::connect(host) {
                 Ok(stream) => {
                     log(ip_port, agent, "Connected");
+                    stream
+                        .set_read_timeout(Some(time::Duration::new(5, 0)))
+                        .expect("Set Socket Read Timeout");
+                    stream
+                        .set_write_timeout(Some(time::Duration::new(5, 0)))
+                        .expect("Set Socket Write Timeout");
                     return stream;
                 }
                 Err(error) => error,

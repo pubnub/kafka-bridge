@@ -39,19 +39,19 @@ impl SubscribeClient {
         let mut socket = Socket::new(host, "NATS Subscriber");
 
         // Get Client ID
-        let infoln = match socket.readln() {
-            Ok(data) => data,
+        let info_line = match socket.readln() {
+            Ok(line) => line,
             Err(_) => return Err(Error::Initialize),
         };
-        let infojson = infoln
-            .trim()
-            .split_whitespace()
-            .nth(1)
-            .expect("NATS info missing JSON");
-
-        let json_info =
-            json::parse(infojson).expect("NATS info JSON on Connect");
-        let client_id = json_info["client_id"].to_string();
+        let data = match info_line.trim().split_whitespace().nth(1) {
+            Some(data) => data,
+            None => return Err(Error::Initialize),
+        };
+        let info = match json::parse(data) {
+            Ok(info) => info,
+            Err(_) => return Err(Error::Initialize),
+        };
+        let client_id = info["client_id"].to_string();
 
         let mut nats = Self {
             socket,
@@ -109,12 +109,13 @@ impl SubscribeClient {
     /// ```
     pub fn next_message(&mut self) -> Result<Message, Error> {
         loop {
-            let result = self.socket.readln();
-            if result.is_err() {
-                self.subscribe();
-                continue;
-            }
-            let data = result.expect("NATS Socket Read");
+            let data = match self.socket.readln() {
+                Ok(data) => data,
+                Err(_) => {
+                    self.subscribe();
+                    return Err(Error::Subscribe);
+                }
+            };
 
             let detail: Vec<_> = data.trim().split_whitespace().collect();
             if detail.is_empty() {
@@ -134,13 +135,13 @@ impl SubscribeClient {
                         continue;
                     }
 
-                    let result = self.socket.readln();
-
-                    if result.is_err() {
-                        self.subscribe();
-                        continue;
-                    }
-                    let message = result.expect("Received Subscribe Message");
+                    let message = match self.socket.readln() {
+                        Ok(message) => message,
+                        Err(_) => {
+                            self.subscribe();
+                            return Err(Error::Subscribe);
+                        }
+                    };
 
                     return Ok(Message {
                         channel: detail[1].into(),
@@ -207,28 +208,12 @@ impl Drop for SubscribeClient {
 impl PublishClient {
     pub fn new(host: &str) -> Result<Self, Error> {
         let mut socket = Socket::new(host, "NATS Publisher");
-
-        // Get Client ID
-        let infoln = match socket.readln() {
+        let _infoln = match socket.readln() {
             Ok(data) => data,
             Err(_) => return Err(Error::Initialize),
         };
-        let infojson = infoln
-            .trim()
-            .split_whitespace()
-            .nth(1)
-            .expect("NATS info missing JSON");
 
-        let json_info =
-            json::parse(infojson).expect("NATS info JSON on Connect");
-        let client_id = json_info["client_id"].to_string();
-
-        let pubnub = Self {
-            socket,
-            _client_id: client_id,
-        };
-
-        Ok(pubnub)
+        Ok(Self { socket })
     }
 
     /// ## Send NATS Messages
@@ -284,7 +269,6 @@ impl PublishClient {
 
 pub struct PublishClient {
     socket: Socket,
-    _client_id: String,
 }
 
 impl Drop for PublishClient {
