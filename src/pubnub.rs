@@ -3,12 +3,18 @@ use json::JsonValue;
 use percent_encoding::{utf8_percent_encode, DEFAULT_ENCODE_SET};
 //use percent_encoding::percent_decode;
 
-pub struct Client {
-    publish_socket: Socket,
-    subscribe_socket: Socket,
+pub struct SubscribeClient {
+    socket: Socket,
     messages: Vec<Message>,
     timetoken: String,
     channel: String,
+    subscribe_key: String,
+    _secret_key: String,
+    agent: String,
+}
+
+pub struct PublishClient {
+    socket: Socket,
     publish_key: String,
     subscribe_key: String,
     _secret_key: String,
@@ -33,6 +39,40 @@ pub enum Error {
     SubscribeRead,
     MissingChannel,
     HTTPResponse,
+}
+
+fn http_response(socket: &mut Socket) -> Result<JsonValue, Error> {
+    let mut body_length: usize = 0;
+    loop {
+        let data = match socket.readln() {
+            Ok(data) => data,
+            Err(_error) => return Err(Error::HTTPResponse),
+        };
+
+        // Capture Content Length of Payload
+        if body_length == 0 && data.contains("Content-Length") {
+            let result = match data.split_whitespace().nth(1) {
+                Some(length) => length.parse(),
+                None => return Err(Error::HTTPResponse),
+            };
+            body_length = match result {
+                Ok(length) => length,
+                Err(_error) => return Err(Error::HTTPResponse),
+            };
+        }
+
+        // End of Headers
+        if data.len() == 2 {
+            let paylaod = match socket.read(body_length) {
+                Ok(data) => data,
+                Err(_error) => return Err(Error::HTTPResponse),
+            };
+            match json::parse(&paylaod) {
+                Ok(response) => return Ok(response),
+                Err(_error) => return Err(Error::HTTPResponse),
+            };
+        }
+    }
 }
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -62,27 +102,24 @@ pub enum Error {
 /// println!("{} -> {}", message.channel, message.data);
 /// ```
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-impl Client {
+impl SubscribeClient {
     pub fn new(
         host: &str,
         channel: &str,
-        publish_key: &str,
         subscribe_key: &str,
         _secret_key: &str,
     ) -> Result<Self, Error> {
-        let publish_socket = Socket::new(host, "PubNub Publisher");
-        let subscribe_socket = Socket::new(host, "PubNub Subscriber");
+        let agent = "PubNub-Subscribe-Client";
+        let socket = Socket::new(host, agent, 5);
 
         let mut pubnub = Self {
-            publish_socket,
-            subscribe_socket,
+            socket,
             messages: Vec::new(),
             channel: channel.into(),
             timetoken: "0".into(),
-            publish_key: publish_key.into(),
             subscribe_key: subscribe_key.into(),
             _secret_key: _secret_key.into(),
-            agent: "PubNub".into(),
+            agent: agent.into(),
         };
 
         match pubnub.subscribe() {
@@ -91,108 +128,26 @@ impl Client {
         }
     }
 
-    pub fn publish(
-        &mut self,
-        channel: &str,
-        message: &str,
-    ) -> Result<String, Error> {
-        //let json_message = json::parse(message);
-        let encoded_message = utf8_percent_encode(
-            /*&json_message*/ message,
-            DEFAULT_ENCODE_SET,
-        )
-        .to_string();
-        let uri = format!(
-            "/publish/{}/{}/0/{}/0/{}?pnsdk={}",
-            self.publish_key,
-            self.subscribe_key,
-            channel,
-            encoded_message,
-            self.agent
-        );
-
-        let request =
-            format!("GET {} HTTP/1.1\r\nHost: pubnub\r\n\r\n", uri,);
-        let _size = match self.publish_socket.write(request) {
-            Ok(size) => size,
-            Err(_error) => return Err(Error::PublishWrite),
-        };
-
-        // Capture and return TimeToken
-        let response: JsonValue = match self.http_response("publish") {
-            Ok(data) => data,
-            Err(_error) => return Err(Error::PublishResponse),
-        };
-        Ok(response[2].to_string())
-    }
-
-    fn http_response(
-        &mut self,
-        which_socket: &str,
-    ) -> Result<JsonValue, Error> {
-        let mut body_length: usize = 0;
-        let socket = match which_socket {
-            "publish" => &mut self.publish_socket,
-            "subscribe" => &mut self.subscribe_socket,
-            _ => return Err(Error::HTTPResponse),
-        };
-        loop {
-            let data = match socket.readln() {
-                Ok(data) => data,
-                Err(_error) => return Err(Error::HTTPResponse),
-            };
-
-            // Capture Content Length of Payload
-            if body_length == 0 && data.contains("Content-Length") {
-                let result = match data.split_whitespace().nth(1) {
-                    Some(length) => length.parse(),
-                    None => return Err(Error::HTTPResponse),
-                };
-                body_length = match result {
-                    Ok(length) => length,
-                    Err(_error) => return Err(Error::HTTPResponse),
-                };
-            }
-
-            // End of Headers
-            if data.len() == 2 {
-                let paylaod = match socket.read(body_length) {
-                    Ok(data) => data,
-                    Err(_error) => return Err(Error::HTTPResponse),
-                };
-                match json::parse(&paylaod) {
-                    Ok(response) => return Ok(response),
-                    Err(_error) => return Err(Error::HTTPResponse),
-                };
-            }
-        }
-    }
-
     pub fn next_message(&mut self) -> Result<Message, Error> {
         // Return next saved mesasge
         if let Some(message) = self.messages.pop() {
             return Ok(message);
         }
-        /*
-        if !self.messages.is_empty() {
-            match self.messages.pop() {
-                Some(message) => return Ok(message),
-                None => {}
-            };
-        }
-        */
 
         // Capture
-        let response: JsonValue = match self.http_response("subscribe") {
+        let response: JsonValue = match http_response(&mut self.socket) {
             Ok(data) => data,
-            Err(_error) => return Err(Error::SubscribeRead),
+            Err(_error) => {
+                // Already returning an error, would you like another?
+                self.subscribe().is_err();
+
+                // Return first error
+                return Err(Error::SubscribeRead);
+            }
         };
 
         // Save Last Received Netwrok Queue ID
         self.timetoken = response["t"]["t"].to_string();
-
-        // Ask for more messages from network
-        self.subscribe()?;
 
         // Capture Messages in Vec Buffer
         for message in response["m"].members() {
@@ -204,26 +159,81 @@ impl Client {
             });
         }
 
-        // Loop
-        self.next_message()
+        // Ask for more messages from network
+        match self.subscribe() {
+            Ok(()) => self.next_message(),
+            Err(_) => Err(Error::SubscribeRead),
+        }
     }
 
     fn subscribe(&mut self) -> Result<(), Error> {
         // Don't subscribe if without a channel
         if self.channel.is_empty() {
-            return Ok(());
+            return Err(Error::MissingChannel);
         }
         let uri = format!(
-            "/v2/subscribe/{subscribe_key}/{channel}/0/{timetoken}",
+            "/v2/subscribe/{subscribe_key}/{channel}/0/{timetoken}?pnsdk={agent}",
             subscribe_key = self.subscribe_key,
             channel = self.channel,
             timetoken = self.timetoken,
+            agent = self.agent,
         );
         let request =
             format!("GET {} HTTP/1.1\r\nHost: pubnub\r\n\r\n", uri,);
-        match self.subscribe_socket.write(request) {
+        match self.socket.write(request) {
             Ok(_size) => Ok(()),
             Err(_error) => Err(Error::SubscribeWrite),
         }
+    }
+}
+
+impl PublishClient {
+    pub fn new(
+        host: &str,
+        publish_key: &str,
+        subscribe_key: &str,
+        _secret_key: &str,
+    ) -> Result<Self, Error> {
+        let agent = "PubNub-Publish-Client";
+        let socket = Socket::new(host, agent, 5);
+
+        Ok(Self {
+            socket,
+            publish_key: publish_key.into(),
+            subscribe_key: subscribe_key.into(),
+            _secret_key: _secret_key.into(),
+            agent: agent.into(),
+        })
+    }
+
+    pub fn publish(
+        &mut self,
+        channel: &str,
+        message: &str,
+    ) -> Result<String, Error> {
+        let encoded_message =
+            utf8_percent_encode(message, DEFAULT_ENCODE_SET).to_string();
+        let uri = format!(
+            "/publish/{}/{}/0/{}/0/{}?pnsdk={}",
+            self.publish_key,
+            self.subscribe_key,
+            channel,
+            encoded_message,
+            self.agent
+        );
+
+        let request =
+            format!("GET {} HTTP/1.1\r\nHost: pubnub\r\n\r\n", uri,);
+        let _size = match self.socket.write(request) {
+            Ok(size) => size,
+            Err(_error) => return Err(Error::PublishWrite),
+        };
+
+        // Capture and return TimeToken
+        let response: JsonValue = match http_response(&mut self.socket) {
+            Ok(data) => data,
+            Err(_error) => return Err(Error::PublishResponse),
+        };
+        Ok(response[2].to_string())
     }
 }

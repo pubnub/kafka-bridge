@@ -12,6 +12,7 @@ pub struct Socket {
     host: String,
     agent: String,
     connected: bool,
+    timeout: u64,
     stream: TcpStream,
     reader: BufReader<TcpStream>,
 }
@@ -35,16 +36,15 @@ pub fn log(host: &str, agent: &str, message: &str) {
 /// use wanbus::socket::Socket;
 ///
 /// let host = "pubsub.pubnub.com:80";
-/// let mut socket = Socket::new(host, "HTTP Agent");
+/// let mut socket = Socket::new(host, "HTTP Agent", 5);
 /// ```
 impl Socket {
-    pub fn new(host: &str, agent: &str) -> Self {
-        // TODO configurable timeouts
-        let stream = Socket::connect(host, agent /*, TODO timeout*/);
-        // TODO configurable timeouts
+    pub fn new(host: &str, agent: &str, timeout: u64) -> Self {
+        let stream = Socket::connect(host, agent, timeout);
         Self {
             host: host.into(),
             agent: agent.into(),
+            timeout,
             connected: true,
             stream: stream.try_clone().expect("Unable to clone stream"),
             reader: BufReader::new(stream),
@@ -70,7 +70,7 @@ impl Socket {
     /// ```no_run
     /// use wanbus::socket::Socket;
     /// let host = "pubsub.pubnub.com:80";
-    /// let mut socket = Socket::new(host, "HTTP Agent");
+    /// let mut socket = Socket::new(host, "HTTP Agent", 5);
     /// let request = "GET / HTTP/1.1\r\nHost: pubnub.com\r\n\r\n";
     /// socket.write(request).expect("data written");
     /// ```
@@ -105,7 +105,7 @@ impl Socket {
     /// ```no_run
     /// use wanbus::socket::Socket;
     /// let host = "pubsub.pubnub.com:80";
-    /// let mut socket = Socket::new(host.into(), "HTTP Agent");
+    /// let mut socket = Socket::new(host.into(), "HTTP Agent", 5);
     /// let request = "GET / HTTP/1.1\r\nHost: pubnub.com\r\n\r\n";
     /// socket.write(request);
     /// let line = socket.readln();
@@ -139,7 +139,7 @@ impl Socket {
     /// use wanbus::socket::Socket;
     ///
     /// let host = "pubsub.pubnub.com:80";
-    /// let mut socket = Socket::new(host.into(), "HTTP Agent");
+    /// let mut socket = Socket::new(host.into(), "HTTP Agent", 5);
     /// let request = "GET / HTTP/1.1\r\nHost: pubnub.com\r\n\r\n";
     /// socket.write(request).expect("data written");
     /// let data = socket.read(30).expect("data read"); // read 30 bytes
@@ -173,7 +173,7 @@ impl Socket {
     /// ```no_run
     /// use wanbus::socket::Socket;
     /// let host = "pubsub.pubnub.com:80";
-    /// let mut socket = Socket::new(host.into(), "HTTP Agent");
+    /// let mut socket = Socket::new(host.into(), "HTTP Agent", 5);
     /// socket.disconnect();
     /// ```
     pub fn disconnect(&mut self) {
@@ -183,25 +183,27 @@ impl Socket {
     pub fn reconnect(&mut self) {
         thread::sleep(time::Duration::new(1, 0));
         self.log("Reconnecting");
-        let stream = Socket::connect(&self.host, &self.agent);
+        let stream = Socket::connect(&self.host, &self.agent, self.timeout);
         self.connected = true;
         self.stream = stream.try_clone().expect("Unable to clone stream");
         self.reader = BufReader::new(stream);
     }
 
-    fn connect(ip_port: &str, agent: &str) -> TcpStream {
+    fn connect(ip_port: &str, agent: &str, timeout: u64) -> TcpStream {
         loop {
-            // Open connection and send initialization data
             let host: String = ip_port.into();
-            // TODO TcpStream::connect_timeout
             let error = match TcpStream::connect(host) {
                 Ok(stream) => {
                     log(ip_port, agent, "Connected");
                     stream
-                        .set_read_timeout(Some(time::Duration::new(5, 0)))
+                        .set_read_timeout(Some(time::Duration::new(
+                            timeout, 0,
+                        )))
                         .expect("Set Socket Read Timeout");
                     stream
-                        .set_write_timeout(Some(time::Duration::new(5, 0)))
+                        .set_write_timeout(Some(time::Duration::new(
+                            timeout, 0,
+                        )))
                         .expect("Set Socket Write Timeout");
                     return stream;
                 }
@@ -222,7 +224,7 @@ mod socket_tests {
     #[test]
     fn write_ok() {
         let host = "www.pubnub.com:80".into();
-        let mut socket = Socket::new(host, "HTTP Agent");
+        let mut socket = Socket::new(host, "HTTP Agent", 5);
 
         let request = "GET / HTTP/1.1\r\nHost: pubnub.com\r\n\r\n";
         let _ = socket.write(request).expect("data written");
@@ -231,7 +233,7 @@ mod socket_tests {
     #[test]
     fn read_ok() {
         let host = "www.pubnub.com:80".into();
-        let mut socket = Socket::new(host, "HTTP Agent");
+        let mut socket = Socket::new(host, "HTTP Agent", 5);
 
         let request = "GET / HTTP/1.1\r\nHost: pubnub.com\r\n\r\n";
         socket.write(request).expect("data written");

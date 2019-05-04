@@ -18,13 +18,11 @@ fn main() {
             use wanbus::pubnub;
             let host = "psdsn.pubnub.com:80";
             let channel = "my_channel";
-            let publish_key = "demo";
             let subscribe_key = "demo";
             let secret_key = "secret";
-            let mut pubnub = match pubnub::Client::new(
+            let mut pubnub = match pubnub::SubscribeClient::new(
                 host,
                 channel,
-                publish_key,
                 subscribe_key,
                 secret_key,
             ) {
@@ -54,13 +52,11 @@ fn main() {
         .spawn(move || loop {
             use wanbus::pubnub;
             let host = "psdsn.pubnub.com:80";
-            let channel = "";
             let publish_key = "demo";
             let subscribe_key = "demo";
             let secret_key = "secret";
-            let mut pubnub = match pubnub::Client::new(
+            let mut pubnub = match pubnub::PublishClient::new(
                 host,
-                channel,
                 publish_key,
                 subscribe_key,
                 secret_key,
