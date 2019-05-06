@@ -1,20 +1,27 @@
 # PubNub WANBus
 > Bring NATS, Kafka, Redis and RabbitMQ to the real world.
 
+Give your Bus super abilities.
+Secure Communication for field mobile and IoT devices with your Message Bus.
+Audit and access management protection.
+Encryption of data in motion.
 Add push notifications and streaming events to Mobile and Web clients
 based on a NATs subjects.
-Works with Kafka, Redis, RabbitMQ and more.
-Easy drop-in sidecar.
+Driver support for Kafka, Redis, RabbitMQ and more.
+Easy drop-in operations.
 Dashboard management page included.
 
 ![WANBus](https://repository-images.githubusercontent.com/178954890/dcda8900-6ce9-11e9-9cc5-a6b7b476ad65)
 
-This application is written in Rust.
-The application will listen on your data channels specified by runtime
-and deploytime configuration.
-Built-in security model allows encyrpted data in motion using 2048bit TLS.
+The WANBus driver is written in Rust.
+WANBus connects locally on your data channels/topics specified by runtime
+and deploy time configuration.
+This creates a bridge which tunnels WAN Traffic over TLS
+to your end-point field Mobile and IoT devices.
+Built-in security model allows encrypted data in motion using 2048bit TLS.
 Access management allows you to control
-who can read/write on your message bus.
+who can read/write events on your message bus.
+Built-in detection for Unauthorized Access Attempts.
 
 ## Dashboard Mockups
 
@@ -44,29 +51,18 @@ docker run .................
 
 ## Test Runtime with Docker Compose
 
-Easily test with `docker-compose`.
+Want to try WANBus with NATS?
+Easily test using `docker-compose`.
 
 ```shell
 cd nats
 docker-compose up
 ```
 
-
-## Deploying Sidecar in Kubernetes (K8s)
-
-...
-Add Secrets to secret store.
-Add YAML sidecar
-
-## Deploying Docker Compose
-
-```shell
-docker run -e "NATS_HOST=0.0.0.0:4222" -e "NATS_CHANNELS=a,b,c" nats-wanbus
-```
-
 ##  Easy NATS Terminal Test
 
 Publish Messages in a Loop.
+
 
 ```shell
 while true;
@@ -94,6 +90,17 @@ done
  printf "PING\r\n";                        sleep 0.4; \
 ) | nc 0.0.0.0 4222 
 ```
+## Deploying Docker Compose
+
+```shell
+docker run -e "NATS_HOST=0.0.0.0:4222" -e "NATS_CHANNELS=a,b,c" nats-wanbus
+```
+
+## Deploying Sidecar in Kubernetes (K8s)
+
+Add Secrets to secret store.
+Add YAML sidecar
+
 
 ## Reference Links
 
