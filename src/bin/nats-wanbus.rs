@@ -134,8 +134,9 @@ fn main() {
                 // Convert to JSON String if not already JSON
                 let parsetest = json::parse(&message.data);
                 if parsetest.is_err() {
-                    let data = format!("\"{data}\"", data=message.data);
-                    message.data = data;
+                    //let data = format!("\"{data}\"", data=message.data);
+                    // TODO <root thing="asdf"> - make work for XML
+                    message.data = json::stringify(message.data);
                 }
                 nats_message_tx
                     .send(message)
