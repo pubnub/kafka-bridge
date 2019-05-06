@@ -118,7 +118,7 @@ fn main() {
         .name("NATS Subscriber Thread".into())
         .spawn(move || loop {
             let host = "0.0.0.0:4222";
-            let channel = "my_channel";
+            let channel = "*";
             let mut nats = match nats::SubscribeClient::new(host, channel) {
                 Ok(nats) => nats,
                 Err(_error) => {

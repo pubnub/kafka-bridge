@@ -41,6 +41,9 @@ pub enum Error {
     HTTPResponse,
 }
 
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+// HTTP Response Reader/Parser
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 fn http_response(socket: &mut Socket) -> Result<JsonValue, Error> {
     let mut body_length: usize = 0;
     loop {
@@ -76,22 +79,21 @@ fn http_response(socket: &mut Socket) -> Result<JsonValue, Error> {
 }
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-/// # PubNub Client
+/// # PubNub Subscriber Client
 ///
-/// This client lib offers publish/subscribe support to PubNub.
+/// This client lib offers subscribe support to PubNub.
 ///
 /// ```no_run
-/// use wanbus::pubnub::Client;
+/// use wanbus::pubnub::SubscribeClient;
 ///
 /// let host = "psdsn.pubnub.com:80";
 /// let channel = "demo";
 /// let publish_key = "demo";
 /// let subscribe_key = "demo";
 /// let _secret_key = "secret";
-/// let mut pubnub = Client::new(
+/// let mut pubnub = SubscribeClient::new(
 ///     host,
 ///     channel,
-///     publish_key,
 ///     subscribe_key,
 ///     _secret_key,
 ///  ).expect("NATS Subscribe Client");
@@ -187,6 +189,30 @@ impl SubscribeClient {
     }
 }
 
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+/// # PubNub Publisher Client
+///
+/// This client lib offers publish support to PubNub.
+///
+/// ```no_run
+/// use wanbus::pubnub::PublishClient;
+///
+/// let host = "psdsn.pubnub.com:80";
+/// let channel = "demo";
+/// let publish_key = "demo";
+/// let subscribe_key = "demo";
+/// let _secret_key = "secret";
+/// let mut pubnub = PublishClient::new(
+///     host,
+///     publish_key,
+///     subscribe_key,
+///     _secret_key,
+///  ).expect("NATS Subscribe Client");
+///
+/// let result = pubnub.publish(channel, "data");
+/// assert!(result.is_ok());
+/// ```
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 impl PublishClient {
     pub fn new(
         host: &str,
