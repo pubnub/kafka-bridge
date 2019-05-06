@@ -11,10 +11,11 @@ version: '3'
 services:
   nats-wanbus:
     environment:
-      - PUBNUB_SUBKEY=demo
-      - PUBNUB_PUBKEY=demo
-      - PUBNUB_SECKEY=demo
-      - NATS_SUBJECTS=a,b,c,d ## comma delimited list of subjects to sync
+      - PUBNUB_SUBSCRIBE_KEY=demo
+      - PUBNUB_PUBLISH_KEY=demo
+      - PUBNUB_SECRET_KEY=demo
+      - PUBNUB_CHANNEL=channels.*
+      - NATS_SUBJECT=channels.*
       - NATS_HOST=nats
       - NATS_USER=
       - NATS_PASSWORD=

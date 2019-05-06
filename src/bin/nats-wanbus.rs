@@ -2,7 +2,7 @@
 #![deny(clippy::pedantic)]
 
 use std::sync::mpsc;
-use std::{thread, time};
+use std::{env, thread, time};
 use json;
 use wanbus::nats;
 
@@ -17,10 +17,13 @@ fn main() {
         .name("PubNub Subscriber Thread".into())
         .spawn(move || loop {
             use wanbus::pubnub;
-            let host = "psdsn.pubnub.com:80";
-            let channel = "my_channel";
-            let subscribe_key = "demo";
-            let secret_key = "secret";
+
+            let config = environment_variables();
+            let host = &config.pubnub_host;
+            let channel = &config.pubnub_channel;
+            let subscribe_key = &config.subscribe_key;
+            let secret_key = &config._secret_key;
+
             let mut pubnub = match pubnub::SubscribeClient::new(
                 host,
                 channel,
@@ -51,10 +54,13 @@ fn main() {
         .name("PubNub Publisher Thread".into())
         .spawn(move || loop {
             use wanbus::pubnub;
-            let host = "psdsn.pubnub.com:80";
-            let publish_key = "demo";
-            let subscribe_key = "demo";
-            let secret_key = "secret";
+
+            let config = environment_variables();
+            let host = &config.pubnub_host;
+            let publish_key = &config.publish_key;
+            let subscribe_key = &config.subscribe_key;
+            let secret_key = &config._secret_key;
+
             let mut pubnub = match pubnub::PublishClient::new(
                 host,
                 publish_key,
@@ -91,7 +97,9 @@ fn main() {
     let nats_publisher_thread = thread::Builder::new()
         .name("NATS Publisher Thread".into())
         .spawn(move || loop {
-            let host = "0.0.0.0:4222";
+            let config = environment_variables();
+            let host = &config.nats_host;
+
             let mut nats = match nats::PublishClient::new(host) {
                 Ok(nats) => nats,
                 Err(_error) => {
@@ -117,9 +125,10 @@ fn main() {
     let nats_subscriber_thread = thread::Builder::new()
         .name("NATS Subscriber Thread".into())
         .spawn(move || loop {
-            let host = "0.0.0.0:4222";
-            let channel = "*";
-            let mut nats = match nats::SubscribeClient::new(host, channel) {
+            let config = environment_variables();
+            let host = &config.nats_host;
+            let subject = &config.nats_subject;
+            let mut nats = match nats::SubscribeClient::new(host, subject) {
                 Ok(nats) => nats,
                 Err(_error) => {
                     thread::sleep(time::Duration::from_millis(1000));
@@ -163,4 +172,25 @@ fn main() {
         .expect("NATS Subscriber thread builder join handle")
         .join()
         .expect("Joining NATS Subscriber Thread");
+}
+
+struct Configuration {
+    pub pubnub_host: String,
+    pub nats_host: String,
+    pub nats_subject: String,
+    pub pubnub_channel: String,
+    pub publish_key: String,
+    pub subscribe_key: String,
+    pub _secret_key: String,
+}
+fn environment_variables() -> Configuration {
+    Configuration {
+        pubnub_host: "psdsn.pubnub.com:80".into(),
+        nats_host: env::var("NATS_HOST").expect("MISSING NATS_HOST"),
+        nats_subject: env::var("NATS_SUBJECT").expect("MISSING NATS_SUBJECT"),
+        pubnub_channel: env::var("PUBNUB_CHANNEL").expect("MISSING PUBNUB_CHANNEL"),
+        publish_key:  env::var("PUBNUB_PUBLISH_KEY").expect("MISSING PUBNUB_PUBLISH_KEY"),
+        subscribe_key: env::var("PUBNUB_SUBSCRIBE_KEY").expect("MISSING PUBNUB_SUBSCRIBE_KEY"),
+        _secret_key: env::var("PUBNUB_SECRET_KEY").expect("MISSING PUBNUB_SECRET_KEY"),
+    }
 }

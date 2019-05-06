@@ -101,6 +101,17 @@ docker run -e "NATS_HOST=0.0.0.0:4222" -e "NATS_CHANNELS=a,b,c" nats-wanbus
 Add Secrets to secret store.
 Add YAML sidecar
 
+## Build and test with Rust Cargo
+
+```shell
+PUBNUB_PUBLISH_KEY=pub-c-6b57a39e-79e7-4d1d-926e-5c376a4cb021 \
+PUBNUB_SUBSCRIBE_KEY=sub-c-df3799ee-704b-11e9-8724-8269f6864ada \
+PUBNUB_SECRET_KEY=sec-c-YWY3NzE0NTYtZTBkMS00YjJjLTgxZDQtN2YzOTY0NWNkNGVk \
+PUBNUB_CHANNEL=channels.* \
+NATS_SUBJECT=channels.* \
+NATS_HOST=0.0.0.0:4222 \
+cargo run
+```
 
 ## Reference Links
 
@@ -110,6 +121,8 @@ Add YAML sidecar
 ## TODOs List
 
  - TODO - BUG - if NATS message isn't JSON, convert to JSON String
+ - TODO - 
+ - TODO - don't receive own message (pubnub)
  - TODO - 
  - TODO - add pub/sub mpsc instead of direct access
  - TODO - add improved pubnub subscribe via /v2/stream/
