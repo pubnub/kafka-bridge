@@ -127,17 +127,19 @@ fn main() {
                 }
             };
             loop {
+                // Get NATS Messages
                 let mut message = match nats.next_message() {
                     Ok(message) => message,
                     Err(_error) => continue,
                 };
+
                 // Convert to JSON String if not already JSON
                 let parsetest = json::parse(&message.data);
                 if parsetest.is_err() {
-                    //let data = format!("\"{data}\"", data=message.data);
-                    // TODO <root thing="asdf"> - make work for XML
                     message.data = json::stringify(message.data);
                 }
+
+                // Enqueue message to be placed on the WAN
                 nats_message_tx
                     .send(message)
                     .expect("NATS mpsc::channel channel write");
