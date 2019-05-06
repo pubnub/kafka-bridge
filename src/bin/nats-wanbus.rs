@@ -1,11 +1,49 @@
 #![deny(clippy::all)]
 #![deny(clippy::pedantic)]
 
-use std::sync::mpsc;
-use std::{env, thread, time};
 use json;
+use std::sync::mpsc;
+use std::{env, thread, time, process};
 use wanbus::nats;
 
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+// Configuration via Environmental Variables
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+struct Configuration {
+    pub pubnub_host: String,
+    pub nats_host: String,
+    pub nats_subject: String,
+    pub pubnub_channel: String,
+    pub pubnub_channel_root: String,
+    pub publish_key: String,
+    pub subscribe_key: String,
+    pub _secret_key: String,
+}
+fn environment_variables() -> Configuration {
+    Configuration {
+        pubnub_host: "psdsn.pubnub.com:80".into(),
+        nats_host: fetch_env_var("NATS_HOST"),
+        nats_subject: fetch_env_var("NATS_SUBJECT"),
+        pubnub_channel: fetch_env_var("PUBNUB_CHANNEL"),
+        pubnub_channel_root: fetch_env_var("PUBNUB_CHANNEL_ROOT"),
+        publish_key: fetch_env_var("PUBNUB_PUBLISH_KEY"),
+        subscribe_key: fetch_env_var("PUBNUB_SUBSCRIBE_KEY"),
+        _secret_key: fetch_env_var("PUBNUB_SECRET_KEY"),
+    }
+}
+fn fetch_env_var(name: &str) -> String {
+    match env::var(name) {
+        Ok(value) => value,
+        Err(_) => {
+            eprintln!("Missing '{}' Environmental Variable", name);
+            process::exit(1);
+        },
+    }
+}
+
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+// Main Loop
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 fn main() {
     // Async Channels
     let (nats_message_tx, pubnub_publish_rx) = mpsc::channel();
@@ -85,8 +123,9 @@ fn main() {
                 loop {
                     match pubnub.publish(channel, data) {
                         Ok(_timetoken) => break,
-                        Err(_error) =>
-                            thread::sleep(time::Duration::new(1, 0)),
+                        Err(_error) => {
+                            thread::sleep(time::Duration::new(1, 0))
+                        }
                     };
                 }
             }
@@ -172,25 +211,4 @@ fn main() {
         .expect("NATS Subscriber thread builder join handle")
         .join()
         .expect("Joining NATS Subscriber Thread");
-}
-
-struct Configuration {
-    pub pubnub_host: String,
-    pub nats_host: String,
-    pub nats_subject: String,
-    pub pubnub_channel: String,
-    pub publish_key: String,
-    pub subscribe_key: String,
-    pub _secret_key: String,
-}
-fn environment_variables() -> Configuration {
-    Configuration {
-        pubnub_host: "psdsn.pubnub.com:80".into(),
-        nats_host: env::var("NATS_HOST").expect("MISSING NATS_HOST"),
-        nats_subject: env::var("NATS_SUBJECT").expect("MISSING NATS_SUBJECT"),
-        pubnub_channel: env::var("PUBNUB_CHANNEL").expect("MISSING PUBNUB_CHANNEL"),
-        publish_key:  env::var("PUBNUB_PUBLISH_KEY").expect("MISSING PUBNUB_PUBLISH_KEY"),
-        subscribe_key: env::var("PUBNUB_SUBSCRIBE_KEY").expect("MISSING PUBNUB_SUBSCRIBE_KEY"),
-        _secret_key: env::var("PUBNUB_SECRET_KEY").expect("MISSING PUBNUB_SECRET_KEY"),
-    }
 }

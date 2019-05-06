@@ -1,10 +1,10 @@
 # WANBus by PubNub
 > Bring NATS, Kafka, Redis and RabbitMQ to the real world.
 
-Give your Messages flexibility.
+Give your Queue super power.
 Secure Communication for field mobile and IoT devices with your Message Bus.
 Audit and access management protection.
-Encryption of data in motion.
+Encryption of data in motion 2048bit TLS.
 Add push notifications and streaming events to Mobile and Web clients
 based on a NATs subjects.
 Driver support for Kafka, Redis, RabbitMQ and more.
@@ -103,12 +103,22 @@ Add YAML sidecar
 
 ## Build and test with Rust Cargo
 
+You'll need a local NATS server running.
+
+```shell
+docker run -p 4222:4222 nats
+```
+
+Now you can run `cargo run`.
+The WANBus app is 12 factor and is configured via Environmental Variables.
+
 ```shell
 PUBNUB_PUBLISH_KEY=pub-c-6b57a39e-79e7-4d1d-926e-5c376a4cb021 \
 PUBNUB_SUBSCRIBE_KEY=sub-c-df3799ee-704b-11e9-8724-8269f6864ada \
 PUBNUB_SECRET_KEY=sec-c-YWY3NzE0NTYtZTBkMS00YjJjLTgxZDQtN2YzOTY0NWNkNGVk \
-PUBNUB_CHANNEL=channels.* \
-NATS_SUBJECT=channels.* \
+PUBNUB_CHANNEL_ROOT=channels \
+PUBNUB_CHANNEL=* \
+NATS_SUBJECT=* \
 NATS_HOST=0.0.0.0:4222 \
 cargo run
 ```
