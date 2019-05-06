@@ -3,6 +3,7 @@
 
 use std::sync::mpsc;
 use std::{thread, time};
+use json;
 use wanbus::nats;
 
 fn main() {
@@ -38,7 +39,6 @@ fn main() {
                     Ok(message) => message,
                     Err(_error) => continue,
                 };
-                println!("SUBSCRIBED>>>>>>>>: {}", message.data);
                 pubnub_message_tx
                     .send(message)
                     .expect("NATS mpsc::channel channel write");
@@ -75,21 +75,12 @@ fn main() {
                 let channel = &message.channel;
                 let data = &message.data;
 
-                println!(
-                    "SENDING TO PUBNUB: --> {} -> {}",
-                    message.channel, message.data
-                );
-
                 // Retry Loop on Failure
                 loop {
                     match pubnub.publish(channel, data) {
-                        Ok(timetoken) => {
-                            println!("MessageID: {}", timetoken);
-                            break;
-                        }
-                        Err(_error) => {
-                            thread::sleep(time::Duration::new(1, 0))
-                        }
+                        Ok(_timetoken) => break,
+                        Err(_error) =>
+                            thread::sleep(time::Duration::new(1, 0)),
                     };
                 }
             }
@@ -112,11 +103,6 @@ fn main() {
             loop {
                 let message: wanbus::pubnub::Message =
                     nats_publish_rx.recv().expect("MPSC Channel Receiver");
-                //let jsonmsg =
-                println!(
-                    "SENDING TO NATS: --> {} -> {}",
-                    message.channel, message.data
-                );
                 match nats.publish(message.channel, message.data) {
                     Ok(()) => {}
                     Err(_error) => {
@@ -133,7 +119,6 @@ fn main() {
         .spawn(move || loop {
             let host = "0.0.0.0:4222";
             let channel = "my_channel";
-            let mut counter = 0;
             let mut nats = match nats::SubscribeClient::new(host, channel) {
                 Ok(nats) => nats,
                 Err(_error) => {
@@ -142,17 +127,16 @@ fn main() {
                 }
             };
             loop {
-                let message = match nats.next_message() {
+                let mut message = match nats.next_message() {
                     Ok(message) => message,
                     Err(_error) => continue,
                 };
-                counter += 1;
-                println!(
-                    " - [ {count} ] Channel:{channel} -> message:{message}",
-                    count = counter,
-                    channel = message.channel,
-                    message = message.data
-                );
+                // Convert to JSON String if not already JSON
+                let parsetest = json::parse(&message.data);
+                if parsetest.is_err() {
+                    let data = format!("\"{data}\"", data=message.data);
+                    message.data = data;
+                }
                 nats_message_tx
                     .send(message)
                     .expect("NATS mpsc::channel channel write");

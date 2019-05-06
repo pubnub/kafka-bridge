@@ -1,4 +1,4 @@
-# PubNub WANBus
+# WANBus by PubNub
 > Bring NATS, Kafka, Redis and RabbitMQ to the real world.
 
 Give your Bus super abilities.
@@ -109,10 +109,11 @@ Add YAML sidecar
 
 ## TODOs List
 
+ - TODO - BUG - if NATS message isn't JSON, convert to JSON String
  - TODO - 
- - TODO - 
- - TODO - add improved pubnub subscribe
- - TODO - add improved pubnub publish
+ - TODO - add pub/sub mpsc instead of direct access
+ - TODO - add improved pubnub subscribe via /v2/stream/
+ - TODO - add improved pubnub publish via mpsc.
  - TODO - add socket response timeout
  - TODO - prevent broadcast loop ( message filter + metadata )
  - TODO - add a STATS thread that collects counters and sends them over a PubNub channel.

@@ -110,7 +110,7 @@ impl SubscribeClient {
         _secret_key: &str,
     ) -> Result<Self, Error> {
         let agent = "PubNub-Subscribe-Client";
-        let socket = Socket::new(host, agent, 5);
+        let socket = Socket::new(host, agent, 30);
 
         let mut pubnub = Self {
             socket,

@@ -78,7 +78,9 @@ impl Socket {
         // Reconnect if not connected
         self.check_reconnect();
 
-        println!("{}", data.as_ref());
+        // Log Write Output
+        self.log(data.as_ref());
+
         let result = self.stream.write(data.as_ref().as_bytes());
         match result {
             Ok(size) => {
