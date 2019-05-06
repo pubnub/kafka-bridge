@@ -1,7 +1,7 @@
 # WANBus by PubNub
 > Bring NATS, Kafka, Redis and RabbitMQ to the real world.
 
-Give your Bus super abilities.
+Give your Messages flexibility.
 Secure Communication for field mobile and IoT devices with your Message Bus.
 Audit and access management protection.
 Encryption of data in motion.
@@ -34,7 +34,7 @@ Built-in detection for Unauthorized Access Attempts.
 Production runtime Alpine image size is 6MB.
 
 ```shell
-docker build --cpuset-cpus 3 -t nats-wanbus .
+docker build -f nats/dockerfile --cpuset-cpus 3 -t nats-wanbus .
 ```
 
 ```shell
@@ -55,8 +55,8 @@ Want to try WANBus with NATS?
 Easily test using `docker-compose`.
 
 ```shell
-cd nats
-docker-compose up
+# TODO Test this command
+docker-compose up -f docker-compose.yaml
 ```
 
 ##  Easy NATS Terminal Test
