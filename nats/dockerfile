@@ -8,7 +8,7 @@ RUN apt-get update
 RUN apt-get -y install musl-tools libssl-dev
 RUN rustup target add x86_64-unknown-linux-musl
 RUN cargo build --release --target=x86_64-unknown-linux-musl
-RUN rm ./src/*.rs ./target/x86_64-unknown-linux-musl/release/nats-wanbus
+RUN rm ./src/*.rs ./target/x86_64-unknown-linux-musl/release/wanbus
 
 # Application Build
 FROM dependencies as build
@@ -34,6 +34,4 @@ ENTRYPOINT ["/sbin/tini", "--"]
 
 # Runtime
 ENV RUST_BACKTRACE=1
-ENV NATS_HOST="0.0.0.0:4222"
-ENV NATS_CHANNELS="a,b,c,d"
 CMD ["/app/nats-wanbus"]
