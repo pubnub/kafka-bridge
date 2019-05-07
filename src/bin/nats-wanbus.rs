@@ -58,12 +58,14 @@ fn main() {
 
             let config = environment_variables();
             let host = &config.pubnub_host;
+            let root = &config.pubnub_channel_root;
             let channel = &config.pubnub_channel;
             let subscribe_key = &config.subscribe_key;
             let secret_key = &config._secret_key;
 
             let mut pubnub = match pubnub::SubscribeClient::new(
                 host,
+                root,
                 channel,
                 subscribe_key,
                 secret_key,
@@ -95,12 +97,14 @@ fn main() {
 
             let config = environment_variables();
             let host = &config.pubnub_host;
+            let root = &config.pubnub_channel_root;
             let publish_key = &config.publish_key;
             let subscribe_key = &config.subscribe_key;
             let secret_key = &config._secret_key;
 
             let mut pubnub = match pubnub::PublishClient::new(
                 host,
+                root,
                 publish_key,
                 subscribe_key,
                 secret_key,

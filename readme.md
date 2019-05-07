@@ -118,6 +118,7 @@ PUBNUB_SUBSCRIBE_KEY=sub-c-df3799ee-704b-11e9-8724-8269f6864ada \
 PUBNUB_SECRET_KEY=sec-c-YWY3NzE0NTYtZTBkMS00YjJjLTgxZDQtN2YzOTY0NWNkNGVk \
 PUBNUB_CHANNEL_ROOT=channels \
 PUBNUB_CHANNEL=* \
+NATS_SUBJECT_ROOT=subjects \
 NATS_SUBJECT=* \
 NATS_HOST=0.0.0.0:4222 \
 cargo run
@@ -131,6 +132,8 @@ cargo run
 ## TODOs List
 
  - TODO - BUG - if NATS message isn't JSON, convert to JSON String
+ - TODO - 
+ - TODO - use STORAGE for catchup.
  - TODO - 
  - TODO - don't receive own message (pubnub)
  - TODO - 

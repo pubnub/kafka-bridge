@@ -5,9 +5,10 @@ use percent_encoding::{utf8_percent_encode, DEFAULT_ENCODE_SET};
 
 pub struct SubscribeClient {
     socket: Socket,
+    root: String,
+    channel: String,
     messages: Vec<Message>,
     timetoken: String,
-    channel: String,
     subscribe_key: String,
     _secret_key: String,
     agent: String,
@@ -15,6 +16,7 @@ pub struct SubscribeClient {
 
 pub struct PublishClient {
     socket: Socket,
+    root: String,
     publish_key: String,
     subscribe_key: String,
     _secret_key: String,
@@ -22,6 +24,7 @@ pub struct PublishClient {
 }
 
 pub struct Message {
+    pub root: String,
     pub channel: String,
     pub data: String,
     pub metadata: String,
@@ -88,11 +91,13 @@ fn http_response(socket: &mut Socket) -> Result<JsonValue, Error> {
 ///
 /// let host = "psdsn.pubnub.com:80";
 /// let channel = "demo";
+/// let root = "";
 /// let publish_key = "demo";
 /// let subscribe_key = "demo";
 /// let _secret_key = "secret";
 /// let mut pubnub = SubscribeClient::new(
 ///     host,
+///     root,
 ///     channel,
 ///     subscribe_key,
 ///     _secret_key,
@@ -107,6 +112,7 @@ fn http_response(socket: &mut Socket) -> Result<JsonValue, Error> {
 impl SubscribeClient {
     pub fn new(
         host: &str,
+        root: &str,
         channel: &str,
         subscribe_key: &str,
         _secret_key: &str,
@@ -116,8 +122,9 @@ impl SubscribeClient {
 
         let mut pubnub = Self {
             socket,
-            messages: Vec::new(),
+            root: root.into(),
             channel: channel.into(),
+            messages: Vec::new(),
             timetoken: "0".into(),
             subscribe_key: subscribe_key.into(),
             _secret_key: _secret_key.into(),
@@ -153,8 +160,15 @@ impl SubscribeClient {
 
         // Capture Messages in Vec Buffer
         for message in response["m"].members() {
+            // Carefully deal with ROOT.CHANNEL
+            let source = message["c"].to_string();
+            let channel = match self.root.is_empty() {
+                true => source,
+                false => source[self.root.len()+1..].to_string(),
+            };
             self.messages.push(Message {
-                channel: message["c"].to_string(),
+                root: format!("{}", self.root),
+                channel: channel,
                 data: message["d"].to_string(),
                 metadata: "TODO metadata".to_string(),
                 id: message["p"]["t"].to_string(),
@@ -173,10 +187,17 @@ impl SubscribeClient {
         if self.channel.is_empty() {
             return Err(Error::MissingChannel);
         }
+        let channel = match self.root.is_empty() {
+            true => format!("{channel}",
+                channel=self.channel),
+            false => format!("{root}.{channel}",
+                channel=self.channel,
+                root=self.root),
+        };
         let uri = format!(
             "/v2/subscribe/{subscribe_key}/{channel}/0/{timetoken}?pnsdk={agent}",
             subscribe_key = self.subscribe_key,
-            channel = self.channel,
+            channel = channel,
             timetoken = self.timetoken,
             agent = self.agent,
         );
@@ -198,12 +219,14 @@ impl SubscribeClient {
 /// use wanbus::pubnub::PublishClient;
 ///
 /// let host = "psdsn.pubnub.com:80";
+/// let root = "";
 /// let channel = "demo";
 /// let publish_key = "demo";
 /// let subscribe_key = "demo";
 /// let _secret_key = "secret";
 /// let mut pubnub = PublishClient::new(
 ///     host,
+///     root,
 ///     publish_key,
 ///     subscribe_key,
 ///     _secret_key,
@@ -216,6 +239,7 @@ impl SubscribeClient {
 impl PublishClient {
     pub fn new(
         host: &str,
+        root: &str,
         publish_key: &str,
         subscribe_key: &str,
         _secret_key: &str,
@@ -225,6 +249,7 @@ impl PublishClient {
 
         Ok(Self {
             socket,
+            root: root.into(),
             publish_key: publish_key.into(),
             subscribe_key: subscribe_key.into(),
             _secret_key: _secret_key.into(),
@@ -239,6 +264,13 @@ impl PublishClient {
     ) -> Result<String, Error> {
         let encoded_message =
             utf8_percent_encode(message, DEFAULT_ENCODE_SET).to_string();
+        let channel = match self.root.is_empty() {
+            true => format!("{channel}",
+                channel=channel),
+            false => format!("{root}.{channel}",
+                channel=channel,
+                root=self.root),
+        };
         let uri = format!(
             "/publish/{}/{}/0/{}/0/{}?pnsdk={}",
             self.publish_key,
