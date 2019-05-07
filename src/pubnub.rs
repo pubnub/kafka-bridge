@@ -164,7 +164,7 @@ impl SubscribeClient {
             let source = message["c"].to_string();
             let channel = match self.root.is_empty() {
                 true => source,
-                false => source[self.root.len()+1..].to_string(),
+                false => source[self.root.len() + 1..].to_string(),
             };
             self.messages.push(Message {
                 root: format!("{}", self.root),
@@ -188,11 +188,12 @@ impl SubscribeClient {
             return Err(Error::MissingChannel);
         }
         let channel = match self.root.is_empty() {
-            true => format!("{channel}",
-                channel=self.channel),
-            false => format!("{root}.{channel}",
-                channel=self.channel,
-                root=self.root),
+            true => format!("{channel}", channel = self.channel),
+            false => format!(
+                "{root}.{channel}",
+                channel = self.channel,
+                root = self.root
+            ),
         };
         let uri = format!(
             "/v2/subscribe/{subscribe_key}/{channel}/0/{timetoken}?pnsdk={agent}",
@@ -265,11 +266,12 @@ impl PublishClient {
         let encoded_message =
             utf8_percent_encode(message, DEFAULT_ENCODE_SET).to_string();
         let channel = match self.root.is_empty() {
-            true => format!("{channel}",
-                channel=channel),
-            false => format!("{root}.{channel}",
-                channel=channel,
-                root=self.root),
+            true => format!("{channel}", channel = channel),
+            false => format!(
+                "{root}.{channel}",
+                channel = channel,
+                root = self.root
+            ),
         };
         let uri = format!(
             "/publish/{}/{}/0/{}/0/{}?pnsdk={}",

@@ -133,6 +133,8 @@ cargo run
 
  - TODO - BUG - if NATS message isn't JSON, convert to JSON String
  - TODO - 
+ - TODO - NATS root NATS_SUBJECT_ROOT
+ - TODO - 
  - TODO - use STORAGE for catchup.
  - TODO - 
  - TODO - don't receive own message (pubnub)

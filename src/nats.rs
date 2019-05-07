@@ -1,7 +1,8 @@
 use crate::socket::Socket;
 
 pub struct Message {
-    pub channel: String,
+    pub root: String,
+    pub subject: String,
     pub my_id: String,
     pub sender_id: String,
     pub data: String,
@@ -16,6 +17,18 @@ pub enum Error {
     Exit,
 }
 
+pub struct SubscribeClient {
+    socket: Socket,
+    client_id: String,
+    root: String,
+    subject: String,
+}
+
+pub struct PublishClient {
+    socket: Socket,
+    root: String,
+}
+
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 /// # NATS Subscribe Client
 ///
@@ -24,18 +37,19 @@ pub enum Error {
 /// ```no_run
 /// use wanbus::nats::SubscribeClient;
 ///
-/// let channel = "demo";
-/// let mut nats = SubscribeClient::new("0.0.0.0:4222", channel)
+/// let root = "subjects";
+/// let subject = "demo";
+/// let mut nats = SubscribeClient::new("0.0.0.0:4222", root, subject)
 ///     .expect("NATS Subscribe Client");
 ///
 /// let result = nats.next_message();
 /// assert!(result.is_ok());
 /// let message = result.expect("Received Message");
-/// println!("{} -> {}", message.channel, message.data);
+/// println!("{} -> {}", message.subject, message.data);
 /// ```
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 impl SubscribeClient {
-    pub fn new(host: &str, channel: &str) -> Result<Self, Error> {
+    pub fn new(host: &str, root: &str, subject: &str) -> Result<Self, Error> {
         let mut socket = Socket::new(host, "NATS Subscriber", 30);
 
         // Get Client ID
@@ -56,7 +70,8 @@ impl SubscribeClient {
         let mut nats = Self {
             socket,
             client_id,
-            channel: channel.into(),
+            root: root.into(),
+            subject: subject.into(),
         };
 
         nats.subscribe();
@@ -65,26 +80,34 @@ impl SubscribeClient {
 
     /// ## Receive NATS Messages
     ///
-    /// Subscribe to any NATS channel.
+    /// Subscribe to any NATS subject.
     /// > Warning: This method can only be called once per client because
     /// > NATS does not support multiplexing.
-    /// > If you need multiple channels, initialize one NATS client per
-    /// > channel and put each client into a thread.
+    /// > If you need multiple subjects, initialize one NATS client per
+    /// > subject and put each client into a thread.
     ///
     /// ```no_run
     /// use wanbus::nats::SubscribeClient;
     ///
-    /// let channel = "demo";
-    /// let mut nats = SubscribeClient::new("0.0.0.0:4222", channel)
+    /// let subject = "demo";
+    /// let mut nats = SubscribeClient::new("0.0.0.0:4222", subject)
     ///     .expect("NATS Subscribe Client");
     ///
     /// let message = nats.next_message().expect("Received Message");
     /// ```
     fn subscribe(&mut self) {
         loop {
+            let subject = match self.root.is_empty() {
+                true => format!("{subject}", subject = self.subject),
+                false => format!(
+                    "{root}.{subject}",
+                    subject = self.subject,
+                    root = self.root
+                ),
+            };
             let sub = format!(
-                "SUB {channel} {client_id}\r\n",
-                channel = self.channel,
+                "SUB {subject} {client_id}\r\n",
+                subject = subject,
                 client_id = self.client_id,
             );
             match self.socket.write(sub) {
@@ -96,18 +119,27 @@ impl SubscribeClient {
 
     /// ## Receive NATS Messages
     ///
-    /// Easy way to get messages from the initialized channel.
+    /// Easy way to get messages from the initialized subject.
     ///
     /// ```no_run
     /// use wanbus::nats::SubscribeClient;
     ///
-    /// let channel = "demo";
-    /// let mut nats = SubscribeClient::new("0.0.0.0:4222", channel)
+    /// let subject = "demo";
+    /// let mut nats = SubscribeClient::new("0.0.0.0:4222", subject)
     ///     .expect("NATS Subscribe Client");
     ///
     /// let message = nats.next_message().expect("Received Message");
     /// ```
     pub fn next_message(&mut self) -> Result<Message, Error> {
+        // TODO - extract root
+        // TODO - extract root
+        // TODO - extract root
+        // TODO - extract root
+        // TODO - extract root
+        // TODO - extract root
+        // TODO - extract root
+        // TODO - extract root
+        // TODO - extract root
         loop {
             let data = match self.socket.readln() {
                 Ok(data) => data,
@@ -143,8 +175,14 @@ impl SubscribeClient {
                         }
                     };
 
+                    let source: String = detail[1].into();
+                    let subject = match self.root.is_empty() {
+                        true => source,
+                        false => source[self.root.len() + 1..].to_string(),
+                    };
                     return Ok(Message {
-                        channel: detail[1].into(),
+                        root: format!("{}", self.root),
+                        subject: subject,
                         my_id: detail[2].into(),
                         sender_id: detail[3].into(),
                         data: message.trim().into(),
@@ -176,12 +214,6 @@ impl SubscribeClient {
     }
 }
 
-pub struct SubscribeClient {
-    socket: Socket,
-    client_id: String,
-    channel: String,
-}
-
 impl Drop for SubscribeClient {
     fn drop(&mut self) {
         self.socket.disconnect();
@@ -196,47 +228,58 @@ impl Drop for SubscribeClient {
 /// ```no_run
 /// use wanbus::nats::PublishClient;
 ///
-/// let mut nats = PublishClient::new("0.0.0.0:4222").expect("NATS PUB");
+/// let mut nats = PublishClient::new("0.0.0.0:4222", "").expect("NATS PUB");
 ///
 /// loop {
-///     let result = nats.publish("hello", "channel");
+///     let result = nats.publish("hello", "subject");
 ///     assert!(result.is_ok());
 /// }
 /// ```
 ///
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 impl PublishClient {
-    pub fn new(host: &str) -> Result<Self, Error> {
+    pub fn new(host: &str, root: &str) -> Result<Self, Error> {
         let mut socket = Socket::new(host, "NATS Publisher", 5);
         let _infoln = match socket.readln() {
             Ok(data) => data,
             Err(_) => return Err(Error::Initialize),
         };
 
-        Ok(Self { socket })
+        Ok(Self {
+            socket,
+            root: root.into(),
+        })
     }
 
     /// ## Send NATS Messages
     ///
-    /// Easy way to send messages to any NATS channel.
+    /// Easy way to send messages to any NATS subject.
     ///
     /// ```no_run
     /// use wanbus::nats::PublishClient;
     ///
-    /// let channel = "demo";
+    /// let subject = "demo";
     /// let mut nats = PublishClient::new("0.0.0.0:4222")
     ///     .expect("NATS Publish Client");
     ///
-    /// nats.publish(channel, "Hello").expect("publish sent");
+    /// nats.publish(subject, "Hello").expect("publish sent");
     /// ```
     pub fn publish(
         &mut self,
-        channel: impl AsRef<str>,
+        subject: impl AsRef<str>,
         data: impl AsRef<str>,
     ) -> Result<(), Error> {
+        let subject = match self.root.is_empty() {
+            true => format!("{subject}", subject = subject.as_ref()),
+            false => format!(
+                "{root}.{subject}",
+                subject = subject.as_ref(),
+                root = self.root
+            ),
+        };
         let pubcmd = format!(
-            "PUB {channel} {length}\r\n{data}\r\n",
-            channel = channel.as_ref(),
+            "PUB {subject} {length}\r\n{data}\r\n",
+            subject = subject,
             length = data.as_ref().len(),
             data = data.as_ref(),
         );
@@ -265,10 +308,6 @@ impl PublishClient {
             Err(_error) => Err(Error::Exit),
         }
     }
-}
-
-pub struct PublishClient {
-    socket: Socket,
 }
 
 impl Drop for PublishClient {
@@ -356,11 +395,11 @@ mod tests {
             mock.process();
         });
 
-        let channel = "demo";
+        let subject = "demo";
         let mut publisher =
             PublishClient::new(host).expect("NATS Publish Client");
 
-        publisher.publish(channel, "Hello").expect("Message Sent");
+        publisher.publish(subject, "Hello").expect("Message Sent");
         publisher.exit().expect("NATS Connection Closed");
         t.join().expect("Mock TcpStream server");
     }
@@ -373,13 +412,13 @@ mod tests {
             mock.process();
         });
 
-        let channel = "demo";
-        let mut subscriber = SubscribeClient::new(host, channel)
+        let subject = "demo";
+        let mut subscriber = SubscribeClient::new(host, subject)
             .expect("NATS Subscribe Client");
         let result = subscriber.next_message();
         assert!(result.is_ok());
         let message = result.expect("Received Message");
-        assert!(message.channel.len() > 0);
+        assert!(message.subject.len() > 0);
         subscriber.exit().expect("NATS Socket Closed");
         t.join().expect("Mock TcpStream server");
     }

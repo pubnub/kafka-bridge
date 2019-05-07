@@ -3,7 +3,7 @@
 
 use json;
 use std::sync::mpsc;
-use std::{env, thread, time, process};
+use std::{env, process, thread, time};
 use wanbus::nats;
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -13,6 +13,7 @@ struct Configuration {
     pub pubnub_host: String,
     pub nats_host: String,
     pub nats_subject: String,
+    pub nats_subject_root: String,
     pub pubnub_channel: String,
     pub pubnub_channel_root: String,
     pub publish_key: String,
@@ -24,6 +25,7 @@ fn environment_variables() -> Configuration {
         pubnub_host: "psdsn.pubnub.com:80".into(),
         nats_host: fetch_env_var("NATS_HOST"),
         nats_subject: fetch_env_var("NATS_SUBJECT"),
+        nats_subject_root: fetch_env_var("NATS_SUBJECT_ROOT"),
         pubnub_channel: fetch_env_var("PUBNUB_CHANNEL"),
         pubnub_channel_root: fetch_env_var("PUBNUB_CHANNEL_ROOT"),
         publish_key: fetch_env_var("PUBNUB_PUBLISH_KEY"),
@@ -37,7 +39,7 @@ fn fetch_env_var(name: &str) -> String {
         Err(_) => {
             eprintln!("Missing '{}' Environmental Variable", name);
             process::exit(1);
-        },
+        }
     }
 }
 
@@ -120,7 +122,7 @@ fn main() {
             loop {
                 let message: nats::Message =
                     pubnub_publish_rx.recv().expect("MPSC Channel Receiver");
-                let channel = &message.channel;
+                let channel = &message.subject;
                 let data = &message.data;
 
                 // Retry Loop on Failure
@@ -142,8 +144,9 @@ fn main() {
         .spawn(move || loop {
             let config = environment_variables();
             let host = &config.nats_host;
+            let root = &config.nats_subject_root;
 
-            let mut nats = match nats::PublishClient::new(host) {
+            let mut nats = match nats::PublishClient::new(host, root) {
                 Ok(nats) => nats,
                 Err(_error) => {
                     thread::sleep(time::Duration::from_millis(1000));
@@ -170,14 +173,16 @@ fn main() {
         .spawn(move || loop {
             let config = environment_variables();
             let host = &config.nats_host;
+            let root = &config.nats_subject_root;
             let subject = &config.nats_subject;
-            let mut nats = match nats::SubscribeClient::new(host, subject) {
-                Ok(nats) => nats,
-                Err(_error) => {
-                    thread::sleep(time::Duration::from_millis(1000));
-                    continue;
-                }
-            };
+            let mut nats =
+                match nats::SubscribeClient::new(host, root, subject) {
+                    Ok(nats) => nats,
+                    Err(_error) => {
+                        thread::sleep(time::Duration::from_millis(1000));
+                        continue;
+                    }
+                };
             loop {
                 // Get NATS Messages
                 let mut message = match nats.next_message() {
@@ -194,7 +199,7 @@ fn main() {
                 // Enqueue message to be placed on the WAN
                 nats_message_tx
                     .send(message)
-                    .expect("NATS mpsc::channel channel write");
+                    .expect("NATS mpsc::channel subject write");
             }
         });
 
