@@ -98,14 +98,16 @@ impl SubscribeClient {
     /// ```
     fn subscribe(&mut self) {
         loop {
-            let subject = match self.root.is_empty() {
-                true => format!("{subject}", subject = self.subject),
-                false => format!(
+            let subject = if self.root.is_empty() {
+                self.subject.to_string()
+            } else {
+                format!(
                     "{root}.{subject}",
                     subject = self.subject,
                     root = self.root
-                ),
+                )
             };
+
             let sub = format!(
                 "SUB {subject} {client_id}\r\n",
                 subject = subject,
@@ -169,13 +171,16 @@ impl SubscribeClient {
                     };
 
                     let source: String = detail[1].into();
-                    let subject = match self.root.is_empty() {
-                        true => source,
-                        false => source[self.root.len() + 1..].to_string(),
+
+                    let subject = if self.root.is_empty() {
+                        source
+                    } else {
+                        source[self.root.len() + 1..].to_string()
                     };
+
                     return Ok(Message {
-                        root: format!("{}", self.root),
-                        subject: subject,
+                        root: self.root.to_string(),
+                        subject,
                         my_id: detail[2].into(),
                         sender_id: detail[3].into(),
                         data: message.trim().into(),
@@ -263,14 +268,16 @@ impl PublishClient {
         subject: impl AsRef<str>,
         data: impl AsRef<str>,
     ) -> Result<(), Error> {
-        let subject = match self.root.is_empty() {
-            true => format!("{subject}", subject = subject.as_ref()),
-            false => format!(
+        let subject = if self.root.is_empty() {
+            subject.as_ref().to_string()
+        } else {
+            format!(
                 "{root}.{subject}",
                 subject = subject.as_ref(),
                 root = self.root
-            ),
+            )
         };
+
         let pubcmd = format!(
             "PUB {subject} {length}\r\n{data}\r\n",
             subject = subject,

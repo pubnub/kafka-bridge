@@ -18,7 +18,7 @@ struct Configuration {
     pub pubnub_channel_root: String,
     pub publish_key: String,
     pub subscribe_key: String,
-    pub _secret_key: String,
+    pub secret_key: String,
 }
 fn environment_variables() -> Configuration {
     Configuration {
@@ -30,16 +30,15 @@ fn environment_variables() -> Configuration {
         pubnub_channel_root: fetch_env_var("PUBNUB_CHANNEL_ROOT"),
         publish_key: fetch_env_var("PUBNUB_PUBLISH_KEY"),
         subscribe_key: fetch_env_var("PUBNUB_SUBSCRIBE_KEY"),
-        _secret_key: fetch_env_var("PUBNUB_SECRET_KEY"),
+        secret_key: fetch_env_var("PUBNUB_SECRET_KEY"),
     }
 }
 fn fetch_env_var(name: &str) -> String {
-    match env::var(name) {
-        Ok(value) => value,
-        Err(_) => {
-            eprintln!("Missing '{}' Environmental Variable", name);
-            process::exit(1);
-        }
+    if let Ok(value) = env::var(name) {
+        value
+    } else {
+        eprintln!("Missing '{}' Environmental Variable", name);
+        process::exit(1);
     }
 }
 
@@ -63,7 +62,7 @@ fn main() {
             let root = &config.pubnub_channel_root;
             let channel = &config.pubnub_channel;
             let subscribe_key = &config.subscribe_key;
-            let secret_key = &config._secret_key;
+            let secret_key = &config.secret_key;
 
             let mut pubnub = match pubnub::SubscribeClient::new(
                 host,
@@ -102,7 +101,7 @@ fn main() {
             let root = &config.pubnub_channel_root;
             let publish_key = &config.publish_key;
             let subscribe_key = &config.subscribe_key;
-            let secret_key = &config._secret_key;
+            let secret_key = &config.secret_key;
 
             let mut pubnub = match pubnub::PublishClient::new(
                 host,
