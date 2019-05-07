@@ -37,8 +37,8 @@ pub struct PublishClient {
 /// ```no_run
 /// use wanbus::nats::SubscribeClient;
 ///
-/// let root = "subjects";
-/// let subject = "demo";
+/// let root = "subjects"; // subjects.demo
+/// let subject = "demo";  // subjects.demo
 /// let mut nats = SubscribeClient::new("0.0.0.0:4222", root, subject)
 ///     .expect("NATS Subscribe Client");
 ///
@@ -89,8 +89,9 @@ impl SubscribeClient {
     /// ```no_run
     /// use wanbus::nats::SubscribeClient;
     ///
-    /// let subject = "demo";
-    /// let mut nats = SubscribeClient::new("0.0.0.0:4222", subject)
+    /// let root = "subjects"; // subjects.demo
+    /// let subject = "demo";  // subjects.demo
+    /// let mut nats = SubscribeClient::new("0.0.0.0:4222", root, subject)
     ///     .expect("NATS Subscribe Client");
     ///
     /// let message = nats.next_message().expect("Received Message");
@@ -124,22 +125,14 @@ impl SubscribeClient {
     /// ```no_run
     /// use wanbus::nats::SubscribeClient;
     ///
-    /// let subject = "demo";
-    /// let mut nats = SubscribeClient::new("0.0.0.0:4222", subject)
+    /// let root = "subjects"; // subjects.demo
+    /// let subject = "demo";  // subjects.demo
+    /// let mut nats = SubscribeClient::new("0.0.0.0:4222", root, subject)
     ///     .expect("NATS Subscribe Client");
     ///
     /// let message = nats.next_message().expect("Received Message");
     /// ```
     pub fn next_message(&mut self) -> Result<Message, Error> {
-        // TODO - extract root
-        // TODO - extract root
-        // TODO - extract root
-        // TODO - extract root
-        // TODO - extract root
-        // TODO - extract root
-        // TODO - extract root
-        // TODO - extract root
-        // TODO - extract root
         loop {
             let data = match self.socket.readln() {
                 Ok(data) => data,
@@ -259,7 +252,8 @@ impl PublishClient {
     /// use wanbus::nats::PublishClient;
     ///
     /// let subject = "demo";
-    /// let mut nats = PublishClient::new("0.0.0.0:4222")
+    /// let root = "root";
+    /// let mut nats = PublishClient::new("0.0.0.0:4222", root)
     ///     .expect("NATS Publish Client");
     ///
     /// nats.publish(subject, "Hello").expect("publish sent");
@@ -396,8 +390,9 @@ mod tests {
         });
 
         let subject = "demo";
+        let root = "";
         let mut publisher =
-            PublishClient::new(host).expect("NATS Publish Client");
+            PublishClient::new(host, root).expect("NATS Publish Client");
 
         publisher.publish(subject, "Hello").expect("Message Sent");
         publisher.exit().expect("NATS Connection Closed");
@@ -413,7 +408,8 @@ mod tests {
         });
 
         let subject = "demo";
-        let mut subscriber = SubscribeClient::new(host, subject)
+        let root = "";
+        let mut subscriber = SubscribeClient::new(host, root, subject)
             .expect("NATS Subscribe Client");
         let result = subscriber.next_message();
         assert!(result.is_ok());
@@ -426,12 +422,14 @@ mod tests {
     #[test]
     fn ping_ok() {
         let host = "0.0.0.0:4223";
+        let root = "";
         let mock = NATSMock::new(host).expect("Unable to listen");
         let t = thread::spawn(move || {
             mock.process();
         });
 
-        let mut nats = PublishClient::new(host).expect("NATS Publish Client");
+        let mut nats =
+            PublishClient::new(host, root).expect("NATS Publish Client");
 
         let pong = nats.ping().expect("Pong from Ping");
         assert_eq!(pong, "PONG\r\n");
