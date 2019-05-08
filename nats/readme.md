@@ -11,16 +11,6 @@ based on a NATs subjects.
 Easy drop-in operations.
 Dashboard management page included.
 
- - TODO - Channel mapping and `ROOT` concepts.
- - TODO - Docker Compose
- - TODO - Examples
- - TODO - println!() DEV CONSOLE URL ( to be replaced with DASHBOARD )
- - TODO - 
- - TODO - 
- - TODO - 
- - TODO - 
- - TODO - 
-
 ## Up and running in 10 seconds
 
 Want to try WANBus with NATS?
@@ -32,6 +22,15 @@ cd wanbus
 docker-compose -f nats/docker-compose.yaml up 
 ```
 
+## NATS Wildcard Channel Support
+
+> Keep this in mind when configuration your runtime ENVIRONMENTAL variables.
+
+NATS wildcard symbols include `*` and `>`.
+These symbols have different meanings.
+The `*` symbol captures all messages for `root.*` and
+will not capture `root.sub.*`.
+The `>` symbol captures all messages below the root including sub nodes.
 
 ## Docker Usage Instructions
 
