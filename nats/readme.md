@@ -22,6 +22,11 @@ cd wanbus
 docker-compose -f nats/docker-compose.yaml up 
 ```
 
+Follow URL printed at boot up.
+The URL will be in a JSON message.
+
+You can modify the ENVVARs in `./nats/docker-compose.yaml` file.
+
 ## NATS Wildcard Channel Support
 
 > Keep this in mind when configuration your runtime ENVIRONMENTAL variables.
