@@ -21,7 +21,19 @@ Dashboard management page included.
  - TODO - 
  - TODO - 
 
-## Run with Docker
+## Up and running in 10 seconds
+
+Want to try WANBus with NATS?
+Test runtime with Docker Compose.
+Easily test using `docker-compose`.
+
+```shell
+cd wanbus
+docker-compose -f nats/docker-compose.yaml up 
+```
+
+
+## Docker Usage Instructions
 
 Production docker runtime Alpine image size is **6MB**.
 Start by building the NATS WANbus image.
@@ -59,19 +71,6 @@ docker run \
 
 Visit the URL printed from the output.
 
-## Test Runtime with Docker Compose
-
-Want to try WANBus with NATS?
-Easily test using `docker-compose`.
-
-```shell
-# TODO Test this command
-# TODO Test this command
-# TODO Test this command
-# TODO Test this command
-docker-compose -f nats/docker-compose.yaml up 
-```
-
 ##  Easy NATS Terminal Test
 
 Publish Messages in a Loop.
@@ -103,21 +102,31 @@ done
 ) | nc 0.0.0.0 4222 
 ```
 
-## Deploying Docker Compose
-
-```shell
-docker run -e "NATS_HOST=0.0.0.0:4222" -e "NATS_CHANNELS=a,b,c" nats-wanbus
-```
-
 ## Deploying Sidecar in Kubernetes (K8s)
 
 Add Secrets to secret store.
 Add YAML sidecar
 
-## Build and test with Rust Cargo
+## Binary Standalone Usage Instructions
 
-You'll need a local NATS server running.
+You need `Rust` and `NATS`.
 
+#### Get Rust
+
+Instructions posted here
+https://www.rust-lang.org/tools/install
+
+```shell
+## Rust Quick Install
+curl https://sh.rustup.rs -sSf | sh
+```
+
+#### Get NATS
+
+```shell
+## NATS Quick Install
+docker run -p 4222:4222 nats
+```
 
 Now you can run `cargo run --bin nats-wanbus`.
 The WANBus app is 12 factor and is configured via Environmental Variables.
@@ -130,7 +139,7 @@ PUBNUB_CHANNEL_ROOT=channels \
 PUBNUB_CHANNEL=* \
 PUBNUB_CIPHER_KEY=pAsSwOrD \
 NATS_SUBJECT_ROOT=subjects \
-NATS_SUBJECT=* \
+NATS_SUBJECT=">" \
 NATS_HOST=0.0.0.0:4222 \
 cargo run --bin nats-wanbus
 ```

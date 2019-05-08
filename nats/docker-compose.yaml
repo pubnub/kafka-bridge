@@ -10,12 +10,12 @@ services:
       - PUBNUB_CHANNEL_ROOT=channels  ## channels.*
       - PUBNUB_CHANNEL=*              ## channels.*
       - NATS_SUBJECT_ROOT=subjects    ## channels.* <-> subjects.*
-      - NATS_SUBJECT=*                ## channels.* <-> subjects.*
-      - NATS_HOST=0.0.0.0:4222 
+      - NATS_SUBJECT=>                ## channels.* <-> subjects.*
+      - NATS_HOST=nats:4222 
       - NATS_USER=
       - NATS_PASSWORD=
       - NATS_AUTH_TOKEN=
-    build: ./nats
+    build: .
     image: nats-wanbus
     restart: on-failure
     links:
