@@ -92,6 +92,7 @@ fn main() {
             let channel = &config.pubnub_channel;
             let subscribe_key = &config.subscribe_key;
             let secret_key = &config.secret_key;
+            let agent = "nats-wanbus";
 
             let mut pubnub = match pubnub::SubscribeClient::new(
                 host,
@@ -99,6 +100,7 @@ fn main() {
                 channel,
                 subscribe_key,
                 secret_key,
+                agent,
             ) {
                 Ok(pubnub) => pubnub,
                 Err(_error) => {
@@ -131,6 +133,7 @@ fn main() {
             let publish_key = &config.publish_key;
             let subscribe_key = &config.subscribe_key;
             let secret_key = &config.secret_key;
+            let agent = "nats-wanbus";
 
             let mut pubnub = match pubnub::PublishClient::new(
                 host,
@@ -138,6 +141,7 @@ fn main() {
                 publish_key,
                 subscribe_key,
                 secret_key,
+                agent,
             ) {
                 Ok(pubnub) => pubnub,
                 Err(_error) => {

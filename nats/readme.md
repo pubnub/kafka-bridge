@@ -77,7 +77,7 @@ Visit the URL printed from the output.
 
 ##  Easy NATS Terminal Test
 
-Publish Messages in a Loop.
+Publish NATS messages repeatedly.
 
 ```shell
 while true;
@@ -85,13 +85,15 @@ while true;
 done
 ```
 
-Subscribe to these messages in another termianl window.
+Subscribe to these messages in another terminal window.
 
 ```shell
 while true;
     do (printf "SUB demo 1\r\n"; sleep 60) | nc 0.0.0.0 4222;
 done
 ```
+
+Issue several NATS commands in a single key press.
 
 ```shell
 (printf "SUB FOO 1\r\n"; sleep 5) | nc 0.0.0.0 4222 &
@@ -105,11 +107,6 @@ done
  printf "PING\r\n";                        sleep 0.4; \
 ) | nc 0.0.0.0 4222 
 ```
-
-## Deploying Sidecar in Kubernetes (K8s)
-
-Add Secrets to secret store.
-Add YAML sidecar
 
 ## Binary Standalone Usage Instructions
 

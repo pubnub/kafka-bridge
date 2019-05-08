@@ -94,12 +94,14 @@ fn http_response(socket: &mut Socket) -> Result<JsonValue, Error> {
 /// let publish_key = "demo";
 /// let subscribe_key = "demo";
 /// let secret_key = "secret";
+/// let agent = "nats-wanbus";
 /// let mut pubnub = SubscribeClient::new(
 ///     host,
 ///     root,
 ///     channel,
 ///     subscribe_key,
 ///     secret_key,
+///     agent,
 ///  ).expect("NATS Subscribe Client");
 ///
 /// let result = pubnub.next_message();
@@ -115,8 +117,8 @@ impl SubscribeClient {
         channel: &str,
         subscribe_key: &str,
         secret_key: &str,
+        agent: &str,
     ) -> Result<Self, Error> {
-        let agent = "PubNub-Subscribe-Client";
         let socket = Socket::new(host, agent, 30);
 
         let mut pubnub = Self {
@@ -228,12 +230,14 @@ impl SubscribeClient {
 /// let publish_key = "demo";
 /// let subscribe_key = "demo";
 /// let secret_key = "secret";
+/// let agent = "nats-wanbus";
 /// let mut pubnub = PublishClient::new(
 ///     host,
 ///     root,
 ///     publish_key,
 ///     subscribe_key,
 ///     secret_key,
+///     agent,
 ///  ).expect("NATS Subscribe Client");
 ///
 /// let result = pubnub.publish(channel, "data");
@@ -247,8 +251,8 @@ impl PublishClient {
         publish_key: &str,
         subscribe_key: &str,
         secret_key: &str,
+        agent: &str,
     ) -> Result<Self, Error> {
-        let agent = "PubNub-Publish-Client";
         let socket = Socket::new(host, agent, 5);
 
         Ok(Self {
