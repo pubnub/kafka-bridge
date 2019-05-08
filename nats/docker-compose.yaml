@@ -6,7 +6,7 @@ services:
       - PUBNUB_PUBLISH_KEY=pub-c-6b57a39e-79e7-4d1d-926e-5c376a4cb021 
       - PUBNUB_SUBSCRIBE_KEY=sub-c-df3799ee-704b-11e9-8724-8269f6864ada 
       - PUBNUB_SECRET_KEY=sec-c-YWY3NzE0NTYtZTBkMS00YjJjLTgxZDQtN2YzOTY0NWNkNGVk 
-      - PUBNUB_CIPHER_KEY=password    ## Encryption Key
+      - PUBNUB_CIPHER_KEY=PaSsWoRd    ## Encryption Key
       - PUBNUB_CHANNEL_ROOT=channels  ## channels.*
       - PUBNUB_CHANNEL=*              ## channels.*
       - NATS_SUBJECT_ROOT=subjects    ## channels.* <-> subjects.*

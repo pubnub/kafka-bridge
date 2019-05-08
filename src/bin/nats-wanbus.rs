@@ -10,22 +10,23 @@ use wanbus::nats;
 // Configuration via Environmental Variables
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 struct Configuration {
-    pub pubnub_host: String,
     pub nats_host: String,
     pub nats_subject: String,
     pub nats_subject_root: String,
+    pub pubnub_host: String,
     pub pubnub_channel: String,
     pub pubnub_channel_root: String,
     pub publish_key: String,
     pub subscribe_key: String,
     pub secret_key: String,
 }
+
 fn environment_variables() -> Configuration {
     Configuration {
-        pubnub_host: "psdsn.pubnub.com:80".into(),
         nats_host: fetch_env_var("NATS_HOST"),
         nats_subject: fetch_env_var("NATS_SUBJECT"),
         nats_subject_root: fetch_env_var("NATS_SUBJECT_ROOT"),
+        pubnub_host: "psdsn.pubnub.com:80".into(),
         pubnub_channel: fetch_env_var("PUBNUB_CHANNEL"),
         pubnub_channel_root: fetch_env_var("PUBNUB_CHANNEL_ROOT"),
         publish_key: fetch_env_var("PUBNUB_PUBLISH_KEY"),
@@ -33,6 +34,34 @@ fn environment_variables() -> Configuration {
         secret_key: fetch_env_var("PUBNUB_SECRET_KEY"),
     }
 }
+
+impl std::fmt::Display for Configuration {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let channel = if self.pubnub_channel_root.is_empty() {
+            self.pubnub_channel.to_string()
+        } else {
+            format!(
+                "{root}.{channel}",
+                channel = self.pubnub_channel,
+                root = self.pubnub_channel_root
+            )
+        };
+
+        let protocol = "https";
+        let domain = "www.pubnub.com";
+        let url = "/docs/console";
+        write!(f,
+            "{proto}://{domain}/{url}?channel={channel}&sub={sub}&pub={pub}",
+            proto=protocol,
+            domain=domain,
+            url=url,
+            channel=channel,
+            sub=self.subscribe_key,
+            pub=self.publish_key,
+        )
+    }
+}
+
 fn fetch_env_var(name: &str) -> String {
     if let Ok(value) = env::var(name) {
         value
@@ -201,6 +230,10 @@ fn main() {
                     .expect("NATS mpsc::channel subject write");
             }
         });
+
+    // Print Follow-on Instructions
+    let config = environment_variables();
+    println!("{{\"info\":\"Dashboard: {}\"}}", config);
 
     // The Threads Gather
     pubnub_subscriber_thread

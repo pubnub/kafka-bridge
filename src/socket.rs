@@ -17,11 +17,11 @@ pub struct Socket {
     reader: BufReader<TcpStream>,
 }
 
-pub fn log(host: &str, agent: &str, message: &str) {
+pub fn log(host: &str, agent: &str, info: &str) {
     println!(
         "{}",
         json::stringify(json::object! {
-            "message" => message,
+            "info" => info,
             "agent" => agent,
             "host" => host,
         })
