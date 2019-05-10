@@ -15,7 +15,9 @@ services:
       - NATS_USER=
       - NATS_PASSWORD=
       - NATS_AUTH_TOKEN=
-    build: .
+    build:
+      context: ..
+      dockerfile: nats/dockerfile
     image: nats-wanbus
     restart: on-failure
     links:

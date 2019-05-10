@@ -23,13 +23,18 @@ docker-compose -f nats/docker-compose.yaml up
 ```
 
 Follow URL printed at boot up.
-The URL will be in a JSON message.
+The URL will be visible inside JSON formated output.
 
 You can modify the ENVVARs in `./nats/docker-compose.yaml` file.
 
+That's it!
+If you can't use Docker Compose,
+look at the alternative setup instructions below.
+
 ## NATS Wildcard Channel Support
 
-> Keep this in mind when configuration your runtime ENVIRONMENTAL variables.
+> Keep this in mind when configuration your runtime
+> ENVIRONMENTAL variables.
 
 NATS wildcard symbols include `*` and `>`.
 These symbols have different meanings.
@@ -37,21 +42,30 @@ The `*` symbol captures all messages for `root.*` and
 will not capture `root.sub.*`.
 The `>` symbol captures all messages below the root including sub nodes.
 
-## Docker Usage Instructions
+## Alternate Installation Instructions
 
+If you can't use Docker Compose, then this is an alternative setup.
 Production docker runtime Alpine image size is **6MB**.
 Start by building the NATS WANbus image.
 
+##### 1 of 3
+
+Build WANBus.
+
 ```shell
 cd wanbus
-docker build -f nats/dockerfile --cpuset-cpus 3 -t nats-wanbus .
+docker build -f nats/dockerfile -t nats-wanbus .
 ```
+
+##### 2 of 3
 
 Run a local NATS instance.
 
 ```shell
 docker run -p 4222:4222 nats
 ```
+
+##### 3 of 3
 
 Run the NATS WANBus.
 For security, you will need to get your private API keys from: 
@@ -74,8 +88,6 @@ docker run \
 ```
 
 Visit the URL printed from the output.
-
-##  Easy NATS Terminal Test
 
 Publish NATS messages repeatedly.
 
@@ -108,7 +120,12 @@ Issue several NATS commands in a single key press.
 ) | nc 0.0.0.0 4222 
 ```
 
-## Binary Standalone Usage Instructions
+## Second Alternate Installation
+
+> Binary Standalone Usage Instructions.
+
+If you can't use the first two installation methods,
+then you can use the following alternative installation instructions.
 
 You need `Rust` and `NATS`.
 

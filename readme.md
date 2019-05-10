@@ -41,7 +41,7 @@ docker-compose -f nats/docker-compose.yaml up
 ```
 
 Follow URL printed at boot up.
-The URL will be in a JSON message.
+The URL will be visible inside JSON formated output.
 
 You can modify the ENVVARs in `./nats/docker-compose.yaml` file.
 
