@@ -1,5 +1,5 @@
 [package]
-name = "wanbus"
+name = "edge-messaging-platform"
 version = "0.2.0"
 authors = ["Stephen Blum <blum.stephen@gmail.com>"]
 edition = "2018"

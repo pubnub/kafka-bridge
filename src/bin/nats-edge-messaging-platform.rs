@@ -4,7 +4,7 @@
 use json;
 use std::sync::mpsc;
 use std::{env, process, thread, time};
-use wanbus::nats;
+use edge_messaging_platform::nats;
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Configuration via Environmental Variables
@@ -84,7 +84,7 @@ fn main() {
     let pubnub_subscriber_thread = thread::Builder::new()
         .name("PubNub Subscriber Thread".into())
         .spawn(move || loop {
-            use wanbus::pubnub;
+            use edge_messaging_platform::pubnub;
 
             let config = environment_variables();
             let host = &config.pubnub_host;
@@ -92,7 +92,7 @@ fn main() {
             let channel = &config.pubnub_channel;
             let subscribe_key = &config.subscribe_key;
             let secret_key = &config.secret_key;
-            let agent = "nats-wanbus";
+            let agent = "nats-edge_messaging_platform";
 
             let mut pubnub = match pubnub::SubscribeClient::new(
                 host,
@@ -125,7 +125,7 @@ fn main() {
     let pubnub_publisher_thread = thread::Builder::new()
         .name("PubNub Publisher Thread".into())
         .spawn(move || loop {
-            use wanbus::pubnub;
+            use edge_messaging_platform::pubnub;
 
             let config = environment_variables();
             let host = &config.pubnub_host;
@@ -133,7 +133,7 @@ fn main() {
             let publish_key = &config.publish_key;
             let subscribe_key = &config.subscribe_key;
             let secret_key = &config.secret_key;
-            let agent = "nats-wanbus";
+            let agent = "nats-edge_messaging_platform";
 
             let mut pubnub = match pubnub::PublishClient::new(
                 host,
@@ -187,7 +187,7 @@ fn main() {
             };
 
             loop {
-                let message: wanbus::pubnub::Message =
+                let message: edge_messaging_platform::pubnub::Message =
                     nats_publish_rx.recv().expect("MPSC Channel Receiver");
                 match nats.publish(message.channel, message.data) {
                     Ok(()) => {}

@@ -35,7 +35,7 @@ pub struct PublishClient {
 /// This client lib offers subscribe support to NATS.
 ///
 /// ```no_run
-/// use wanbus::nats::SubscribeClient;
+/// use edge_messaging_platform::nats::SubscribeClient;
 ///
 /// let root = "subjects"; // subjects.demo
 /// let subject = "demo";  // subjects.demo
@@ -87,7 +87,7 @@ impl SubscribeClient {
     /// > subject and put each client into a thread.
     ///
     /// ```no_run
-    /// use wanbus::nats::SubscribeClient;
+    /// use edge_messaging_platform::nats::SubscribeClient;
     ///
     /// let root = "subjects"; // subjects.demo
     /// let subject = "demo";  // subjects.demo
@@ -125,7 +125,7 @@ impl SubscribeClient {
     /// Easy way to get messages from the initialized subject.
     ///
     /// ```no_run
-    /// use wanbus::nats::SubscribeClient;
+    /// use edge_messaging_platform::nats::SubscribeClient;
     ///
     /// let root = "subjects"; // subjects.demo
     /// let subject = "demo";  // subjects.demo
@@ -224,7 +224,7 @@ impl Drop for SubscribeClient {
 /// This client lib offers publish support to NATS.
 ///
 /// ```no_run
-/// use wanbus::nats::PublishClient;
+/// use edge_messaging_platform::nats::PublishClient;
 ///
 /// let mut nats = PublishClient::new("0.0.0.0:4222", "").expect("NATS PUB");
 ///
@@ -254,7 +254,7 @@ impl PublishClient {
     /// Easy way to send messages to any NATS subject.
     ///
     /// ```no_run
-    /// use wanbus::nats::PublishClient;
+    /// use edge_messaging_platform::nats::PublishClient;
     ///
     /// let subject = "demo";
     /// let root = "root";

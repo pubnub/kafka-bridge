@@ -1,4 +1,4 @@
-# WANBus by PubNub
+# Edge Messaging Platform by PubNub
 > Bring NATS, Kafka, Redis and RabbitMQ to the real world.
 
 Give your Queue super power.
@@ -11,10 +11,10 @@ Driver support for Kafka, Redis, RabbitMQ and more.
 Easy drop-in operations.
 Dashboard management page included.
 
-![WANBus](https://repository-images.githubusercontent.com/178954890/dcda8900-6ce9-11e9-9cc5-a6b7b476ad65)
+![Edge Messaging Platform](https://repository-images.githubusercontent.com/178954890/dcda8900-6ce9-11e9-9cc5-a6b7b476ad65)
 
-The WANBus driver is written in Rust.
-WANBus connects locally on your data channels/topics specified by runtime
+The Edge Messaging Platform driver is written in Rust.
+Edge Messaging Platform connects locally on your data channels/topics specified by runtime
 and deploy time configuration.
 This creates a bridge which tunnels WAN Traffic over TLS
 to your end-point field Mobile and IoT devices.
@@ -31,12 +31,12 @@ Built-in detection for Unauthorized Access Attempts.
 
 ## Up and running in 10 seconds
 
-Want to try WANBus with NATS?
+Want to try Edge Messaging Platform with NATS?
 Test runtime with Docker Compose.
 Easily test using `docker-compose`.
 
 ```shell
-cd wanbus
+cd edge-messaging-platform
 docker-compose -f nats/docker-compose.yaml up 
 ```
 
@@ -61,7 +61,7 @@ docker run \
   -e NATS_SUBJECT_ROOT=subjects \
   -e NATS_SUBJECT=* \
   -e NATS_HOST=0.0.0.0:4222 \
-  nats-wanbus
+  nats-edge-messaging-platform
 ```
 
 ## Reference Links

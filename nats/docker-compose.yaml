@@ -1,7 +1,7 @@
 version: '3'
 
 services:
-  nats-wanbus:
+  nats-edge-messaging-platform:
     environment:
       - PUBNUB_PUBLISH_KEY=pub-c-6b57a39e-79e7-4d1d-926e-5c376a4cb021 
       - PUBNUB_SUBSCRIBE_KEY=sub-c-df3799ee-704b-11e9-8724-8269f6864ada 
@@ -18,7 +18,7 @@ services:
     build:
       context: ..
       dockerfile: nats/dockerfile
-    image: nats-wanbus
+    image: nats-edge-messaging-platform
     restart: on-failure
     links:
       - nats

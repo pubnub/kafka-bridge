@@ -1,4 +1,4 @@
-# WANBus for NATS
+# Edge Messaging Platform for NATS
 > Bring NATS to the real world.
 
 Give your NATS cluster super power.
@@ -13,12 +13,12 @@ Dashboard management page included.
 
 ## Up and running in 10 seconds
 
-Want to try WANBus with NATS?
+Want to try EMP with NATS?
 Test runtime with Docker Compose.
 Easily test using `docker-compose`.
 
 ```shell
-cd wanbus
+cd edge-messaging-platform
 docker-compose -f nats/docker-compose.yaml up 
 ```
 
@@ -46,15 +46,15 @@ The `>` symbol captures all messages below the root including sub nodes.
 
 If you can't use Docker Compose, then this is an alternative setup.
 Production docker runtime Alpine image size is **6MB**.
-Start by building the NATS WANbus image.
+Start by building the NATS EMP image.
 
 ##### 1 of 3
 
-Build WANBus.
+Build EMP.
 
 ```shell
-cd wanbus
-docker build -f nats/dockerfile -t nats-wanbus .
+cd edge-messaging-platform
+docker build -f nats/dockerfile -t nats-edge-messaging-platform .
 ```
 
 ##### 2 of 3
@@ -67,7 +67,7 @@ docker run -p 4222:4222 nats
 
 ##### 3 of 3
 
-Run the NATS WANBus.
+Run the NATS EMP.
 For security, you will need to get your private API keys from: 
 https://dashboard.pubnub.com/signup
 The following API Keys are for public use and may be rotated.
@@ -84,7 +84,7 @@ docker run \
   -e NATS_SUBJECT_ROOT=subjects \
   -e NATS_SUBJECT=* \
   -e NATS_HOST=0.0.0.0:4222 \
-  nats-wanbus
+  nats-edge-messaging-platform
 ```
 
 Visit the URL printed from the output.
@@ -146,8 +146,8 @@ curl https://sh.rustup.rs -sSf | sh
 docker run -p 4222:4222 nats
 ```
 
-Now you can run `cargo run --bin nats-wanbus`.
-The WANBus app is 12 factor and is configured via Environmental Variables.
+Now you can run `cargo run --bin nats-edge-messaging-platform`.
+The EMP app is 12 factor and is configured via Environmental Variables.
 
 ```shell
 PUBNUB_PUBLISH_KEY=pub-c-6b57a39e-79e7-4d1d-926e-5c376a4cb021 \
@@ -159,7 +159,7 @@ PUBNUB_CIPHER_KEY=pAsSwOrD \
 NATS_SUBJECT_ROOT=subjects \
 NATS_SUBJECT=">" \
 NATS_HOST=0.0.0.0:4222 \
-cargo run --bin nats-wanbus
+cargo run --bin nats-edge-messaging-platform
 ```
 
 ## Reference Links
