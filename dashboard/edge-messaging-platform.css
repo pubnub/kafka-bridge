@@ -1,0 +1,61 @@
+/* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+/* PubNub Website Takeover */
+/* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+body, div {
+    padding: 0 !important;
+    padding-top: 0 !important;
+    margin: 0 !important;
+}
+#custom_html-1,
+#custom_html-2,
+#custom_html-3,
+#custom_html-4,
+.floating-social-share {
+    display: none;
+}
+
+/* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+/* Color Scheme */
+/* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+:root {
+    --color1: rgba( 41,  51, 155, 1); /* strong blue */
+    --color2: rgba(245, 100,  22, 1); /* hot orange */
+    --color3: rgba(116, 164, 188, 1); /* clear ocean blue */
+    --color4: rgba(182, 214, 204, 1); /* light sliver */
+    --color5: rgba(241, 254, 198, 1); /* light yellow-green-ish */
+}
+
+/* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+/* Top Navigation */
+/* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+div#top-navigation {
+    display: flex;
+}
+div#top-navigation div.pubnub-logo {
+    flex: 6;
+    width: 100px;
+    height: 40px;
+    background: red;
+}
+div#top-navigation div.install-button {
+    flex: 1;
+    width: 100px;
+    height: 40px;
+    background: red;
+}
+div#top-navigation div.talk-to-sales-button {
+    flex: 1;
+    width: 100px;
+    height: 40px;
+    background: red;
+}
+
+/* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+/* Hero Header */
+/* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+div#hero {
+    display: flex;
+}
+div#hero #divhero-title {
+    
+}
