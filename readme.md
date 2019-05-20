@@ -11,7 +11,7 @@ Driver support for Kafka, Redis, RabbitMQ and more.
 Easy drop-in operations.
 Dashboard management page included.
 
-![Edge Messaging Platform](https://repository-images.githubusercontent.com/178954890/dcda8900-6ce9-11e9-9cc5-a6b7b476ad65)
+![Edge Messaging Platform](https://i.imgur.com/2sTi0EN.png)
 
 The Edge Messaging Platform driver is written in Rust.
 Edge Messaging Platform connects locally on your data channels/topics specified by runtime
