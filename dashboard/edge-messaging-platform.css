@@ -71,8 +71,9 @@ body, div {
 /* Top Navigation */
 /* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 div#top-navigation {
+    --top-nav-height: 80px;
     display: flex;
-    height: 80px;
+    height: var(--top-nav-height);
 }
 div#top-navigation div.pubnub-logo {
     flex: 6;
@@ -81,12 +82,21 @@ div#top-navigation div.pubnub-logo {
 div#top-navigation div.install-button {
     flex: 1;
     width: 100px;
-    height: 40px;
+    height: var(--top-nav-height);
+    line-height: var(--top-nav-height);
+    text-align: center;
+    background: var(--emp2);
+    color: var(--emp-gray50);
+    cursor: pointer;
 }
 div#top-navigation div.talk-to-sales-button {
-    flex: 1;
-    width: 100px;
-    height: 40px;
+    flex: 2;
+    height: var(--top-nav-height);
+    line-height: var(--top-nav-height);
+    text-align: center;
+    background: var(--emp1);
+    color: var(--emp-gray50);
+    cursor: pointer;
 }
 
 /* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -107,6 +117,7 @@ div#hero {
 }
 div#hero div.hero-title {
     flex: 3;
+    margin-top: 20px;
     margin-left: 30px;
     font-size: 100px;
     font-weight: 100;
@@ -158,6 +169,24 @@ div#hero div.hero-phones > div {
 @keyframes floating {
       0% { transform: translateY(-6px) }
     100% { transform: translateY(40px) }
+}
+
+div#hero div.hero-phones em {
+    color: var(--emp-white-transparent);
+    width: 30px;
+    height: 30px;
+    position: absolute;
+    top: calc(30px * var(--child));
+    left: 300px;
+    border-radius: 5px;
+    background: red;
+    background: linear-gradient( to bottom,
+        rgba( 70,215,174,0.7)   0.7%,
+        rgba( 70,215,174,0.7)  60%,
+        rgba(230, 98,177,0.6)  65%,
+        rgba(230, 98,177,0.2)  70%,
+        rgba(230, 98,177,0.0) 100%
+    );
 }
 
 /* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
