@@ -5,6 +5,9 @@ body, div {
     padding: 0 !important;
     padding-top: 0 !important;
     margin: 0 !important;
+    font-family: -apple-system,BlinkMacSystemFont,
+        "Segoe UI","Roboto",
+        "Helvetica Neue","Ubuntu";
 }
 #custom_html-1,
 #custom_html-2,
@@ -18,11 +21,44 @@ body, div {
 /* Color Scheme */
 /* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 :root {
-    --color1: rgba( 41,  51, 155, 1); /* strong blue */
-    --color2: rgba(245, 100,  22, 1); /* hot orange */
-    --color3: rgba(116, 164, 188, 1); /* clear ocean blue */
-    --color4: rgba(182, 214, 204, 1); /* light sliver */
-    --color5: rgba(241, 254, 198, 1); /* light yellow-green-ish */
+    --emp1: rgba( 41,  51, 155, 1); /* strong blue */
+    --emp2: rgba(245, 100,  22, 1); /* hot orange */
+    --emp3: rgba(116, 164, 188, 1); /* clear ocean blue */
+    --emp4: rgba(182, 214, 204, 1); /* light sliver */
+    --emp5: rgba(241, 254, 198, 1); /* light yellow-green-ish */
+
+    --emp-gray50: #f7fafc;
+    --emp-gray100: #e3e8ee;
+    --emp-gray200: #c1c9d2;
+    --emp-gray300: #a3acb9;
+    --emp-gray400: #8792a2;
+    --emp-gray500: #697386;
+    --emp-gray600: #4f566b;
+    --emp-gray700: #3c4257;
+    --emp-gray800: #2a2f45;
+    --emp-gray900: #1a1f36;
+
+    --emp-blue50: #f5fbff;
+    --emp-blue100: #d6ecff;
+    --emp-blue200: #a4cdfe;
+    --emp-blue300: #7dabf8;
+    --emp-blue400: #6c8eef;
+    --emp-blue500: #556cd6;
+    --emp-blue600: #3d4eac;
+    --emp-blue700: #2f3d89;
+    --emp-blue800: #212d63;
+    --emp-blue900: #131f41;
+
+    --emp-cyan50: #edfdfd;
+    --emp-cyan100: #c4f1f9;
+    --emp-cyan200: #7fd3ed;
+    --emp-cyan300: #4db7e8;
+    --emp-cyan400: #3a97d4;
+    --emp-cyan500: #067ab8;
+    --emp-cyan600: #075996;
+    --emp-cyan700: #06457a;
+    --emp-cyan800: #093353;
+    --emp-cyan900: #042235;
 }
 
 /* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
