@@ -31,6 +31,7 @@ body, div {
     --emp5: rgba(241, 254, 198, 1); /* light yellow-green-ish */
 
     --emp-white: rgba(255,255,255,1);
+    --emp-white-translucent: rgba(255,255,255,0.5);
     --emp-white-transparent: rgba(255,255,255,0);
 
     --emp-gray50: #f7fafc;
@@ -77,7 +78,11 @@ div#top-navigation {
 }
 div#top-navigation div.pubnub-logo {
     flex: 6;
-    width: 100px;
+}
+div#top-navigation div.pubnub-logo svg {
+    margin-top: 10px;
+    margin-left: 10px;
+    right: 20px;
 }
 div#top-navigation div.install-button {
     flex: 1;
@@ -87,6 +92,7 @@ div#top-navigation div.install-button {
     text-align: center;
     background: var(--emp2);
     color: var(--emp-gray50);
+    font-weight: 600;
     cursor: pointer;
 }
 div#top-navigation div.talk-to-sales-button {
@@ -96,6 +102,7 @@ div#top-navigation div.talk-to-sales-button {
     text-align: center;
     background: var(--emp1);
     color: var(--emp-gray50);
+    font-weight: 200;
     cursor: pointer;
 }
 
@@ -172,21 +179,33 @@ div#hero div.hero-phones > div {
 }
 
 div#hero div.hero-phones em {
+    z-index: 100;
     color: var(--emp-white-transparent);
-    width: 30px;
-    height: 30px;
+    width: 400px;
+    height: 10px;
     position: absolute;
-    top: calc(30px * var(--child));
-    left: 300px;
-    border-radius: 5px;
+    top: calc(40px * var(--child));
+    left: calc(30px * var(--child) + 200px);
+    border-radius: 50px;
+    background: var(--emp-white);
     background: red;
-    background: linear-gradient( to bottom,
-        rgba( 70,215,174,0.7)   0.7%,
-        rgba( 70,215,174,0.7)  60%,
-        rgba(230, 98,177,0.6)  65%,
-        rgba(230, 98,177,0.2)  70%,
-        rgba(230, 98,177,0.0) 100%
-    );
+    background:
+        linear-gradient(to left,
+            var(--emp-cyan300)             0%,
+            var(--emp-white-translucent)  10%,
+            var(--emp-white-translucent)  90%,
+            var(--emp-white-transparent) 100%);
+    /*background:  url('data:image/svg+xml;base64,PHN2ZyB2ZXJzaW9uPSIxLjEiIGlkPSJDYXBhXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IiB2aWV3Qm94PSIwIDAgNDkwIDQ5MCIgc3R5bGU9ImVuYWJsZS1iYWNrZ3JvdW5kOm5ldyAwIDAgNDkwIDQ5MDsiIHhtbDpzcGFjZT0icHJlc2VydmUiPiA8Zz4gPGc+IDxwYXRoIGQ9Ik00ODAsNDEwLjI0OEgxMGMtNS41MjMsMC0xMC00LjQ3Ny0xMC0xMFY4OS43NTJjMC01LjUyMyw0LjQ3Ny0xMCwxMC0xMGg0NzBjNS41MjIsMCwxMCw0LjQ3NywxMCwxMHYzMTAuNDk1IEM0OTAsNDA1Ljc3MSw0ODUuNTIyLDQxMC4yNDgsNDgwLDQxMC4yNDh6IE0yMCwzOTAuMjQ4aDQ1MFY5OS43NTJIMjBWMzkwLjI0OHoiLz4gPC9nPiA8Zz4gPHBhdGggZD0iTTI0NSwyODYuMTMxYy0yLjA4MywwLTQuMTY3LTAuNjQ5LTUuOTMxLTEuOTQ4TDQ4LjY0LDE0My45MjljLTQuNDQ2LTMuMjc1LTUuMzk2LTkuNTM1LTIuMTIxLTEzLjk4MiBjMy4yNzUtNC40NDcsOS41MzUtNS4zOTYsMTMuOTgyLTIuMTIxTDI0NSwyNjMuNzEybDE4NC41LTEzNS44ODZjNC40NDctMy4yNzQsMTAuNzA5LTIuMzI2LDEzLjk4MiwyLjEyMSBjMy4yNzUsNC40NDcsMi4zMjUsMTAuNzA3LTIuMTIxLDEzLjk4MkwyNTAuOTMxLDI4NC4xODNDMjQ5LjE2NywyODUuNDgyLDI0Ny4wODMsMjg2LjEzMSwyNDUsMjg2LjEzMXoiLz4gPC9nPiA8L2c+IDxnPiA8L2c+IDxnPiA8L2c+IDxnPiA8L2c+IDxnPiA8L2c+IDxnPiA8L2c+IDxnPiA8L2c+IDxnPiA8L2c+IDxnPiA8L2c+IDxnPiA8L2c+IDxnPiA8L2c+IDxnPiA8L2c+IDxnPiA8L2c+IDxnPiA8L2c+IDxnPiA8L2c+IDxnPiA8L2c+IDwvc3ZnPiANCg=='), var(--emp-white);*/
+    /*background-size: 126px 85px;*/
+    animation:
+        shooting calc( var(--child) * 0.4s + 0.1s)
+        linear calc(var(--child) * -502s) infinite;
+}
+
+@keyframes shooting {
+      0% { transform: translateX(-900px); opacity: 0.9; }
+     90% { transform: translateX(-400px); opacity: 0.3; }
+    100% { transform: translateX(-404px); opacity: 0; }
 }
 
 /* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
