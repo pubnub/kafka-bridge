@@ -1,10 +1,13 @@
 /* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 /* PubNub Website Takeover */
 /* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-body, div {
+body {
     padding: 0 !important;
-    padding-top: 0 !important;
     margin: 0 !important;
+}
+body, div {
+    padding: 0;
+    margin: 0;
     font-family: -apple-system, BlinkMacSystemFont,
         "Segoe UI", "Roboto",
         "Helvetica Neue", "Ubuntu";
@@ -26,6 +29,9 @@ body, div {
     --emp3: rgba(116, 164, 188, 1); /* clear ocean blue */
     --emp4: rgba(182, 214, 204, 1); /* light sliver */
     --emp5: rgba(241, 254, 198, 1); /* light yellow-green-ish */
+
+    --emp-white: rgba(255,255,255,1);
+    --emp-white-transparent: rgba(255,255,255,0);
 
     --emp-gray50: #f7fafc;
     --emp-gray100: #e3e8ee;
@@ -66,24 +72,21 @@ body, div {
 /* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 div#top-navigation {
     display: flex;
+    height: 80px;
 }
 div#top-navigation div.pubnub-logo {
     flex: 6;
     width: 100px;
-    height: 40px;
-    background: red;
 }
 div#top-navigation div.install-button {
     flex: 1;
     width: 100px;
     height: 40px;
-    background: red;
 }
 div#top-navigation div.talk-to-sales-button {
     flex: 1;
     width: 100px;
     height: 40px;
-    background: red;
 }
 
 /* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -91,25 +94,43 @@ div#top-navigation div.talk-to-sales-button {
 /* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 div#hero {
     display: flex;
+    background:
+        linear-gradient(to top,
+            var(--emp-white)               0%,
+            var(--emp-white-transparent)  50%,
+            var(--emp-white-transparent) 100%),
+        linear-gradient(265deg,
+            var(--emp-cyan300)   0%,
+            var(--emp-cyan50)   20%,
+            var(--emp-cyan50)   30%,
+            var(--emp-gray100) 100%);
 }
 div#hero div.hero-title {
     flex: 3;
+    margin-left: 30px;
+    font-size: 100px;
+    font-weight: 100;
+}
+div#hero div.hero-title div.hero-subtext {
+    margin-top: 30px;
+    font-size: 32px;
+    font-weight: 200;
+    line-height: 1.4em;
 }
 div#hero div.hero-edge {
     flex: 1;
 }
 div#hero div.hero-phones {
-    flex: 2;
+    flex: 3;
     position: relative;
     overflow: hidden;
-    height: 440px;
-    background: blue;
+    height: 470px;
 }
 div#hero div.hero-phones div.hero-phone-1,
 div#hero div.hero-phones div.hero-phone-2,
 div#hero div.hero-phones div.hero-phone-3 {
     position: absolute;
-    background: url(https://i.imgur.com/Zcyg15E.png);
+    background: url(https://i.imgur.com/CnRZYnE.png);
     background-size: 364px 287px;
     width: 364px;
     height: 287px;
@@ -127,6 +148,16 @@ div#hero div.hero-phones div.hero-phone-3 {
     top: 24px;
     left: 330px;
     transform: scaleX(-1) rotate(16deg);
+}
+div#hero div.hero-phones > div {
+    animation:
+        floating calc( var(--child) * 1.6s + 8.0s)
+        ease-in-out calc(var(--child) * -3s) infinite alternate;
+}
+
+@keyframes floating {
+      0% { transform: translateY(-6px) }
+    100% { transform: translateY(40px) }
 }
 
 /* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
