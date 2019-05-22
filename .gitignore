@@ -1,4 +1,5 @@
 target
 *.DStore
+*.DS_Store
 *.lock
 Cargo.lock
