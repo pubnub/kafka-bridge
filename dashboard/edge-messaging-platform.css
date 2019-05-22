@@ -154,7 +154,7 @@ div#hero div.hero-phones div.hero-phone-1,
 div#hero div.hero-phones div.hero-phone-2,
 div#hero div.hero-phones div.hero-phone-3 {
     position: absolute;
-    background: url(https://i.imgur.com/CnRZYnE.png);
+    background: url(https://cdn.pubnub.com/assets/edge-messaging-platform/diagonal-phone.webp);
     background-size: 364px 287px;
     width: 364px;
     height: 287px;
@@ -215,26 +215,26 @@ div#hero div.hero-phones em {
 }
 
 /* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-/* Architecture */
+/* Data Stream Network */
 /* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-div#architecture {
+div#data-stream-network {
     margin-top: 100px;
     display: flex;
 }
-div#architecture div.architecture-title {
-    font-size: 36px;
-    line-height: 48px;
+div#data-stream-network div.data-stream-network-title {
+    font-size: 42px;
+    line-height: 84px;
     margin-bottom: 30px;
     font-weight: 100;
 }
-div#architecture div.architecture-sub-title {
+div#data-stream-network div.data-stream-network-sub-title {
     font-size: 28px;
     line-height: 42px;
     margin: 30px 0;
     font-weight: 400;
     text-decoration: italic;
 }
-div#architecture div.architecture-content {
+div#data-stream-network div.data-stream-network-content {
     flex: 1;
     color: var(--emp-gray100);
     background: var(--emp-gray700);
@@ -242,8 +242,15 @@ div#architecture div.architecture-content {
     line-height: 36px;
     font-weight: 100;
 }
-div#architecture div.architecture-diagram {
+div#data-stream-network div.data-stream-network-content em {
+    color: var(--emp-gray300);
+}
+div#data-stream-network div.data-stream-network-diagram {
     flex: 1;
+    background: url(https://cdn.pubnub.com/assets/edge-messaging-platform/map.webp);
+    background-position: center;
+    background-size: 1800px;
+    user-select: none;
 }
 
 /* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
