@@ -143,7 +143,7 @@ div#hero div.hero-phones {
     flex: 3;
     position: relative;
     overflow: hidden;
-    height: 470px;
+    height: 520px;
 }
 div#hero div.hero-phones div.hero-phone-1,
 div#hero div.hero-phones div.hero-phone-2,
@@ -157,7 +157,6 @@ div#hero div.hero-phones div.hero-phone-3 {
 div#hero div.hero-phones div.hero-phone-1 {
     top: 0px;
     left: 0px;
-
 }
 div#hero div.hero-phones div.hero-phone-2 {
     top: 150px;
@@ -173,10 +172,15 @@ div#hero div.hero-phones > div {
         floating calc( var(--child) * 1.6s + 8.0s)
         ease-in-out calc(var(--child) * -3s) infinite alternate;
 }
+div#hero div.hero-phones img.hero-phone-video {
+    width: 100px;
+    height: 200px;
+    transform: rotateZ(23.5deg) skew(-26.5deg) translate(128px,-30px) scale(1.3,1.1);
+}
 
 @keyframes floating {
       0% { transform: translateY(-6px) }
-    100% { transform: translateY(40px) }
+    100% { transform: translateY(90px) }
 }
 
 div#hero div.hero-phones em {
@@ -185,14 +189,12 @@ div#hero div.hero-phones em {
     width: 400px;
     height: 10px;
     position: absolute;
-    top: calc(40px * var(--child));
-    left: calc((-30px * var(--child)) + 400px);
-    border-radius: 50px;
-    background: var(--emp-white);
-    background: red;
+    top: calc(17px * var(--child));
+    left: calc((-20px * var(--child)) + 400px);
+    border-radius: 2px;
     background:
         linear-gradient(to left,
-            var(--emp-cyan300)             0%,
+            var(--emp-cyan100)             0%,
             var(--emp-white-translucent)  10%,
             var(--emp-white-translucent)  90%,
             var(--emp-white-transparent) 100%);
