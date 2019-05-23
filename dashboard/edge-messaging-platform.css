@@ -220,6 +220,7 @@ div#hero div.hero-phones em {
 div#data-stream-network {
     margin-top: 100px;
     display: flex;
+    flex-wrap: wrap-reverse;
 }
 div#data-stream-network div.data-stream-network-title {
     font-size: 42px;
@@ -236,6 +237,8 @@ div#data-stream-network div.data-stream-network-sub-title {
 }
 div#data-stream-network div.data-stream-network-content {
     flex: 1;
+    min-width: 500px;
+    min-height: 300px;
     color: var(--emp-gray100);
     background: var(--emp-gray700);
     padding: 40px;
@@ -245,12 +248,41 @@ div#data-stream-network div.data-stream-network-content {
 div#data-stream-network div.data-stream-network-content em {
     color: var(--emp-gray300);
 }
-div#data-stream-network div.data-stream-network-diagram {
+div#data-stream-network div.data-stream-network-map {
     flex: 1;
-    background: url(https://cdn.pubnub.com/assets/edge-messaging-platform/map.webp);
-    background-position: center;
-    background-size: 1800px;
+    min-width: 714px;
+    min-height: 600px;
+    background:
+        url(https://cdn.pubnub.com/assets/edge-messaging-platform/map-vector.webp);
+    background-size: 100%;
     user-select: none;
+    /*animation: map-panning 10s ease-in-out 0s infinite alternate;*/
+}
+
+@keyframes map-panning {
+      0% { background-position: -300px 0px;   background-size: 2500px; }
+      5% { background-position: -300px 0px;   background-size: 2500px; }
+     20% { background-position: -330px -10px; background-size: 2000px; }
+     60% { background-position: -460px -40px; background-size: 1900px; }
+    100% { background-position: -460px -40px; background-size: 1900px; }
+}
+
+div#data-stream-network div.data-stream-network-map-person {
+}
+div#data-stream-network div.data-stream-network-map-datacenter {
+}
+div#data-stream-network div.data-stream-network-map-arch {
+}
+div#data-stream-network div.data-stream-network-map-dot {
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(ellipse at center,
+        rgba(255,255,255,1) 0%,
+        rgba(255,255,255,1) 4%,
+        rgba(255,255,255,1) 5%,
+        rgba(255,255,255,0) 100%
+    );
+    
 }
 
 /* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
