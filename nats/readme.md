@@ -1,7 +1,9 @@
 # Edge Messaging Platform for NATS
 > Bring NATS to the real world.
 
-Give your NATS cluster super power.
+Messages from your NATS cluster can be received
+on a target mobile device.
+Give your NATS cluster extra power.
 Secure Communication for field mobile and IoT devices with your Message Bus.
 Audit and access management protection.
 Encryption of data in motion 2048bit TLS.
@@ -23,13 +25,15 @@ cd edge-messaging-platform
 docker-compose -f nats/docker-compose.yaml up
 ```
 
-### Up and running in 10 seconds ( NATS -> PubNub )
+Great! Everything is running now.
+Continue reading to simulate messages.
 
-You can send a message to your NATS cluster and receive
-the message on a target mobile device.
-Open the test console to see messages being received in a browser window.
+### NATS -> Mobile Device
 
-#### 1.) Send Message to NATS
+Messages from your NATS cluster can be received
+on a target mobile device.
+
+#### 1.) Simulate NATS Stream
 
 Run this command in a terminal window.
 This command will send a `"KNOCK"` message each half-second.
@@ -40,16 +44,16 @@ while true;
 done
 ```
 
-#### 2.) Test Console
+#### 2.) Test Console Output
 
-Click this link to view the test console.
-Scroll a bit down on this page, you will see an output
-element labeled **`messages`** on this screen with message logs:
+Open the test console to see messages being received in a browser window.
 
 [View Test Console](https://www.pubnub.com//docs/console?channel=channels.*&sub=sub-c-df3799ee-704b-11e9-8724-8269f6864ada&pub=pub-c-6b57a39e-79e7-4d1d-926e-5c376a4cb021)
 
+> Scroll a bit down on this page, you will see an output
+element labeled **`messages`** on this screen with message logs:
 
-### Up and running in 10 seconds ( PubNub -> NATS )
+### Mobile Device -> NATS
 
 You can send a message from the mobile device and receive it in your NATS cluster.
 The following shell command will simulate this:
@@ -70,7 +74,7 @@ where they are copied to your NATS cluster.
 
 You will see a `"Hello"` message every half-second.
 
-### Up and running in 10 seconds ( Few last details )
+### Few more details
 
 You can modify the ENVVARs in `./nats/docker-compose.yaml` file.
 
