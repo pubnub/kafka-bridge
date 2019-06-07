@@ -18,12 +18,59 @@ Test runtime with Docker Compose.
 Easily test using `docker-compose`.
 
 ```shell
+git clone git@github.com:stephenlb/edge-messaging-platform.git
 cd edge-messaging-platform
-docker-compose -f nats/docker-compose.yaml up 
+docker-compose -f nats/docker-compose.yaml up
 ```
 
-Follow URL printed at boot up.
-The URL will be visible inside JSON formated output.
+### Up and running in 10 seconds ( NATS -> PubNub )
+
+You can send a message to your NATS cluster and receive
+the message on a target mobile device.
+Open the test console to see messages being received in a browser window.
+
+#### 1.) Send Message to NATS
+
+Run this command in a terminal window.
+This command will send a `"KNOCK"` message each half-second.
+
+```shell
+while true;
+    do (printf "PUB subjects.mydevice 5\r\nKNOCK\r\n"; sleep 0.5) | nc 0.0.0.0 4222;
+done
+```
+
+#### 2.) Test Console
+
+Click this link to view the test console.
+Scroll a bit down on this page, you will see an output
+element labeled **`messages`** on this screen with message logs:
+
+[View Test Console](https://www.pubnub.com//docs/console?channel=channels.*&sub=sub-c-df3799ee-704b-11e9-8724-8269f6864ada&pub=pub-c-6b57a39e-79e7-4d1d-926e-5c376a4cb021)
+
+
+### Up and running in 10 seconds ( PubNub -> NATS )
+
+You can send a message from the mobile device and receive it in your NATS cluster.
+The following shell command will simulate this:
+
+```shell
+while true; do                                                                                \
+    PUBLISH_KEY="pub-c-6b57a39e-79e7-4d1d-926e-5c376a4cb021"                                  \
+    SUBSCRIBE_KEY="sub-c-df3799ee-704b-11e9-8724-8269f6864ada"                                \
+    CHANNEL="channels.mydevice"                                                               \
+    curl "https://ps.pndsn.com/publish/$PUBLISH_KEY/$SUBSCRIBE_KEY/0/$CHANNEL/0/%22Hello%22"; \
+    echo;                                                                                     \
+    sleep 0.5;                                                                                \
+done
+```
+
+This command will simulate a mobile device sending messages to the PubNub Edge
+where they are copied to your NATS cluster.
+
+You will see a `"Hello"` message every half-second.
+
+### Up and running in 10 seconds ( Few last details )
 
 You can modify the ENVVARs in `./nats/docker-compose.yaml` file.
 
@@ -93,7 +140,7 @@ Publish NATS messages repeatedly.
 
 ```shell
 while true;
-    do (printf "PUB demo 5\r\nKNOCK\r\n"; sleep 0.4) | nc 0.0.0.0 4222;
+    do (printf "PUB subjects.mydevice 5\r\nKNOCK\r\n"; sleep 0.4) | nc 0.0.0.0 4222;
 done
 ```
 
@@ -101,7 +148,7 @@ Subscribe to these messages in another terminal window.
 
 ```shell
 while true;
-    do (printf "SUB demo 1\r\n"; sleep 60) | nc 0.0.0.0 4222;
+    do (printf "SUB subjects.mydevice 1\r\n"; sleep 60) | nc 0.0.0.0 4222;
 done
 ```
 

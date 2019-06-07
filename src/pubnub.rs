@@ -9,7 +9,7 @@ pub struct SubscribeClient {
     messages: Vec<Message>,
     timetoken: String,
     subscribe_key: String,
-    secret_key: String,
+    _secret_key: String,
     agent: String,
 }
 
@@ -18,7 +18,7 @@ pub struct PublishClient {
     root: String,
     publish_key: String,
     subscribe_key: String,
-    secret_key: String,
+    _secret_key: String,
     agent: String,
 }
 
@@ -93,14 +93,14 @@ fn http_response(socket: &mut Socket) -> Result<JsonValue, Error> {
 /// let root = "";
 /// let publish_key = "demo";
 /// let subscribe_key = "demo";
-/// let secret_key = "secret";
+/// let _secret_key = "secret";
 /// let agent = "nats-edge_messaging_platform";
 /// let mut pubnub = SubscribeClient::new(
 ///     host,
 ///     root,
 ///     channel,
 ///     subscribe_key,
-///     secret_key,
+///     _secret_key,
 ///     agent,
 ///  ).expect("NATS Subscribe Client");
 ///
@@ -116,7 +116,7 @@ impl SubscribeClient {
         root: &str,
         channel: &str,
         subscribe_key: &str,
-        secret_key: &str,
+        _secret_key: &str,
         agent: &str,
     ) -> Result<Self, Error> {
         let socket = Socket::new(host, agent, 30);
@@ -128,7 +128,7 @@ impl SubscribeClient {
             messages: Vec::new(),
             timetoken: "0".into(),
             subscribe_key: subscribe_key.into(),
-            secret_key: secret_key.into(),
+            _secret_key: _secret_key.into(),
             agent: agent.into(),
         };
 
@@ -163,6 +163,7 @@ impl SubscribeClient {
         for message in response["m"].members() {
             // Carefully deal with ROOT.CHANNEL
             let source = message["c"].to_string();
+            let meta = message["u"].to_string();
 
             let channel = if self.root.is_empty() {
                 source
@@ -174,7 +175,7 @@ impl SubscribeClient {
                 root: self.root.to_string(),
                 channel,
                 data: message["d"].to_string(),
-                metadata: "TODO metadata".to_string(),
+                metadata: meta,
                 id: message["p"]["t"].to_string(),
             });
         }
@@ -201,11 +202,13 @@ impl SubscribeClient {
             )
         };
         let uri = format!(
-            "/v2/subscribe/{subscribe_key}/{channel}/0/{timetoken}?pnsdk={agent}",
+            "/v2/subscribe/{subscribe_key}/{channel}/0/{timetoken}?pnsdk={agent}&filter-expr={filter}",
+            //"/v2/subscribe/{subscribe_key}/{channel}/0/{timetoken}?pnsdk={agent}",
             subscribe_key = self.subscribe_key,
             channel = channel,
             timetoken = self.timetoken,
             agent = self.agent,
+            filter = "source%22%21%3D%22%27NATS%27".to_string(),
         );
         let request =
             format!("GET {} HTTP/1.1\r\nHost: pubnub\r\n\r\n", uri,);
@@ -229,14 +232,14 @@ impl SubscribeClient {
 /// let channel = "demo";
 /// let publish_key = "demo";
 /// let subscribe_key = "demo";
-/// let secret_key = "secret";
+/// let _secret_key = "secret";
 /// let agent = "nats-edge_messaging_platform";
 /// let mut pubnub = PublishClient::new(
 ///     host,
 ///     root,
 ///     publish_key,
 ///     subscribe_key,
-///     secret_key,
+///     _secret_key,
 ///     agent,
 ///  ).expect("NATS Subscribe Client");
 ///
@@ -260,7 +263,7 @@ impl PublishClient {
             root: root.into(),
             publish_key: publish_key.into(),
             subscribe_key: subscribe_key.into(),
-            secret_key: secret_key.into(),
+            _secret_key: secret_key.into(),
             agent: agent.into(),
         })
     }
@@ -278,12 +281,13 @@ impl PublishClient {
             format!("{root}.{channel}", channel = channel, root = self.root)
         };
         let uri = format!(
-            "/publish/{}/{}/0/{}/0/{}?pnsdk={}",
+            "/publish/{}/{}/0/{}/0/{}?pnsdk={pnsdk}&meta={meta}",
             self.publish_key,
             self.subscribe_key,
             channel,
             encoded_message,
-            self.agent
+            pnsdk=self.agent,
+            meta="{\"source\":\"NATS\"}"
         );
 
         let request =
