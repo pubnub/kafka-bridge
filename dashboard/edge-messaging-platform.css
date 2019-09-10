@@ -1,8 +1,9 @@
 /* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 /* PubNub Website Takeover */
 /* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-body {
+body, body#edge-messaging-platform {
     padding: 0 !important;
+    padding-top: 0 !important;
     margin: 0 !important;
 }
 body, div {
