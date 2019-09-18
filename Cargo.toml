@@ -11,11 +11,11 @@ nightly = []
 [dependencies]
 json = "*"
 percent-encoding = "1.0.1"
-rdkafka = "0.21.0"
+#rdkafka = "0.21.0"
 #openssl = { version = "0.10", features = ["vendored"] }
 #openssl = "0.9"
 #kafka = "0.7"
+kafka = "0.8"
 #native-tls = "0.2.2"
 failure = "^0.1"
 failure_derive = "^0.1"
-

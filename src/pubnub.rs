@@ -149,7 +149,7 @@ impl SubscribeClient {
             Ok(data) => data,
             Err(_error) => {
                 // Already returning an error, would you like another?
-                self.subscribe().is_err();
+                let _ = self.subscribe().is_err();
 
                 // Return first error
                 return Err(Error::SubscribeRead);
