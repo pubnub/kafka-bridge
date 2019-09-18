@@ -1,5 +1,6 @@
-use kafka::consumer::{Consumer, FetchOffset, GroupOffsetStorage};
-use kafka::error::Error as KafkaError;
+use kafka::client::KafkaClient;
+use kafka::consumer::Consumer;
+//use kafka::error::Error as KafkaError;
 
 pub struct Message {
     pub root: String,
@@ -14,39 +15,57 @@ pub struct PublishClient {
 }
 
 pub struct SubscribeClient {
-    client_id: String,
+    consumer: Consumer,
     root: String,
     topic: String,
+    group: String,
+}
+
+#[derive(Debug)]
+pub enum Error {
+    Initialize,
+    Publish,
+    PublishWrite,
+    PublishResponse,
+    Subscribe,
+    SubscribeWrite,
+    SubscribeRead,
+    MissingTopic,
+    HTTPResponse,
 }
 
 
-fn consume_messages(
-    group: String,
-    topic: String,
-    brokers: Vec<String>
-) -> Result<(), KafkaError> {
-    let mut con = try!(
-        Consumer::from_hosts(brokers)
-            .with_topic(topic)
-            .with_group(group)
-            .with_fallback_offset(FetchOffset::Earliest)
-            .with_offset_storage(GroupOffsetStorage::Kafka)
-            .create()
-    );
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+/// ```
+/// ```
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+impl SubscribeClient {
+    pub fn new(
+        brokers: Vec<String>,
+        root: &str,
+        topic: &str,
+        group: &str,
+    ) -> Result<Self, Error> {
+        let mut client   = kafka::client::KafkaClient::new(brokers);
+        let _resources   = client.load_metadata_all();
+        let consumer = Consumer::from_client(client)
+            .with_topic(topic.into())
+            .with_group(group.into())
+            .create().unwrap();
 
-    loop {
-        let mss = try!(con.poll());
-        if mss.is_empty() {
-            println!("No messages available right now.");
-            return Ok(());
-        }
-
-        for ms in mss.iter() {
-            for m in ms.messages() {
-                println!("{}:{}@{}: {:?}", ms.topic(), ms.partition(), m.offset, m.value);
-            }
-            let _ = con.consume_messageset(ms);
-        }
-        try!(con.commit_consumed());
+        Ok(Self {
+            consumer:   consumer,
+            root:       root.into(),
+            topic:      topic.into(),
+            group:      group.into(),
+        })
     }
+
+    /*
+    pub fn next_message(&mut self) -> Result<Message, KafkaError> {
+        for msg in self.consumer {
+            println!("{:?}", msg);
+        }
+    }
+    */
 }

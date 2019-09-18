@@ -171,6 +171,7 @@ fn main() {
 
     // Send KAFKA Messages
     // Publish as fast as possible
+    /*
     let kafka_publisher_thread = thread::Builder::new()
         .name("KAFKA Publisher Thread".into())
         .spawn(move || loop {
@@ -197,6 +198,7 @@ fn main() {
                 };
             }
         });
+        */
 
     // Receive KAFKA Messages
     // Subscribe as fast as possbile
@@ -248,10 +250,10 @@ fn main() {
         .expect("PubNub Publisher thread builder join handle")
         .join()
         .expect("Joining PubNub Publisher Thread");
-    kafka_publisher_thread
-        .expect("KAFKA Publisher thread builder join handle")
-        .join()
-        .expect("Joining KAFKA Publisher Thread");
+    //kafka_publisher_thread
+    //    .expect("KAFKA Publisher thread builder join handle")
+    //    .join()
+    //    .expect("Joining KAFKA Publisher Thread");
     kafka_subscriber_thread
         .expect("KAFKA Subscriber thread builder join handle")
         .join()
