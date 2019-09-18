@@ -10,9 +10,10 @@ use edge_messaging_platform::kafka;
 // Configuration via Environmental Variables
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 struct Configuration {
-    pub kafka_host: String,
+    pub kafka_brokers: Vec<String>,
     pub kafka_topic: String,
     pub kafka_topic_root: String,
+    pub kafka_group: String,
     pub pubnub_host: String,
     pub pubnub_channel: String,
     pub pubnub_channel_root: String,
@@ -22,10 +23,12 @@ struct Configuration {
 }
 
 fn environment_variables() -> Configuration {
+    let brokers = fetch_env_var("KAFKA_BROKERS").split(",");
     Configuration {
-        kafka_host: fetch_env_var("KAFKA_HOST"),
+        kafka_brokers: brokers.map(|s| s.to_string()).collect(),
         kafka_topic: fetch_env_var("KAFKA_TOPIC"),
         kafka_topic_root: fetch_env_var("KAFKA_TOPIC_ROOT"),
+        kafka_group: fetch_env_var("KAFKA_GROUP"),
         pubnub_host: "psdsn.pubnub.com:80".into(),
         pubnub_channel: fetch_env_var("PUBNUB_CHANNEL"),
         pubnub_channel_root: fetch_env_var("PUBNUB_CHANNEL_ROOT"),
@@ -206,11 +209,12 @@ fn main() {
         .name("KAFKA Subscriber Thread".into())
         .spawn(move || loop {
             let config = environment_variables();
-            let host = &config.kafka_host;
-            let root = &config.kafka_topic_root;
-            let topic = &config.kafka_topic;
-            let mut kafka =
-                match kafka::SubscribeClient::new(host, root, topic) {
+            let mut kafka = match kafka::SubscribeClient::new(
+                    config.kafka_brokers,
+                    &config.kafka_topic_root,
+                    &config.kafka_topic,
+                    &config.kafka_group
+                ) {
                     Ok(kafka) => kafka,
                     Err(_error) => {
                         thread::sleep(time::Duration::from_millis(1000));
