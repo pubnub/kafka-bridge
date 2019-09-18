@@ -23,9 +23,10 @@ struct Configuration {
 }
 
 fn environment_variables() -> Configuration {
-    let brokers = fetch_env_var("KAFKA_BROKERS").split(",");
+    //let brokers = fetch_env_var("KAFKA_BROKERS").split(",").clone();
     Configuration {
-        kafka_brokers: brokers.map(|s| s.to_string()).collect(),
+        kafka_brokers: fetch_env_var("KAFKA_BROKERS").split(",")
+                       .map(|s| s.to_string()).collect(),
         kafka_topic: fetch_env_var("KAFKA_TOPIC"),
         kafka_topic_root: fetch_env_var("KAFKA_TOPIC_ROOT"),
         kafka_group: fetch_env_var("KAFKA_GROUP"),
@@ -211,6 +212,7 @@ fn main() {
             let config = environment_variables();
             let mut kafka = match kafka::SubscribeClient::new(
                     config.kafka_brokers,
+                    kafka_message_tx.clone(),
                     &config.kafka_topic_root,
                     &config.kafka_topic,
                     &config.kafka_group
@@ -221,13 +223,9 @@ fn main() {
                         continue;
                     }
                 };
-            loop {
                 // Get KAFKA Messages
-                let mut message = match kafka.next_message() {
-                    Ok(message) => message,
-                    Err(_error) => continue,
-                };
-
+            kafka.consume().expect("Error consuming Kafka messages");
+                /*
                 // Convert to JSON String if not already JSON
                 let parsetest = json::parse(&message.data);
                 if parsetest.is_err() {
@@ -238,7 +236,7 @@ fn main() {
                 kafka_message_tx
                     .send(message)
                     .expect("KAFKA mpsc::channel topic write");
-            }
+                    */
         });
 
     // Print Follow-on Instructions
