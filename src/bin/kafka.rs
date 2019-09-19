@@ -1,7 +1,6 @@
 #![deny(clippy::all)]
 #![deny(clippy::pedantic)]
 
-use json;
 use std::sync::mpsc;
 use std::{env, process, thread, time};
 use edge_messaging_platform::kafka;

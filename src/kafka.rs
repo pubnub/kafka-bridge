@@ -1,3 +1,4 @@
+use json;
 use std::sync::mpsc::Sender;
 use kafka::consumer::Consumer;
 use kafka::error::Error as KafkaError;
@@ -70,10 +71,16 @@ impl SubscribeClient {
             for ms in self.consumer.poll().unwrap().iter() {
                 for m in ms.messages() {
                     println!("{:?}", m);
-                    let data = match String::from_utf8(m.value.to_vec()) {
+                    let mut data = match String::from_utf8(m.value.to_vec()) {
                         Ok(v) => v,
                         Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
                     };
+
+                    let parsetest = json::parse(&data);
+                    if parsetest.is_err() {
+                        data = json::stringify(data);
+                    }
+
                     self.sender.send(Message {
                         root: self.root.clone(),
                         topic: self.topic.clone(),
