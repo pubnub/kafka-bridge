@@ -5,6 +5,9 @@ authors = ["Stephen Blum <blum.stephen@gmail.com>"]
 edition = "2018"
 readme = "readme.md"
 
+[profile.release]
+debug = true
+
 [features]
 nightly = []
 
@@ -12,7 +15,7 @@ nightly = []
 json = "*"
 percent-encoding = "1.0.1"
 #rdkafka = "0.21.0"
-#openssl = { version = "0.10", features = ["vendored"] }
+openssl = { version = "0.10", features = ["vendored"] }
 #openssl = "0.9"
 #kafka = "0.7"
 kafka = "0.8"

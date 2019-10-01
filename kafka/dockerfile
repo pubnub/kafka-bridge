@@ -9,18 +9,23 @@ RUN apt-get -y install musl-tools
 RUN apt-get -y install libssl-dev
 RUN apt-get -y install clang
 RUN rustup target add x86_64-unknown-linux-musl
-RUN cargo build --release --target=x86_64-unknown-linux-musl
-RUN rm ./src/*.rs ./target/x86_64-unknown-linux-musl/release/edge-messaging-platform
+#RUN cargo build --release --target=x86_64-unknown-linux-musl
+RUN cargo build --target=x86_64-unknown-linux-musl
+#RUN rm ./src/*.rs ./target/x86_64-unknown-linux-musl/release/edge-messaging-platform
+RUN rm ./src/*.rs ./target/x86_64-unknown-linux-musl/debug/edge-messaging-platform
 
 # Application Build
 FROM dependencies as build
 ARG version=0.0.0
 WORKDIR /app
 COPY . /app/
+RUN apt-get -y install libssl-dev
 RUN OLD_VERSION=$(egrep '^version = "[0-9a-z.+-]+"$' Cargo.toml | cut -d'"' -f2 | sed -e 's/\./\\./g') && \
     sed -i -e "s/$OLD_VERSION/$version/" Cargo.toml
-RUN cargo build --release --target=x86_64-unknown-linux-musl
-RUN strip target/x86_64-unknown-linux-musl/release/nats-edge-messaging-platform
+#RUN cargo build --release --target=x86_64-unknown-linux-musl
+RUN cargo build --target=x86_64-unknown-linux-musl
+#RUN strip target/x86_64-unknown-linux-musl/release/kafka
+RUN strip target/x86_64-unknown-linux-musl/debug/kafka
 
 # Runtime Build
 FROM alpine:latest
@@ -29,11 +34,12 @@ RUN addgroup -g 1000 appuser
 RUN adduser -S -u 1000 -g appuser -G appuser appuser
 USER appuser
 WORKDIR /app
-COPY --from=build /app/target/x86_64-unknown-linux-musl/release/nats-edge-messaging-platform /app
+#COPY --from=build /app/target/x86_64-unknown-linux-musl/release/kafka /app
+COPY --from=build /app/target/x86_64-unknown-linux-musl/debug/kafka /app
 
 # Setup the environment
 ENTRYPOINT ["/sbin/tini", "--"]
 
 # Runtime
 ENV RUST_BACKTRACE=1
-CMD ["/app/nats-edge-messaging-platform"]
+CMD ["/app/kafka"]

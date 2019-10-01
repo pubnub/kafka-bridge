@@ -1,5 +1,5 @@
 # Edge Messaging Platform for Kafka
-> Bring Kafka to the real world.
+> Bring Kafka into the real world.
 
 Messages from your Kafka cluster can be received
 on a target mobile device.
@@ -39,9 +39,7 @@ Run this command in a terminal window.
 This command will send a `"KNOCK"` message each half-second.
 
 ```shell
-while true;
-    do (printf "PUB subjects.mydevice 5\r\nKNOCK\r\n"; sleep 0.5) | nc 0.0.0.0 4222;
-done
+...
 ```
 
 #### 2.) Test Console Output
@@ -105,7 +103,7 @@ Build EMP.
 
 ```shell
 cd edge-messaging-platform
-docker build -f kafka/dockerfile -t kafka .
+docker build -f kafka/dockerfile -t kafka-edge-messaging-platform .
 ```
 
 ##### 2 of 3
@@ -132,11 +130,19 @@ docker run \
   -e PUBNUB_CIPHER_KEY=pAsSwOrD \
   -e PUBNUB_CHANNEL_ROOT=channels \
   -e PUBNUB_CHANNEL=* \
-  -e Kafka_SUBJECT_ROOT=subjects \
-  -e Kafka_SUBJECT=* \
-  -e Kafka_HOST=0.0.0.0:4222 \
+  -e KAFKA_TOPIC_ROOT=topics \
+  -e KAFKA_GROUP= \
+  -e KAFKA_TOPIC=topic \
+  -e KAFKA_BROKERS=0.0.0.0:9092 \
   kafka-edge-messaging-platform
 ```
+
+kafka_brokers: fetch_env_var("KAFKA_BROKERS").split(",")
+.map(|s| s.to_string()).collect(),
+kafka_topic: fetch_env_var("KAFKA_TOPIC"),
+kafka_topic_root: fetch_env_var("KAFKA_TOPIC_ROOT"),
+kafka_group: fetch_env_var("KAFKA_GROUP"),
+
 
 Visit the URL printed from the output.
 
