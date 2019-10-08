@@ -1,79 +1,64 @@
+---
 version: '2'
-
 services:
   #kafka-edge-messaging-platform:
   #  environment:
-  #    - PUBNUB_PUBLISH_KEY=pub-c-6b57a39e-79e7-4d1d-926e-5c376a4cb021 
-  #    - PUBNUB_SUBSCRIBE_KEY=sub-c-df3799ee-704b-11e9-8724-8269f6864ada 
-  #    - PUBNUB_SECRET_KEY=sec-c-YWY3NzE0NTYtZTBkMS00YjJjLTgxZDQtN2YzOTY0NWNkNGVk 
-  #    - PUBNUB_CIPHER_KEY=PaSsWoRd     ## encryption key
-  #    - PUBNUB_CHANNEL_ROOT=channels   ## channels.
-  #    - PUBNUB_CHANNEL=*               ## channels.*
-  #    - KAFKA_TOPIC_ROOT=topics \      ## channels.* <-> topics.*
-  #    - KAFKA_TOPIC=topic \            ## channels.* <-> topics.*
-  #    - KAFKA_GROUP= \
-  #    - KAFKA_BROKERS=kafka:9092 \     ## comma separated list
+  #    PUBNUB_PUBLISH_KEY: pub-c-6b57a39e-79e7-4d1d-926e-5c376a4cb021 
+  #    PUBNUB_SUBSCRIBE_KEY: sub-c-df3799ee-704b-11e9-8724-8269f6864ada 
+  #    PUBNUB_SECRET_KEY: sec-c-YWY3NzE0NTYtZTBkMS00YjJjLTgxZDQtN2YzOTY0NWNkNGVk 
+  #    PUBNUB_CIPHER_KEY: PaSsWoRd     ## encryption key
+  #    PUBNUB_CHANNEL_ROOT: topics     ## topics.
+  #    PUBNUB_CHANNEL: "*"             ## topics
+  #    KAFKA_TOPIC_ROOT: topics        ## topics <-> topics.*
+  #    KAFKA_TOPIC: topic              ## topics <-> topics.*
+  #    KAFKA_GROUP:  
+  #    KAFKA_PARTITION: 0  
+  #    KAFKA_BROKERS: kafka:9092       ## comma separated list
   #  build:
   #    context: ..
   #    dockerfile: kafka/dockerfile
   #  image: kafka-edge-messaging-platform
   #  restart: on-failure
-  #  links:
-  #    - kafka
   #  depends_on:
+  #    - zookeeper
   #    - kafka
+  #    - kafka-create-topics
 
   zookeeper:
-    image: 'bitnami/zookeeper:3'
+    image: confluentinc/cp-zookeeper:5.3.1
+    hostname: zookeeper
     ports:
       - '2181:2181'
-    volumes:
-      - 'zookeeper_data:/bitnami'
     environment:
-      - ALLOW_ANONYMOUS_LOGIN=yes
+      ZOOKEEPER_CLIENT_PORT: 2181
 
   kafka:
-    image: 'bitnami/kafka:2'
+    image: confluentinc/cp-enterprise-kafka:5.3.1
+    hostname: kafka
     ports:
       - '9092:9092'
-    volumes:
-      - 'kafka_data:/bitnami'
-    environment:
-      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
-      - ALLOW_PLAINTEXT_LISTENER=yes
     depends_on:
       - zookeeper
-
-  kafka-sample-feed:
-    image: 'bitnami/kafka:2'
-    ports:
-      - '9093:9093'
-    volumes:
-      - 'kafka_data:/bitnami'
-      - './kafka-topic-generator.sh:/bin/kafka-topic-generator.sh'
     environment:
-      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
-      - ALLOW_PLAINTEXT_LISTENER=yes
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: LISTENER_BOB://kafka:9092
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      CONFLUENT_METRICS_ENABLE: 'false'
+      CONFLUENT_SUPPORT_CUSTOMER_ID: 'anonymous'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: LISTENER_BOB:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: LISTENER_BOB  
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  kafka-create-topics:
+    image: confluentinc/cp-enterprise-kafka:5.3.1
     depends_on:
+      - zookeeper
       - kafka
-    command: "/bin/kafka-topic-generator.sh"
+    hostname: kafka-create-topics
+    volumes:
+      - './kafka-sample-generator.sh:/bin/kafka-sample-generator.sh'
+    command: "/bin/kafka-sample-generator.sh"
     environment:
-      - KAFKA_TOPIC=topic
-
-#kafka-setup:
-#    image: confluentinc/cp-kafka:5.1.1
-#    hostname: kafka-setup
-#    container_name: kafka-setup
-#    depends_on:
-#      - broker
-#      - schema-registry
-#    volumes:
-#      - $PWD/connectors:/tmp/connectors
-#      - $PWD/dashboard:/tmp/dashboard
-
-
-volumes:
-  zookeeper_data:
-    driver: local
-  kafka_data:
-    driver: local
+      KAFKA_TOPIC: topic
+      KAFKA_BROKER: kafka

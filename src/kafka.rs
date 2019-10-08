@@ -52,10 +52,11 @@ impl SubscribeClient {
     ) -> Result<Self, Error> {
         let mut client = kafka::client::KafkaClient::new(brokers);
         let _resources = client.load_metadata_all();
-        let consumer   = Consumer::from_client(client)
-            .with_topic(topic.into())
-            .with_group(group.into())
-            .create().unwrap();
+        let consumer   = match Consumer::from_client(client)
+            .with_topic(topic.into()).with_group(group.into()).create() {
+                Ok(result) => result,
+                Err(err)   => panic!(err),
+            };
 
         Ok(Self {
             consumer: consumer,

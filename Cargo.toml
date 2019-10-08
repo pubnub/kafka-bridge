@@ -5,9 +5,6 @@ authors = ["Stephen Blum <blum.stephen@gmail.com>"]
 edition = "2018"
 readme = "readme.md"
 
-[profile.release]
-debug = true
-
 [features]
 nightly = []
 

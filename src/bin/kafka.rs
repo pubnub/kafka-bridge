@@ -80,7 +80,7 @@ fn fetch_env_var(name: &str) -> String {
 fn main() {
     // Async Channels
     let (kafka_message_tx, pubnub_publish_rx) = mpsc::channel();
-    let (pubnub_message_tx, kafka_publish_rx) = mpsc::channel();
+    let (pubnub_message_tx, _kafka_publish_rx) = mpsc::channel();
 
     // Receive PubNub Messages
     // Subscribe to PubNub messages
@@ -222,7 +222,8 @@ fn main() {
                         continue;
                     }
                 };
-                // Get KAFKA Messages
+
+            // Get KAFKA Messages
             kafka.consume().expect("Error consuming Kafka messages");
                 /*
                 // Convert to JSON String if not already JSON
