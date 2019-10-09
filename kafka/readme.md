@@ -15,6 +15,8 @@ Dashboard management page included.
 
 ## Part 1: Up and running in 60 seconds - Kafka, Zookeeper and Sample Feed
 
+> If you already have Kafka cluster, you can skip to **Part 2**.
+
 Start the docker compose file in a terminal window.
 This will launch Kafka, Zookeeper and
 a sample feed generator on the `topic` topic.
@@ -29,11 +31,13 @@ Great!
 Now in a separate terminal session, run the dockerfile in **Part 2**.
 Messages are bing simulated on the `topic` topic as we speak.
 
-## Part 2: Dockerfile - Up and running in 60 seconds
+## Part 2: Up and running in 60 seconds - Edge Messaging Platform Dockerfile
 
 For security, you will need to get your private API keys from: 
 https://dashboard.pubnub.com/signup
 The following API Keys are for public-use and may be rotated.
+
+Open a new terminal session and run the following commands:
 
 ```shell
 cd edge-messaging-platform
@@ -61,26 +65,36 @@ You can receive a stream of your messages in **Part 3**.
 
 ### Terminal Session Example
 
-The following command is an example of how to receive messages from Kafka.
+The following command is an example of how to receive messages from
+your Kafka cluster on the Internet.
+
+> Note the following sample terminal command opens a lossy sample feed.
+> Use the PubNub SDKs directly to **enable durable message delivery**.
+
+Open a new terminal session and run the following commands:
 
 ```shell
-while true; do                                                                                \
-    SUBSCRIBE_KEY=sub-c-df3799ee-704b-11e9-8724-8269f6864ada                                  \
-    TOPIC=topics.*                                                                            \
-    HEADERS="HTTP/1.1\r\nHost: pubnub\r\n\r\n"                                                \
-    (printf "GET http://p.pubnub.com/stream/$SUBSCRIBE_KEY/$TOPIC/0/-1 $HEADERS"; sleep 10) | \
-    nc p.pubnub.com 80;                                                                       \
-done
+export SUBSCRIBE_KEY="sub-c-df3799ee-704b-11e9-8724-8269f6864ada"
+export TOPICS="topics.*"
+export HEADERS="HTTP/1.1\r\nHost: pubnub\r\n\r\n"
+while true; do (                                                                              \
+    printf "GET http://p.pubnub.com/stream/$SUBSCRIBE_KEY/$TOPICS/0/-1 $HEADERS"; sleep 10) | \
+    nc p.pubnub.com 80; done
 ```
 
-Messages from your Kafka cluster can be received on a target mobile device.
-Continue reading to get data onto your target mobile devices easily.
+You are seeing messages being delivered from your Kafka cluster directly to your terminal session.
+This terminal session can be located anywhere on Earth with an active internet connection.
+You won't want to use this command directly, it is only for domonstration purposes.
+To get a durable and secure connection, use one of the PubNub SDKs.
+
+Messages from your Kafka cluster can be received on a mobile and web device.
+Continue reading to get data onto your target devices easily using a PubNub SDK.
+
+### Android Java
 
 ### iOS Swift
 
 ### iOS Objective-C
-
-### Android Java
 
 ### Kafka -> Mobile Device
 
