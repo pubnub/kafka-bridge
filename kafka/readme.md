@@ -60,7 +60,7 @@ docker run                                                                      
     kafka-edge-messaging-platform
 ```
 
-Now your Kafka messages will be securly available to any device on the Internet.
+Now your Kafka messages will be securely available to any device on the Internet.
 You can receive a stream of your messages in **Part 3**.
 
 ## Part 3: Receive Messages on Your Mobile Device from Kafka Topics
@@ -86,7 +86,7 @@ while true; do (                                                                
 
 You are seeing messages being delivered from your Kafka cluster directly to your terminal session.
 This terminal session can be located anywhere on Earth with an active internet connection.
-You won't want to use this command directly, it is only for domonstration purposes.
+You won't want to use this command directly, it is only for demonstration purposes.
 To get a durable and secure connection, use one of the PubNub SDKs.
 
 Messages from your Kafka cluster can be received on a mobile and web device.
