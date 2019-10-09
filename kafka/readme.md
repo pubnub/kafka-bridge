@@ -17,6 +17,8 @@ Dashboard management page included.
 
 > If you already have Kafka cluster, you can skip to **Part 2**.
 
+![Kafka to Mobile](https://i.imgur.com/aweweBQ.gif)
+
 Start the docker compose file in a terminal window.
 This will launch Kafka, Zookeeper and
 a sample feed generator on the `topic` topic.
