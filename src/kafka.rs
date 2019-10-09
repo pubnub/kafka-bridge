@@ -52,10 +52,11 @@ impl SubscribeClient {
         group: &str,
         partition: i32,
     ) -> Result<Self, Error> {
-        println!("TOPIC: {:?}", topic);
-        println!("GROUP :{:?}", group);
-        println!("PARTITION: {:?}", partition);
-        println!("BROKERS: {:?}", brokers);
+
+        println!("TOPIC:     '{}'", topic);
+        println!("GROUP      '{}'", group);
+        println!("PARTITION: '{}'", partition);
+        println!("BROKERS:   '{:?}'", brokers);
 
         /*
         let mut client = kafka::client::KafkaClient::new(brokers);
@@ -76,6 +77,7 @@ impl SubscribeClient {
         println!("GOOD 0");
         let consumer = match Consumer::from_hosts(brokers)
               .with_topic_partitions(topic.to_owned(), &[partition])
+              //.with_topic(topic.to_owned())
               .with_fallback_offset(FetchOffset::Earliest)
               .with_group(group.to_owned())
               .with_offset_storage(GroupOffsetStorage::Kafka)

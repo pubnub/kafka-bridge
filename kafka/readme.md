@@ -13,11 +13,11 @@ based on a Kafka topics.
 Easy drop-in operations.
 Dashboard management page included.
 
-## Up and running in 10 seconds
+## Docker Compose - Up and running in 60 seconds ( includes Kafka and Zookeeper )
 
-Want to try EMP with Kafka?
-Test runtime with Docker Compose.
-Easily test using `docker-compose`.
+Want to try EMP with Kafka as a demo?
+Demo is available as a runtime with Docker Compose.
+Easily try using `docker-compose`.
 
 ```shell
 git clone git@github.com:stephenlb/edge-messaging-platform.git
@@ -26,27 +26,46 @@ docker-compose -f kafka/docker-compose.yaml up --force-recreate --remove-orphans
 ```
 
 Great! Everything is running now.
-Continue reading to simulate messages.
+Messages are automatically simulated on `topic`.
+
+## Dockerfile - Up and running in 60 seconds ( excludes Kafka )
+
+This is what you'll use for a production environment.
+For security, you will need to get your private API keys from: 
+https://dashboard.pubnub.com/signup
+The following API Keys are for public-use and may be rotated.
+
+```shell
+cd edge-messaging-platform
+docker build -f kafka/dockerfile -t kafka-edge-messaging-platform .
+docker run                                                                        \
+    --network=host                                                                \
+    -e PUBNUB_PUBLISH_KEY=pub-c-6b57a39e-79e7-4d1d-926e-5c376a4cb021              \
+    -e PUBNUB_SUBSCRIBE_KEY=sub-c-df3799ee-704b-11e9-8724-8269f6864ada            \
+    -e PUBNUB_SECRET_KEY=sec-c-YWY3NzE0NTYtZTBkMS00YjJjLTgxZDQtN2YzOTY0NWNkNGVk   \
+    -e PUBNUB_CIPHER_KEY=pAsSwOrD                                                 \
+    -e PUBNUB_CHANNEL_ROOT=topics                                                 \
+    -e PUBNUB_CHANNEL=*                                                           \
+    -e KAFKA_TOPIC_ROOT=topics                                                    \
+    -e KAFKA_GROUP=                                                               \
+    -e KAFKA_PARTITION=0                                                          \
+    -e KAFKA_TOPIC=topic                                                          \
+    -e KAFKA_BROKERS=0.0.0.0:9094                                                 \
+    -e RUST_BACKTRACE=1                                                           \
+    kafka-edge-messaging-platform
+```
 
 ### Kafka -> Mobile Device
 
 Messages from your Kafka cluster can be received
 on a target mobile device.
 
-#### 1.) Simulate Kafka Stream
 
-Run this command in a terminal window.
-This command will send a `"KNOCK"` message each half-second.
-
-```shell
-...
-```
-
-#### 2.) Test Console Output
+#### Test Console Output
 
 Open the test console to see messages being received in a browser window.
 
-[View Test Console](https://www.pubnub.com//docs/console?channel=channels.*&sub=sub-c-df3799ee-704b-11e9-8724-8269f6864ada&pub=pub-c-6b57a39e-79e7-4d1d-926e-5c376a4cb021)
+[View Test Console](https://www.pubnub.com//docs/console?channel=topics.*&sub=sub-c-df3799ee-704b-11e9-8724-8269f6864ada&pub=pub-c-6b57a39e-79e7-4d1d-926e-5c376a4cb021)
 
 > Scroll a bit down on this page, you will see an output
 element labeled **`messages`** on this screen with message logs:
@@ -60,7 +79,7 @@ The following shell command will simulate this:
 while true; do                                                                                \
     PUBLISH_KEY="pub-c-6b57a39e-79e7-4d1d-926e-5c376a4cb021"                                  \
     SUBSCRIBE_KEY="sub-c-df3799ee-704b-11e9-8724-8269f6864ada"                                \
-    CHANNEL="channels.mydevice"                                                               \
+    CHANNEL="topics.mydevice"                                                               \
     curl "https://ps.pndsn.com/publish/$PUBLISH_KEY/$SUBSCRIBE_KEY/0/$CHANNEL/0/%22Hello%22"; \
     echo;                                                                                     \
     sleep 0.5;                                                                                \
@@ -85,69 +104,11 @@ look at the alternative setup instructions below.
 > Keep this in mind when configuration your runtime
 > ENVIRONMENTAL variables.
 
-Kafka wildcard symbols include `*` and `>`.
-These symbols have different meanings.
-The `*` symbol captures all messages for `root.*` and
-will not capture `root.sub.*`.
-The `>` symbol captures all messages below the root including sub nodes.
 
-## Alternate Installation Instructions
-
-If you can't use Docker Compose, then this is an alternative setup.
-Production docker runtime Alpine image size is **6MB**.
-Start by building the Kafka EMP image.
-
-##### 1 of 3
-
-Build EMP.
-
-```shell
-cd edge-messaging-platform
-docker build -f kafka/dockerfile -t kafka-edge-messaging-platform .
-```
-
-##### 2 of 3
-
-Run a local Kafka instance.
-
-```shell
-docker run -p 4222:4222 kafka
-```
-
-##### 3 of 3
-
-Run the Kafka EMP.
-For security, you will need to get your private API keys from: 
-https://dashboard.pubnub.com/signup
-The following API Keys are for public use and may be rotated.
-
-```shell
-docker run                                                                        \
-    --network=host                                                                \
-    -e PUBNUB_PUBLISH_KEY=pub-c-6b57a39e-79e7-4d1d-926e-5c376a4cb021              \
-    -e PUBNUB_SUBSCRIBE_KEY=sub-c-df3799ee-704b-11e9-8724-8269f6864ada            \
-    -e PUBNUB_SECRET_KEY=sec-c-YWY3NzE0NTYtZTBkMS00YjJjLTgxZDQtN2YzOTY0NWNkNGVk   \
-    -e PUBNUB_CIPHER_KEY=pAsSwOrD                                                 \
-    -e PUBNUB_CHANNEL_ROOT=channels                                               \
-    -e PUBNUB_CHANNEL=*                                                           \
-    -e KAFKA_TOPIC_ROOT=topics                                                    \
-    -e KAFKA_GROUP=                                                               \
-    -e KAFKA_PARTITION=1                                                          \
-    -e KAFKA_TOPIC=topic                                                          \
-    -e KAFKA_BROKERS=0.0.0.0:9092                                                 \
-    -e RUST_BACKTRACE=1
-    kafka-edge-messaging-platform
-```
 
 Visit the URL printed from the output.
 
 Publish Kafka messages repeatedly.
-
-```shell
-while true;
-    do (printf "PUB subjects.mydevice 5\r\nKNOCK\r\n"; sleep 0.4) | nc 0.0.0.0 4222;
-done
-```
 
 Subscribe to these messages in another terminal window.
 
@@ -201,13 +162,13 @@ PUBNUB_PUBLISH_KEY=pub-c-6b57a39e-79e7-4d1d-926e-5c376a4cb021              \
 PUBNUB_SUBSCRIBE_KEY=sub-c-df3799ee-704b-11e9-8724-8269f6864ada            \
 PUBNUB_SECRET_KEY=sec-c-YWY3NzE0NTYtZTBkMS00YjJjLTgxZDQtN2YzOTY0NWNkNGVk   \
 PUBNUB_CIPHER_KEY=pAsSwOrD                                                 \
-PUBNUB_CHANNEL_ROOT=channels                                               \
+PUBNUB_CHANNEL_ROOT=topics                                                 \
 PUBNUB_CHANNEL=*                                                           \
 KAFKA_TOPIC_ROOT=topics                                                    \
 KAFKA_GROUP=                                                               \
-KAFKA_PARTITION=1                                                          \
+KAFKA_PARTITION=0                                                          \
 KAFKA_TOPIC=topic                                                          \
-KAFKA_BROKERS=0.0.0.0:9092                                                 \
+KAFKA_BROKERS=0.0.0.0:9094                                                 \
 RUST_BACKTRACE=1                                                           \
 cargo run --bin kafka
 ```

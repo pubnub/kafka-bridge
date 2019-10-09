@@ -13,7 +13,7 @@ services:
   #    KAFKA_TOPIC: topic              ## topics <-> topics.*
   #    KAFKA_GROUP:  
   #    KAFKA_PARTITION: 0  
-  #    KAFKA_BROKERS: kafka:9092       ## comma separated list
+  #    KAFKA_BROKERS: kafka:9094       ## comma separated list
   #  build:
   #    context: ..
   #    dockerfile: kafka/dockerfile
@@ -37,18 +37,20 @@ services:
     hostname: kafka
     ports:
       - '9092:9092'
+      - '9094:9094'
     depends_on:
       - zookeeper
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: LISTENER_BOB://kafka:9092
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://:9092,OUTSIDE://localhost:9094
+      KAFKA_LISTENERS: INSIDE://:9092,OUTSIDE://:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
       KAFKA_ADVERTISED_HOST_NAME: kafka
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
       CONFLUENT_METRICS_ENABLE: 'false'
       CONFLUENT_SUPPORT_CUSTOMER_ID: 'anonymous'
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: LISTENER_BOB:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: LISTENER_BOB  
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
 
   kafka-create-topics:
