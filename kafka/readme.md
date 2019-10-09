@@ -22,7 +22,7 @@ Easily test using `docker-compose`.
 ```shell
 git clone git@github.com:stephenlb/edge-messaging-platform.git
 cd edge-messaging-platform
-docker-compose -f kafka/docker-compose.yaml up
+docker-compose -f kafka/docker-compose.yaml up --force-recreate --remove-orphans
 ```
 
 Great! Everything is running now.
@@ -122,27 +122,22 @@ https://dashboard.pubnub.com/signup
 The following API Keys are for public use and may be rotated.
 
 ```shell
-docker run \
-  --network=host \
-  -e PUBNUB_PUBLISH_KEY=pub-c-6b57a39e-79e7-4d1d-926e-5c376a4cb021 \
-  -e PUBNUB_SUBSCRIBE_KEY=sub-c-df3799ee-704b-11e9-8724-8269f6864ada \
-  -e PUBNUB_SECRET_KEY=sec-c-YWY3NzE0NTYtZTBkMS00YjJjLTgxZDQtN2YzOTY0NWNkNGVk \
-  -e PUBNUB_CIPHER_KEY=pAsSwOrD \
-  -e PUBNUB_CHANNEL_ROOT=channels \
-  -e PUBNUB_CHANNEL=* \
-  -e KAFKA_TOPIC_ROOT=topics \
-  -e KAFKA_GROUP= \
-  -e KAFKA_TOPIC=topic \
-  -e KAFKA_BROKERS=0.0.0.0:9092 \
-  kafka-edge-messaging-platform
+docker run                                                                        \
+    --network=host                                                                \
+    -e PUBNUB_PUBLISH_KEY=pub-c-6b57a39e-79e7-4d1d-926e-5c376a4cb021              \
+    -e PUBNUB_SUBSCRIBE_KEY=sub-c-df3799ee-704b-11e9-8724-8269f6864ada            \
+    -e PUBNUB_SECRET_KEY=sec-c-YWY3NzE0NTYtZTBkMS00YjJjLTgxZDQtN2YzOTY0NWNkNGVk   \
+    -e PUBNUB_CIPHER_KEY=pAsSwOrD                                                 \
+    -e PUBNUB_CHANNEL_ROOT=channels                                               \
+    -e PUBNUB_CHANNEL=*                                                           \
+    -e KAFKA_TOPIC_ROOT=topics                                                    \
+    -e KAFKA_GROUP=                                                               \
+    -e KAFKA_PARTITION=1                                                          \
+    -e KAFKA_TOPIC=topic                                                          \
+    -e KAFKA_BROKERS=0.0.0.0:9092                                                 \
+    -e RUST_BACKTRACE=1
+    kafka-edge-messaging-platform
 ```
-
-kafka_brokers: fetch_env_var("KAFKA_BROKERS").split(",")
-.map(|s| s.to_string()).collect(),
-kafka_topic: fetch_env_var("KAFKA_TOPIC"),
-kafka_topic_root: fetch_env_var("KAFKA_TOPIC_ROOT"),
-kafka_group: fetch_env_var("KAFKA_GROUP"),
-
 
 Visit the URL printed from the output.
 
@@ -196,26 +191,24 @@ https://www.rust-lang.org/tools/install
 curl https://sh.rustup.rs -sSf | sh
 ```
 
-#### Get Kafka
-
-```shell
-## Kafka Quick Install
-docker run -p 4222:4222 kafka
-```
+#### Run with Cargo
 
 Now you can run `cargo run --bin kafka`.
 The EMP app is 12 factor and is configured via Environmental Variables.
 
 ```shell
-PUBNUB_PUBLISH_KEY=pub-c-6b57a39e-79e7-4d1d-926e-5c376a4cb021 \
-PUBNUB_SUBSCRIBE_KEY=sub-c-df3799ee-704b-11e9-8724-8269f6864ada \
-PUBNUB_SECRET_KEY=sec-c-YWY3NzE0NTYtZTBkMS00YjJjLTgxZDQtN2YzOTY0NWNkNGVk \
-PUBNUB_CHANNEL_ROOT=channels \
-PUBNUB_CHANNEL=* \
-PUBNUB_CIPHER_KEY=pAsSwOrD \
-Kafka_SUBJECT_ROOT=subjects \
-Kafka_SUBJECT=">" \
-Kafka_HOST=0.0.0.0:4222 \
+PUBNUB_PUBLISH_KEY=pub-c-6b57a39e-79e7-4d1d-926e-5c376a4cb021              \
+PUBNUB_SUBSCRIBE_KEY=sub-c-df3799ee-704b-11e9-8724-8269f6864ada            \
+PUBNUB_SECRET_KEY=sec-c-YWY3NzE0NTYtZTBkMS00YjJjLTgxZDQtN2YzOTY0NWNkNGVk   \
+PUBNUB_CIPHER_KEY=pAsSwOrD                                                 \
+PUBNUB_CHANNEL_ROOT=channels                                               \
+PUBNUB_CHANNEL=*                                                           \
+KAFKA_TOPIC_ROOT=topics                                                    \
+KAFKA_GROUP=                                                               \
+KAFKA_PARTITION=1                                                          \
+KAFKA_TOPIC=topic                                                          \
+KAFKA_BROKERS=0.0.0.0:9092                                                 \
+RUST_BACKTRACE=1                                                           \
 cargo run --bin kafka
 ```
 

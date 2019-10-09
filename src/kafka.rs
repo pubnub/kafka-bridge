@@ -1,7 +1,8 @@
 use json;
 use std::sync::mpsc::Sender;
-use kafka::consumer::Consumer;
+use kafka::consumer::{Consumer, FetchOffset, GroupOffsetStorage};
 use kafka::error::Error as KafkaError;
+
 
 pub struct Message {
     pub root: String,
@@ -26,7 +27,7 @@ pub struct SubscribeClient {
 
 #[derive(Debug)]
 pub enum Error {
-    Initialize,
+    KafkaInitialize,
     Publish,
     PublishWrite,
     PublishResponse,
@@ -49,14 +50,44 @@ impl SubscribeClient {
         root: &str,
         topic: &str,
         group: &str,
+        partition: i32,
     ) -> Result<Self, Error> {
+        println!("TOPIC: {:?}", topic);
+        println!("GROUP :{:?}", group);
+        println!("PARTITION: {:?}", partition);
+        println!("BROKERS: {:?}", brokers);
+
+        /*
         let mut client = kafka::client::KafkaClient::new(brokers);
         let _resources = client.load_metadata_all();
-        let consumer   = match Consumer::from_client(client)
-            .with_topic(topic.into()).with_group(group.into()).create() {
+        let _topic     = client.load_metadata(&[topic.to_string()]);
+
+        for topic in client.topics().names() { println!("topic: {}", topic); }
+
+        let consumer = match Consumer::from_client(client)
+            //.with_topic_partitions(topic.into(), &[partition])
+            .with_topic(topic.into())
+            //.with_group(group.into())
+            .create() {
                 Ok(result) => result,
-                Err(err)   => panic!(err),
+                Err(err)   => { println!("PANIC {:?}", err); panic!(err); },
             };
+        */
+        println!("GOOD 0");
+        let consumer = match Consumer::from_hosts(brokers)
+              .with_topic_partitions(topic.to_owned(), &[partition])
+              .with_fallback_offset(FetchOffset::Earliest)
+              .with_group(group.to_owned())
+              .with_offset_storage(GroupOffsetStorage::Kafka)
+              .create() {
+                Ok(result) => result,
+                Err(err)   => {
+                    println!("PANIC {:?}", err);
+                    return Err(Error::KafkaInitialize);
+                },
+            };
+
+        println!("GOOD 1");
 
         Ok(Self {
             consumer: consumer,

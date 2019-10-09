@@ -13,6 +13,7 @@ struct Configuration {
     pub kafka_topic: String,
     pub kafka_topic_root: String,
     pub kafka_group: String,
+    pub kafka_partition: i32,
     pub pubnub_host: String,
     pub pubnub_channel: String,
     pub pubnub_channel_root: String,
@@ -25,10 +26,12 @@ fn environment_variables() -> Configuration {
     //let brokers = fetch_env_var("KAFKA_BROKERS").split(",").clone();
     Configuration {
         kafka_brokers: fetch_env_var("KAFKA_BROKERS").split(",")
-                       .map(|s| s.to_string()).collect(),
+            .map(|s| s.to_string()).collect(),
         kafka_topic: fetch_env_var("KAFKA_TOPIC"),
         kafka_topic_root: fetch_env_var("KAFKA_TOPIC_ROOT"),
         kafka_group: fetch_env_var("KAFKA_GROUP"),
+        kafka_partition: fetch_env_var("KAFKA_PARTITION")
+            .parse::<i32>().unwrap(),
         pubnub_host: "psdsn.pubnub.com:80".into(),
         pubnub_channel: fetch_env_var("PUBNUB_CHANNEL"),
         pubnub_channel_root: fetch_env_var("PUBNUB_CHANNEL_ROOT"),
@@ -78,6 +81,9 @@ fn fetch_env_var(name: &str) -> String {
 // Main Loop
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 fn main() {
+    // Set Backtrace On
+    env::set_var("RUST_BACKTRACE", "1");
+
     // Async Channels
     let (kafka_message_tx, pubnub_publish_rx) = mpsc::channel();
     let (pubnub_message_tx, _kafka_publish_rx) = mpsc::channel();
@@ -214,7 +220,8 @@ fn main() {
                     kafka_message_tx.clone(),
                     &config.kafka_topic_root,
                     &config.kafka_topic,
-                    &config.kafka_group
+                    &config.kafka_group,
+                    config.kafka_partition,
                 ) {
                     Ok(kafka) => kafka,
                     Err(_error) => {
@@ -223,8 +230,10 @@ fn main() {
                     }
                 };
 
+            println!("GOOD 2");
             // Get KAFKA Messages
             kafka.consume().expect("Error consuming Kafka messages");
+            println!("GOOD 3");
                 /*
                 // Convert to JSON String if not already JSON
                 let parsetest = json::parse(&message.data);

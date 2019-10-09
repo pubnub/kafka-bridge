@@ -45,6 +45,6 @@ while true
         --bootstrap-server $HOST:9092   \
         --topic $KAFKA_TOPIC            \
         --from-beginning                \
-        --max-messages 10
+        --max-messages 5
 
 done
