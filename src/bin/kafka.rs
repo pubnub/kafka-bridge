@@ -23,7 +23,6 @@ struct Configuration {
 }
 
 fn environment_variables() -> Configuration {
-    //let brokers = fetch_env_var("KAFKA_BROKERS").split(",").clone();
     Configuration {
         kafka_brokers: fetch_env_var("KAFKA_BROKERS").split(",")
             .map(|s| s.to_string()).collect(),
@@ -230,22 +229,8 @@ fn main() {
                     }
                 };
 
-            println!("GOOD 2");
-            // Get KAFKA Messages
+            // Send KAFKA Messages to pubnub_publish_rx via kafka_message_tx
             kafka.consume().expect("Error consuming Kafka messages");
-            println!("GOOD 3");
-                /*
-                // Convert to JSON String if not already JSON
-                let parsetest = json::parse(&message.data);
-                if parsetest.is_err() {
-                    message.data = json::stringify(message.data);
-                }
-
-                // Enqueue message to be placed on the WAN
-                kafka_message_tx
-                    .send(message)
-                    .expect("KAFKA mpsc::channel topic write");
-                    */
         });
 
     // Print Follow-on Instructions

@@ -1,29 +1,6 @@
 ---
 version: '2'
 services:
-  #kafka-edge-messaging-platform:
-  #  environment:
-  #    PUBNUB_PUBLISH_KEY: pub-c-6b57a39e-79e7-4d1d-926e-5c376a4cb021 
-  #    PUBNUB_SUBSCRIBE_KEY: sub-c-df3799ee-704b-11e9-8724-8269f6864ada 
-  #    PUBNUB_SECRET_KEY: sec-c-YWY3NzE0NTYtZTBkMS00YjJjLTgxZDQtN2YzOTY0NWNkNGVk 
-  #    PUBNUB_CIPHER_KEY: PaSsWoRd     ## encryption key
-  #    PUBNUB_CHANNEL_ROOT: topics     ## topics.
-  #    PUBNUB_CHANNEL: "*"             ## topics
-  #    KAFKA_TOPIC_ROOT: topics        ## topics <-> topics.*
-  #    KAFKA_TOPIC: topic              ## topics <-> topics.*
-  #    KAFKA_GROUP:  
-  #    KAFKA_PARTITION: 0  
-  #    KAFKA_BROKERS: kafka:9094       ## comma separated list
-  #  build:
-  #    context: ..
-  #    dockerfile: kafka/dockerfile
-  #  image: kafka-edge-messaging-platform
-  #  restart: on-failure
-  #  depends_on:
-  #    - zookeeper
-  #    - kafka
-  #    - kafka-create-topics
-
   zookeeper:
     image: confluentinc/cp-zookeeper:5.3.1
     hostname: zookeeper
@@ -65,3 +42,26 @@ services:
     environment:
       KAFKA_TOPIC: topic
       KAFKA_BROKER: kafka
+
+  #kafka-edge-messaging-platform:
+  #  environment:
+  #    PUBNUB_PUBLISH_KEY: pub-c-6b57a39e-79e7-4d1d-926e-5c376a4cb021
+  #    PUBNUB_SUBSCRIBE_KEY: sub-c-df3799ee-704b-11e9-8724-8269f6864ada
+  #    PUBNUB_SECRET_KEY: sec-c-YWY3NzE0NTYtZTBkMS00YjJjLTgxZDQtN2YzOTY0NWNkNGVk
+  #    PUBNUB_CHANNEL_ROOT: topics     ## topics.
+  #    PUBNUB_CHANNEL: "*"             ## *
+  #    KAFKA_TOPIC_ROOT: topics        ## topics <-> topics.*
+  #    KAFKA_TOPIC: topic              ## topics <-> topics.*
+  #    KAFKA_GROUP:  
+  #    KAFKA_PARTITION: 0
+  #    KAFKA_BROKERS: kafka:9094       ## comma separated list
+  #    RUST_BACKTRACE: 1               ## enable rust debugging
+  #  build:
+  #    context: ..
+  #    dockerfile: kafka/dockerfile
+  #  image: kafka-edge-messaging-platform
+  #  restart: on-failure
+  #  depends_on:
+  #    - zookeeper
+  #    - kafka
+  #    - kafka-create-topics

@@ -52,32 +52,8 @@ impl SubscribeClient {
         group: &str,
         partition: i32,
     ) -> Result<Self, Error> {
-
-        println!("TOPIC:     '{}'", topic);
-        println!("GROUP      '{}'", group);
-        println!("PARTITION: '{}'", partition);
-        println!("BROKERS:   '{:?}'", brokers);
-
-        /*
-        let mut client = kafka::client::KafkaClient::new(brokers);
-        let _resources = client.load_metadata_all();
-        let _topic     = client.load_metadata(&[topic.to_string()]);
-
-        for topic in client.topics().names() { println!("topic: {}", topic); }
-
-        let consumer = match Consumer::from_client(client)
-            //.with_topic_partitions(topic.into(), &[partition])
-            .with_topic(topic.into())
-            //.with_group(group.into())
-            .create() {
-                Ok(result) => result,
-                Err(err)   => { println!("PANIC {:?}", err); panic!(err); },
-            };
-        */
-        println!("GOOD 0");
         let consumer = match Consumer::from_hosts(brokers)
               .with_topic_partitions(topic.to_owned(), &[partition])
-              //.with_topic(topic.to_owned())
               .with_fallback_offset(FetchOffset::Earliest)
               .with_group(group.to_owned())
               .with_offset_storage(GroupOffsetStorage::Kafka)
@@ -88,8 +64,6 @@ impl SubscribeClient {
                     return Err(Error::KafkaInitialize);
                 },
             };
-
-        println!("GOOD 1");
 
         Ok(Self {
             consumer: consumer,

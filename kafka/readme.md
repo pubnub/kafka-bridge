@@ -13,11 +13,11 @@ based on a Kafka topics.
 Easy drop-in operations.
 Dashboard management page included.
 
-## Docker Compose - Up and running in 60 seconds ( includes Kafka and Zookeeper )
+## Part 1: Up and running in 60 seconds - Kafka, Zookeeper and Sample Feed
 
-Want to try EMP with Kafka as a demo?
-Demo is available as a runtime with Docker Compose.
-Easily try using `docker-compose`.
+Start the docker compose file in a terminal window.
+This will launch Kafka, Zookeeper and
+a sample feed generator on the `topic` topic.
 
 ```shell
 git clone git@github.com:stephenlb/edge-messaging-platform.git
@@ -25,12 +25,12 @@ cd edge-messaging-platform
 docker-compose -f kafka/docker-compose.yaml up --force-recreate --remove-orphans
 ```
 
-Great! Everything is running now.
-Messages are automatically simulated on `topic`.
+Great!
+Now in a separate terminal session, run the dockerfile in **Part 2**.
+Messages are bing simulated on the `topic` topic as we speak.
 
-## Dockerfile - Up and running in 60 seconds ( excludes Kafka )
+## Part 2: Dockerfile - Up and running in 60 seconds
 
-This is what you'll use for a production environment.
 For security, you will need to get your private API keys from: 
 https://dashboard.pubnub.com/signup
 The following API Keys are for public-use and may be rotated.
@@ -43,7 +43,6 @@ docker run                                                                      
     -e PUBNUB_PUBLISH_KEY=pub-c-6b57a39e-79e7-4d1d-926e-5c376a4cb021              \
     -e PUBNUB_SUBSCRIBE_KEY=sub-c-df3799ee-704b-11e9-8724-8269f6864ada            \
     -e PUBNUB_SECRET_KEY=sec-c-YWY3NzE0NTYtZTBkMS00YjJjLTgxZDQtN2YzOTY0NWNkNGVk   \
-    -e PUBNUB_CIPHER_KEY=pAsSwOrD                                                 \
     -e PUBNUB_CHANNEL_ROOT=topics                                                 \
     -e PUBNUB_CHANNEL=*                                                           \
     -e KAFKA_TOPIC_ROOT=topics                                                    \
@@ -55,11 +54,38 @@ docker run                                                                      
     kafka-edge-messaging-platform
 ```
 
+Now your Kafka messages will be securly available to any device on the Internet.
+You can receive a stream of your messages in **Part 3**.
+
+## Part 3: Receive Messages on Your Mobile Device from Kafka Topics
+
+### Terminal Session Example
+
+The following command is an example of how to receive messages from Kafka.
+
+```shell
+while true; do                                                                                \
+    SUBSCRIBE_KEY=sub-c-df3799ee-704b-11e9-8724-8269f6864ada                                  \
+    TOPIC=topics.*                                                                            \
+    HEADERS="HTTP/1.1\r\nHost: pubnub\r\n\r\n"                                                \
+    (printf "GET http://p.pubnub.com/stream/$SUBSCRIBE_KEY/$TOPIC/0/-1 $HEADERS"; sleep 10) | \
+    nc p.pubnub.com 80;                                                                       \
+done
+```
+
+Messages from your Kafka cluster can be received on a target mobile device.
+Continue reading to get data onto your target mobile devices easily.
+
+### iOS Swift
+
+### iOS Objective-C
+
+### Android Java
+
 ### Kafka -> Mobile Device
 
 Messages from your Kafka cluster can be received
 on a target mobile device.
-
 
 #### Test Console Output
 
@@ -161,7 +187,6 @@ The EMP app is 12 factor and is configured via Environmental Variables.
 PUBNUB_PUBLISH_KEY=pub-c-6b57a39e-79e7-4d1d-926e-5c376a4cb021              \
 PUBNUB_SUBSCRIBE_KEY=sub-c-df3799ee-704b-11e9-8724-8269f6864ada            \
 PUBNUB_SECRET_KEY=sec-c-YWY3NzE0NTYtZTBkMS00YjJjLTgxZDQtN2YzOTY0NWNkNGVk   \
-PUBNUB_CIPHER_KEY=pAsSwOrD                                                 \
 PUBNUB_CHANNEL_ROOT=topics                                                 \
 PUBNUB_CHANNEL=*                                                           \
 KAFKA_TOPIC_ROOT=topics                                                    \
