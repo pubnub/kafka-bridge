@@ -7,11 +7,9 @@ Bring your Kafka cluster extra consumer power.
 Secure Communication for field mobile and IoT devices with your Message Bus.
 Audit and access management protection.
 Encryption of data in motion 2048bit TLS.
-Additional AES Symmetric key Cipher.
 Add push notifications and streaming events to Mobile and Web clients
-based on a Kafka topics.
-Easy drop-in operations.
-Dashboard management page included.
+based on your Kafka topics.
+Easy drop-in operations with Docker or Cargo.
 
 ## Part 1: Up and running in 60 seconds - Kafka, Zookeeper and Sample Feed
 
@@ -30,8 +28,8 @@ docker-compose -f kafka/docker-compose.yaml up --force-recreate --remove-orphans
 ```
 
 Great!
-Now in a separate terminal session, run the dockerfile in **Part 2**.
 Messages are bing simulated on the `topic` topic as we speak.
+Now in a separate terminal session, run the dockerfile in **Part 2**.
 
 ## Part 2: Up and running in 60 seconds - Edge Messaging Platform Dockerfile
 
@@ -46,9 +44,11 @@ cd edge-messaging-platform
 docker build -f kafka/dockerfile -t kafka-edge-messaging-platform .
 docker run                                                                        \
     --network=host                                                                \
+    ## ~ Replace with your own API Keys ~ https://dashboard.pubnub.com/signup     \
     -e PUBNUB_PUBLISH_KEY=pub-c-6b57a39e-79e7-4d1d-926e-5c376a4cb021              \
     -e PUBNUB_SUBSCRIBE_KEY=sub-c-df3799ee-704b-11e9-8724-8269f6864ada            \
     -e PUBNUB_SECRET_KEY=sec-c-YWY3NzE0NTYtZTBkMS00YjJjLTgxZDQtN2YzOTY0NWNkNGVk   \
+    ## ~ Replace with your own API Keys ~ https://dashboard.pubnub.com/signup     \
     -e PUBNUB_CHANNEL_ROOT=topics                                                 \
     -e PUBNUB_CHANNEL=*                                                           \
     -e KAFKA_TOPIC_ROOT=topics                                                    \
@@ -91,6 +91,10 @@ To get a durable and secure connection, use one of the PubNub SDKs.
 
 Messages from your Kafka cluster can be received on a mobile and web device.
 Continue reading to get data onto your target devices easily using a PubNub SDK.
+
+# TODO - the documentation below will not work... yet.
+# TODO - the documentation below will not work... yet.
+# TODO - the documentation below will not work... yet.
 
 ### Android Java
 
