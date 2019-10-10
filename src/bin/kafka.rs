@@ -80,12 +80,9 @@ fn fetch_env_var(name: &str) -> String {
 // Main Loop
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 fn main() {
-    // Set Backtrace On
-    env::set_var("RUST_BACKTRACE", "1");
-
     // Async Channels
     let (kafka_message_tx, pubnub_publish_rx) = mpsc::channel();
-    let (pubnub_message_tx, _kafka_publish_rx) = mpsc::channel();
+    let (pubnub_message_tx, kafka_publish_rx) = mpsc::channel();
 
     // Receive PubNub Messages
     // Subscribe to PubNub messages
@@ -179,15 +176,15 @@ fn main() {
 
     // Send KAFKA Messages
     // Publish as fast as possible
-    /*
     let kafka_publisher_thread = thread::Builder::new()
         .name("KAFKA Publisher Thread".into())
         .spawn(move || loop {
             let config = environment_variables();
-            let host = &config.kafka_host;
-            let root = &config.kafka_topic_root;
 
-            let mut kafka = match kafka::PublishClient::new(host, root) {
+            let mut kafka = match kafka::PublishClient::new(
+                config.kafka_brokers,
+                &config.kafka_topic,
+            ) {
                 Ok(kafka) => kafka,
                 Err(_error) => {
                     thread::sleep(time::Duration::from_millis(1000));
@@ -198,7 +195,7 @@ fn main() {
             loop {
                 let message: edge_messaging_platform::pubnub::Message =
                     kafka_publish_rx.recv().expect("MPSC Channel Receiver");
-                match kafka.publish(message.channel, message.data) {
+                match kafka.produce(&message.data) {
                     Ok(()) => {}
                     Err(_error) => {
                         thread::sleep(time::Duration::from_millis(1000));
@@ -206,7 +203,6 @@ fn main() {
                 };
             }
         });
-        */
 
     // Receive KAFKA Messages
     // Subscribe as fast as possbile
@@ -246,10 +242,10 @@ fn main() {
         .expect("PubNub Publisher thread builder join handle")
         .join()
         .expect("Joining PubNub Publisher Thread");
-    //kafka_publisher_thread
-    //    .expect("KAFKA Publisher thread builder join handle")
-    //    .join()
-    //    .expect("Joining KAFKA Publisher Thread");
+    kafka_publisher_thread
+        .expect("KAFKA Publisher thread builder join handle")
+        .join()
+        .expect("Joining KAFKA Publisher Thread");
     kafka_subscriber_thread
         .expect("KAFKA Subscriber thread builder join handle")
         .join()

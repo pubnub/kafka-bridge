@@ -1,7 +1,10 @@
 use json;
+use std::time::Duration;
 use std::sync::mpsc::Sender;
+use kafka::producer::{Producer, Record, RequiredAcks};
 use kafka::consumer::{Consumer, FetchOffset, GroupOffsetStorage};
 use kafka::error::Error as KafkaError;
+
 
 
 pub struct Message {
@@ -11,11 +14,10 @@ pub struct Message {
     pub data: String,
 }
 
-/*
 pub struct PublishClient {
-    root: String,
+    producer: Producer,
+    topic: String,
 }
-*/
 
 pub struct SubscribeClient {
     consumer: Consumer,
@@ -101,5 +103,37 @@ impl SubscribeClient {
             }
             self.consumer.commit_consumed().unwrap();
         }
+    }
+}
+
+
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+/// ```
+/// ```
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+impl PublishClient {
+    pub fn new(
+        brokers: Vec<String>,
+        topic: &str,
+    ) -> Result<Self, Error> {
+	let producer = Producer::from_hosts(brokers)
+	    .with_ack_timeout(Duration::from_secs(1))
+	    .with_required_acks(RequiredAcks::One)
+	    .create()
+	    .unwrap();
+
+        Ok(Self {
+            producer: producer,
+            topic:    topic.into(),
+        })
+    }
+
+    pub fn produce(&mut self, message: &str) -> Result<(), KafkaError> {
+        return self.producer.send(
+            &Record::from_value(
+                &self.topic.to_string(),
+                message.as_bytes(),
+            )
+        );
     }
 }
