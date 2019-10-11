@@ -40,9 +40,41 @@ pub enum Error {
     HTTPResponse,
 }
 
-
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+/// # Kafka Subscribe Client ( Consumer )
+///
+/// This client lib will consumer messages and place them into an 
+/// MPSC Sender<crate::kafka::Message>.
+///
 /// ```
+/// use edge_messaging_platform::kafka::SubscribeClient;
+/// use edge_messaging_platform::pubnub::Message;
+/// 
+/// let brokers = "0.0.0.0:9094".split(",").map(|s| s.to_string()).collect();
+/// let (kafka_message_tx, kafka_message_rx) = mpsc::channel();
+/// let kafka_topic                          = "topic";
+/// let kafka_partition                      = 0;
+/// let kafka_group                          = "";
+/// let kafka_topic_root                     = "";
+/// 
+/// let mut kafka = match kafka::SubscribeClient::new(
+///     brokers,
+///     kafka_message_tx.clone(),
+///     &kafka_topic_root,
+///     &kafka_topic,
+///     &kafka_group,
+///     kafka_partition,
+/// ) {
+///     Ok(kafka)  => kafka,
+///     Err(error) => { println!("{}", error); }
+/// };
+/// 
+/// // Consume messages from broker and make them available
+/// // to `kafka_message_rx`.
+/// kafka.consume().expect("Error consuming Kafka messages");
+/// 
+/// let message: Message =
+///     kafka_message_rx.recv().expect("MPSC Channel Receiver");
 /// ```
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 impl SubscribeClient {
@@ -61,10 +93,7 @@ impl SubscribeClient {
               .with_offset_storage(GroupOffsetStorage::Kafka)
               .create() {
                 Ok(result) => result,
-                Err(err)   => {
-                    println!("PANIC {:?}", err);
-                    return Err(Error::KafkaInitialize);
-                },
+                Err(_err)  => return Err(Error::KafkaInitialize),
             };
 
         Ok(Self {
@@ -116,11 +145,13 @@ impl PublishClient {
         brokers: Vec<String>,
         topic: &str,
     ) -> Result<Self, Error> {
-	let producer = Producer::from_hosts(brokers)
+	let producer = match Producer::from_hosts(brokers)
 	    .with_ack_timeout(Duration::from_secs(1))
 	    .with_required_acks(RequiredAcks::One)
-	    .create()
-	    .unwrap();
+	    .create() {
+                Ok(result) => result,
+                Err(_err)  => return Err(Error::KafkaInitialize),
+            };
 
         Ok(Self {
             producer: producer,
