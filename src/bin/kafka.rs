@@ -219,7 +219,8 @@ fn main() {
                     config.kafka_partition,
                 ) {
                     Ok(kafka) => kafka,
-                    Err(_error) => {
+                    Err(error) => {
+                        println!("Retrying Consumer Connection {:?}", error);
                         thread::sleep(time::Duration::from_millis(1000));
                         continue;
                     }
