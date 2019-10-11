@@ -84,8 +84,8 @@ fn main() {
     let (kafka_message_tx, pubnub_publish_rx) = mpsc::channel();
     let (pubnub_message_tx, kafka_publish_rx) = mpsc::channel();
 
-    // Receive PubNub Messages
-    // Subscribe to PubNub messages
+    // Receive messages from PubNub
+    // Saves messages into MPSC for Kafka Producer Thread
     let pubnub_subscriber_thread = thread::Builder::new()
         .name("PubNub Subscriber Thread".into())
         .spawn(move || loop {
@@ -125,8 +125,8 @@ fn main() {
             }
         });
 
-    // Send PubNub Messages
-    // Publish as fast as possible
+    // Send messages to PubNub
+    // Receives messages from MPSC from Kafka and Publishes to PubNub
     let pubnub_publisher_thread = thread::Builder::new()
         .name("PubNub Publisher Thread".into())
         .spawn(move || loop {
@@ -174,8 +174,8 @@ fn main() {
             }
         });
 
-    // Send KAFKA Messages
-    // Publish as fast as possible
+    // Send messages to Kafka
+    // Reads MPSC from PubNub Subscriptions and Sends to Kafka
     let kafka_publisher_thread = thread::Builder::new()
         .name("KAFKA Publisher Thread".into())
         .spawn(move || loop {
@@ -204,8 +204,8 @@ fn main() {
             }
         });
 
-    // Receive KAFKA Messages
-    // Subscribe as fast as possbile
+    // Receive messages from Kafka
+    // Consumes messages on Kafka topic and sends to MPSC PubNub Publisher
     let kafka_subscriber_thread = thread::Builder::new()
         .name("KAFKA Subscriber Thread".into())
         .spawn(move || loop {
