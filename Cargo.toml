@@ -10,7 +10,7 @@ nightly = []
 
 [dependencies]
 json = "0.12"
-percent-encoding = "1.0.1"
+percent-encoding = "2.1.0"
 openssl = { version = "0.10", features = ["vendored"] }
 #openssl = "0.9"
 #native-tls = "0.2.2"

@@ -1,6 +1,6 @@
 use crate::socket::Socket;
 use json::JsonValue;
-use percent_encoding::{utf8_percent_encode, DEFAULT_ENCODE_SET};
+use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 
 pub struct SubscribeClient {
     socket: Socket,
@@ -274,7 +274,7 @@ impl PublishClient {
         message: &str,
     ) -> Result<String, Error> {
         let encoded_message =
-            utf8_percent_encode(message, DEFAULT_ENCODE_SET).to_string();
+            utf8_percent_encode(message, NON_ALPHANUMERIC).to_string();
         let channel = if self.root.is_empty() {
             channel.to_string()
         } else {

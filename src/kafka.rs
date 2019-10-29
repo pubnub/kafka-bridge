@@ -44,7 +44,7 @@ pub enum Error {
 /// This client lib will consumer messages and place them into an 
 /// MPSC Sender<crate::kafka::Message>.
 ///
-/// ```
+/// ```no_run
 /// use kafka_bridge::kafka::SubscribeClient;
 /// use kafka_bridge::pubnub::Message;
 /// 
@@ -139,7 +139,7 @@ impl SubscribeClient {
 ///
 /// This client lib will produce messages into Kafka.
 /// 
-/// ```
+/// ```no_run
 /// let brokers = "0.0.0.0:9094".split(",").map(|s| s.to_string()).collect();
 /// let mut kafka = match kafka::PublishClient::new(brokers, topic) {
 ///     Ok(kafka)  => kafka,

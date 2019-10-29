@@ -8,6 +8,7 @@ RUN apt-get update
 RUN apt-get -y install musl-tools
 RUN apt-get -y install libssl-dev
 RUN apt-get -y install clang
+RUN rustup default 1.38.0
 RUN rustup target add x86_64-unknown-linux-musl
 #RUN cargo build --release --target=x86_64-unknown-linux-musl
 RUN cargo build --target=x86_64-unknown-linux-musl
