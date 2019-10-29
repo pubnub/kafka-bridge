@@ -11,8 +11,8 @@ RUN apt-get -y install clang
 RUN rustup target add x86_64-unknown-linux-musl
 #RUN cargo build --release --target=x86_64-unknown-linux-musl
 RUN cargo build --target=x86_64-unknown-linux-musl
-#RUN rm ./src/*.rs ./target/x86_64-unknown-linux-musl/release/edge-messaging-platform
-RUN rm ./src/*.rs ./target/x86_64-unknown-linux-musl/debug/edge-messaging-platform
+#RUN rm ./src/*.rs ./target/x86_64-unknown-linux-musl/release/kafka-bridge
+RUN rm ./src/*.rs ./target/x86_64-unknown-linux-musl/debug/kafka-bridge
 
 # Application Build
 FROM dependencies as build

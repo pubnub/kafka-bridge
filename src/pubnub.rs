@@ -86,7 +86,7 @@ fn http_response(socket: &mut Socket) -> Result<JsonValue, Error> {
 /// This client lib offers subscribe support to PubNub.
 ///
 /// ```no_run
-/// use edge_messaging_platform::pubnub::SubscribeClient;
+/// use kafka_bridge::pubnub::SubscribeClient;
 ///
 /// let host = "psdsn.pubnub.com:80";
 /// let channel = "demo";
@@ -94,7 +94,7 @@ fn http_response(socket: &mut Socket) -> Result<JsonValue, Error> {
 /// let publish_key = "demo";
 /// let subscribe_key = "demo";
 /// let _secret_key = "secret";
-/// let agent = "nats-edge_messaging_platform";
+/// let agent = "kafka-bridge";
 /// let mut pubnub = SubscribeClient::new(
 ///     host,
 ///     root,
@@ -225,7 +225,7 @@ impl SubscribeClient {
 /// This client lib offers publish support to PubNub.
 ///
 /// ```no_run
-/// use edge_messaging_platform::pubnub::PublishClient;
+/// use kafka_bridge::pubnub::PublishClient;
 ///
 /// let host = "psdsn.pubnub.com:80";
 /// let root = "";
@@ -233,7 +233,7 @@ impl SubscribeClient {
 /// let publish_key = "demo";
 /// let subscribe_key = "demo";
 /// let _secret_key = "secret";
-/// let agent = "nats-edge_messaging_platform";
+/// let agent = "kafka-bridge";
 /// let mut pubnub = PublishClient::new(
 ///     host,
 ///     root,
