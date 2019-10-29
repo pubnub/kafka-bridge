@@ -24,8 +24,8 @@ RUN OLD_VERSION=$(egrep '^version = "[0-9a-z.+-]+"$' Cargo.toml | cut -d'"' -f2 
     sed -i -e "s/$OLD_VERSION/$version/" Cargo.toml
 #RUN cargo build --release --target=x86_64-unknown-linux-musl
 RUN cargo build --target=x86_64-unknown-linux-musl
-#RUN strip target/x86_64-unknown-linux-musl/release/kafka
-RUN strip target/x86_64-unknown-linux-musl/debug/kafka
+#RUN strip target/x86_64-unknown-linux-musl/release/kafka-bridge
+RUN strip target/x86_64-unknown-linux-musl/debug/kafka-bridge
 
 # Runtime Build
 FROM alpine:latest
@@ -34,12 +34,12 @@ RUN addgroup -g 1000 appuser
 RUN adduser -S -u 1000 -g appuser -G appuser appuser
 USER appuser
 WORKDIR /app
-#COPY --from=build /app/target/x86_64-unknown-linux-musl/release/kafka /app
-COPY --from=build /app/target/x86_64-unknown-linux-musl/debug/kafka /app
+#COPY --from=build /app/target/x86_64-unknown-linux-musl/release/kafka-bridge /app
+COPY --from=build /app/target/x86_64-unknown-linux-musl/debug/kafka-bridge /app
 
 # Setup the environment
 ENTRYPOINT ["/sbin/tini", "--"]
 
 # Runtime
 ENV RUST_BACKTRACE=1
-CMD ["/app/kafka"]
+CMD ["/app/kafka-bridge"]

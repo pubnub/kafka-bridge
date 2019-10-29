@@ -1,4 +1,4 @@
-# Edge Messaging Platform for Kafka
+# PubNub Kafka Bridge
 > Bring Kafka into the real world.
 
 Messages from your Kafka cluster can be received
@@ -22,8 +22,8 @@ This will launch Kafka, Zookeeper and
 a sample feed generator on the `topic` topic.
 
 ```shell
-git clone git@github.com:stephenlb/edge-messaging-platform.git
-cd edge-messaging-platform
+git clone git@github.com:pubnub/kafka-bridge.git
+cd kafka-bridge
 docker-compose -f kafka/docker-compose.yaml up --force-recreate --remove-orphans
 ```
 
@@ -31,7 +31,7 @@ Great!
 Messages are bing simulated on the `topic` topic as we speak.
 Now in a separate terminal session, run the dockerfile in **Part 2**.
 
-## Part 2: Up and running in 60 seconds - Edge Messaging Platform Dockerfile
+## Part 2: Up and running in 60 seconds - PubNub Kafka Bridge
 
 For security, you will need to get your private API keys from: 
 https://dashboard.pubnub.com/signup
@@ -40,8 +40,8 @@ The following API Keys are for public-use and may be rotated.
 Open a new terminal session and run the following commands:
 
 ```shell
-cd edge-messaging-platform
-docker build -f kafka/dockerfile -t kafka-edge-messaging-platform .
+cd kafka-bridge
+docker build -f kafka/dockerfile -t kafka-bridge .
 docker run                                                                        \
     --network=host                                                                \
     ## ~ Replace with your own API Keys ~ https://dashboard.pubnub.com/signup     \
@@ -57,7 +57,7 @@ docker run                                                                      
     -e KAFKA_TOPIC=topic                                                          \
     -e KAFKA_BROKERS=0.0.0.0:9094                                                 \
     -e RUST_BACKTRACE=1                                                           \
-    kafka-edge-messaging-platform
+    kafka-bridge
 ```
 
 Now your Kafka messages will be securely available to any device on the Internet.
@@ -158,7 +158,7 @@ curl https://sh.rustup.rs -sSf | sh
 
 #### Run with Cargo
 
-Now you can run `cargo run --bin kafka`.
+Now you can run `cargo run --bin kafka-bridge`.
 The EMP app is 12 factor and is configured via Environmental Variables.
 
 ```shell
@@ -173,7 +173,7 @@ KAFKA_PARTITION=0                                                          \
 KAFKA_TOPIC=topic                                                          \
 KAFKA_BROKERS=0.0.0.0:9094                                                 \
 RUST_BACKTRACE=1                                                           \
-cargo run --bin kafka
+cargo run --bin kafka-bridge
 ```
 
 ## Reference Links
