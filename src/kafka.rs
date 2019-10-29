@@ -6,7 +6,6 @@ use kafka::consumer::{Consumer, FetchOffset, GroupOffsetStorage};
 use kafka::error::Error as KafkaError;
 
 pub struct Message {
-    pub root: String,
     pub topic: String,
     pub group: String,
     pub data: String,
@@ -20,7 +19,6 @@ pub struct PublishClient {
 pub struct SubscribeClient {
     consumer: Consumer,
     sender: Sender<Message>,
-    root: String,
     topic: String,
     group: String,
 }
@@ -53,12 +51,10 @@ pub enum Error {
 /// let kafka_topic                          = "topic";
 /// let kafka_partition                      = 0;
 /// let kafka_group                          = "";
-/// let kafka_topic_root                     = "";
 /// 
 /// let mut kafka = match kafka::SubscribeClient::new(
 ///     brokers,
 ///     kafka_message_tx.clone(),
-///     &kafka_topic_root,
 ///     &kafka_topic,
 ///     &kafka_group,
 ///     kafka_partition,
@@ -79,7 +75,6 @@ impl SubscribeClient {
     pub fn new(
         brokers: Vec<String>,
         sender: Sender<Message>,
-        root: &str,
         topic: &str,
         group: &str,
         partition: i32,
@@ -97,7 +92,6 @@ impl SubscribeClient {
         Ok(Self {
             consumer: consumer,
             sender:   sender,
-            root:     root.into(),
             topic:    topic.into(),
             group:    group.into(),
         })
@@ -119,7 +113,6 @@ impl SubscribeClient {
                     }
 
                     self.sender.send(Message {
-                        root: self.root.clone(),
                         topic: self.topic.clone(),
                         group: self.group.clone(),
                         data: data,

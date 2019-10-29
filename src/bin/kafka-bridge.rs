@@ -11,7 +11,6 @@ use kafka_bridge::kafka;
 struct Configuration {
     pub kafka_brokers: Vec<String>,
     pub kafka_topic: String,
-    pub kafka_topic_root: String,
     pub kafka_group: String,
     pub kafka_partition: i32,
     pub pubnub_host: String,
@@ -27,7 +26,6 @@ fn environment_variables() -> Configuration {
         kafka_brokers: fetch_env_var("KAFKA_BROKERS").split(",")
             .map(|s| s.to_string()).collect(),
         kafka_topic: fetch_env_var("KAFKA_TOPIC"),
-        kafka_topic_root: fetch_env_var("KAFKA_TOPIC_ROOT"),
         kafka_group: fetch_env_var("KAFKA_GROUP"),
         kafka_partition: fetch_env_var("KAFKA_PARTITION")
             .parse::<i32>().unwrap(),
@@ -213,7 +211,6 @@ fn main() {
             let mut kafka = match kafka::SubscribeClient::new(
                     config.kafka_brokers,
                     kafka_message_tx.clone(),
-                    &config.kafka_topic_root,
                     &config.kafka_topic,
                     &config.kafka_group,
                     config.kafka_partition,

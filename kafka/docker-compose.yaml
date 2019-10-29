@@ -50,7 +50,6 @@ services:
   #    PUBNUB_SECRET_KEY: sec-c-YWY3NzE0NTYtZTBkMS00YjJjLTgxZDQtN2YzOTY0NWNkNGVk
   #    PUBNUB_CHANNEL_ROOT: topics     ## topics.
   #    PUBNUB_CHANNEL: "*"             ## *
-  #    KAFKA_TOPIC_ROOT: topics        ## topics <-> topics.*
   #    KAFKA_TOPIC: topic              ## topics <-> topics.*
   #    KAFKA_GROUP:  
   #    KAFKA_PARTITION: 0
