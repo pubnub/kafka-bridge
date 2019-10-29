@@ -3,7 +3,7 @@
 
 use std::sync::mpsc;
 use std::{env, process, thread, time};
-use edge_messaging_platform::kafka;
+use kafka_bridge::kafka;
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Configuration via Environmental Variables
@@ -89,7 +89,7 @@ fn main() {
     let pubnub_subscriber_thread = thread::Builder::new()
         .name("PubNub Subscriber Thread".into())
         .spawn(move || loop {
-            use edge_messaging_platform::pubnub;
+            use kafka_bridge::pubnub;
 
             let config = environment_variables();
             let host = &config.pubnub_host;
@@ -97,7 +97,7 @@ fn main() {
             let channel = &config.pubnub_channel;
             let subscribe_key = &config.subscribe_key;
             let secret_key = &config.secret_key;
-            let agent = "kafka-edge_messaging_platform";
+            let agent = "kafka-bridge";
 
             let mut pubnub = match pubnub::SubscribeClient::new(
                 host,
@@ -130,7 +130,7 @@ fn main() {
     let pubnub_publisher_thread = thread::Builder::new()
         .name("PubNub Publisher Thread".into())
         .spawn(move || loop {
-            use edge_messaging_platform::pubnub;
+            use kafka_bridge::pubnub;
 
             let config = environment_variables();
             let host = &config.pubnub_host;
@@ -138,7 +138,7 @@ fn main() {
             let publish_key = &config.publish_key;
             let subscribe_key = &config.subscribe_key;
             let secret_key = &config.secret_key;
-            let agent = "kafka-edge_messaging_platform";
+            let agent = "kafka-bridge";
 
             let mut pubnub = match pubnub::PublishClient::new(
                 host,
@@ -193,7 +193,7 @@ fn main() {
             };
 
             loop {
-                let message: edge_messaging_platform::pubnub::Message =
+                let message: kafka_bridge::pubnub::Message =
                     kafka_publish_rx.recv().expect("MPSC Channel Receiver");
                 match kafka.produce(&message.data) {
                     Ok(()) => {}

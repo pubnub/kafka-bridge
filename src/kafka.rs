@@ -45,8 +45,8 @@ pub enum Error {
 /// MPSC Sender<crate::kafka::Message>.
 ///
 /// ```
-/// use edge_messaging_platform::kafka::SubscribeClient;
-/// use edge_messaging_platform::pubnub::Message;
+/// use kafka_bridge::kafka::SubscribeClient;
+/// use kafka_bridge::pubnub::Message;
 /// 
 /// let brokers = "0.0.0.0:9094".split(",").map(|s| s.to_string()).collect();
 /// let (kafka_message_tx, kafka_message_rx) = mpsc::channel();
@@ -147,7 +147,7 @@ impl SubscribeClient {
 /// };
 /// 
 /// loop {
-///     let message: edge_messaging_platform::pubnub::Message =
+///     let message: kafka_bridge::pubnub::Message =
 ///         kafka_publish_rx.recv().expect("MPSC Channel Receiver");
 ///     match kafka.produce(&message.data) {
 ///         Ok(())     => {}

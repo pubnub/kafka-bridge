@@ -92,20 +92,12 @@ To get a durable and secure connection, use one of the PubNub SDKs.
 Messages from your Kafka cluster can be received on a mobile and web device.
 Continue reading to get data onto your target devices easily using a PubNub SDK.
 
-# TODO - the documentation below will not work... yet.
-# TODO - the documentation below will not work... yet.
-# TODO - the documentation below will not work... yet.
-
-### Android Java
-
-### iOS Swift
-
-### iOS Objective-C
-
 ### Kafka -> Mobile Device
 
 Messages from your Kafka cluster can be received
 on a target mobile device.
+
+> Find the mobile SDKs here: https://www.pubnub.com/docs
 
 #### Test Console Output
 
@@ -119,13 +111,13 @@ element labeled **`messages`** on this screen with message logs:
 ### Mobile Device -> Kafka
 
 You can send a message from the mobile device and receive it in your Kafka cluster.
-The following shell command will simulate this:
+The following shell command will **simulate** this:
 
 ```shell
 while true; do                                                                                \
     PUBLISH_KEY="pub-c-6b57a39e-79e7-4d1d-926e-5c376a4cb021"                                  \
     SUBSCRIBE_KEY="sub-c-df3799ee-704b-11e9-8724-8269f6864ada"                                \
-    CHANNEL="topics.mydevice"                                                               \
+    CHANNEL="topics.mydevice"                                                                 \
     curl "https://ps.pndsn.com/publish/$PUBLISH_KEY/$SUBSCRIBE_KEY/0/$CHANNEL/0/%22Hello%22"; \
     echo;                                                                                     \
     sleep 0.5;                                                                                \
@@ -144,40 +136,6 @@ You can modify the ENVVARs in `./kafka/docker-compose.yaml` file.
 That's it!
 If you can't use Docker Compose,
 look at the alternative setup instructions below.
-
-## Kafka Wildcard Channel Support
-
-> Keep this in mind when configuration your runtime
-> ENVIRONMENTAL variables.
-
-
-
-Visit the URL printed from the output.
-
-Publish Kafka messages repeatedly.
-
-Subscribe to these messages in another terminal window.
-
-```shell
-while true;
-    do (printf "SUB subjects.mydevice 1\r\n"; sleep 60) | nc 0.0.0.0 4222;
-done
-```
-
-Issue several Kafka commands in a single key press.
-
-```shell
-(printf "SUB FOO 1\r\n"; sleep 5) | nc 0.0.0.0 4222 &
-(printf "PING\r\n";                        sleep 0.4; \
- printf "CONNECT {\"verbose\":false}\r\n"; sleep 0.4; \
- printf "SUB BAR 1\r\n";                   sleep 0.4; \
- printf "PING\r\n";                        sleep 0.4; \
- printf "PUB FOO 11\r\nKNOCK KNOCK\r\n";   sleep 0.4; \
- printf "PING\r\n";                        sleep 0.4; \
- printf "PUB BAR 11\r\nKNOCK KNOCK\r\n";   sleep 0.4; \
- printf "PING\r\n";                        sleep 0.4; \
-) | nc 0.0.0.0 4222 
-```
 
 ## Second Alternate Installation
 
