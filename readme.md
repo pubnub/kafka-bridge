@@ -11,6 +11,16 @@ Add push notifications and streaming events to Mobile and Web clients
 based on your Kafka topics.
 Easy drop-in operations with Docker or Cargo.
 
+### Dependency
+
+Docker is used for running the sample Kafka/Zookeeper feed.
+If you don't have docker, download and install it first.
+
+> Docker is not required to run the bridge in production.
+> There is an alternative non-container bridge install lower in this document.
+
+**Install Docker:** https://docs.docker.com/install/#supported-platforms
+
 ## Part 1: Up and running in 60 seconds - Kafka, Zookeeper and Sample Feed
 
 > If you already have Kafka cluster, you can skip to **Part 2**.
