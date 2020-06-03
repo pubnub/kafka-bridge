@@ -186,4 +186,5 @@ cargo run --bin kafka-bridge
 
 ## Reference Links
 
-[https://hub.docker.com/kafka](https://hub.docker.com/_/kafka)
+ - Confluent Platform Docker Image Reference [https://docs.confluent.io/current/installation/docker/image-reference.html](https://docs.confluent.io/current/installation/docker/image-reference.html)
+ - DockerHub [https://hub.docker.com/r/confluentinc/cp-enterprise-kafka](https://hub.docker.com/r/confluentinc/cp-enterprise-kafka)
