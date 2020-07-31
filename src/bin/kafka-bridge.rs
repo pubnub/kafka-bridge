@@ -1,5 +1,5 @@
-#![deny(clippy::all)]
-#![deny(clippy::pedantic)]
+// #![deny(clippy::all)]
+// #![deny(clippy::pedantic)]
 
 use std::sync::mpsc;
 use std::{env, process, thread, time};
@@ -174,33 +174,33 @@ fn main() {
 
     // Send messages to Kafka
     // Reads MPSC from PubNub Subscriptions and Sends to Kafka
-    let kafka_publisher_thread = thread::Builder::new()
-        .name("KAFKA Publisher Thread".into())
-        .spawn(move || loop {
-            let config = environment_variables();
+    // let kafka_publisher_thread = thread::Builder::new()
+    //     .name("KAFKA Publisher Thread".into())
+    //     .spawn(move || loop {
+    //         let config = environment_variables();
 
-            let mut kafka = match kafka::PublishClient::new(
-                config.kafka_brokers,
-                &config.kafka_topic,
-            ) {
-                Ok(kafka) => kafka,
-                Err(_error) => {
-                    thread::sleep(time::Duration::from_millis(1000));
-                    continue;
-                }
-            };
+    //         let mut kafka = match kafka::PublishClient::new(
+    //             config.kafka_brokers,
+    //             &config.kafka_topic,
+    //         ) {
+    //             Ok(kafka) => kafka,
+    //             Err(_error) => {
+    //                 thread::sleep(time::Duration::from_millis(1000));
+    //                 continue;
+    //             }
+    //         };
 
-            loop {
-                let message: kafka_bridge::pubnub::Message =
-                    kafka_publish_rx.recv().expect("MPSC Channel Receiver");
-                match kafka.produce(&message.data) {
-                    Ok(()) => {}
-                    Err(_error) => {
-                        thread::sleep(time::Duration::from_millis(1000));
-                    }
-                };
-            }
-        });
+    //         loop {
+    //             let message: kafka_bridge::pubnub::Message =
+    //                 kafka_publish_rx.recv().expect("MPSC Channel Receiver");
+    //             match kafka.produce(&message.data) {
+    //                 Ok(()) => {}
+    //                 Err(_error) => {
+    //                     thread::sleep(time::Duration::from_millis(1000));
+    //                 }
+    //             };
+    //         }
+    //     });
 
     // Receive messages from Kafka
     // Consumes messages on Kafka topic and sends to MPSC PubNub Publisher
@@ -240,10 +240,10 @@ fn main() {
         .expect("PubNub Publisher thread builder join handle")
         .join()
         .expect("Joining PubNub Publisher Thread");
-    kafka_publisher_thread
-        .expect("KAFKA Publisher thread builder join handle")
-        .join()
-        .expect("Joining KAFKA Publisher Thread");
+    // kafka_publisher_thread
+    //     .expect("KAFKA Publisher thread builder join handle")
+    //     .join()
+    //     .expect("Joining KAFKA Publisher Thread");
     kafka_subscriber_thread
         .expect("KAFKA Subscriber thread builder join handle")
         .join()
