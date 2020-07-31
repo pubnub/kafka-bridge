@@ -6,7 +6,9 @@ use rdkafka::consumer::{
 };
 use rdkafka::error::KafkaResult;
 use rdkafka::message::Message as RDKafkaMessage;
-use rdkafka::producer::BaseProducer;
+use rdkafka::producer::{
+    BaseRecord, DefaultProducerContext, ThreadedProducer,
+};
 use rdkafka::topic_partition_list::TopicPartitionList;
 use rdkafka::util::get_rdkafka_version;
 use std::sync::mpsc::Sender;
@@ -18,16 +20,17 @@ pub struct Message {
 }
 
 pub struct PublishClient {
-    producer: BaseProducer,
+    producer: CustomProducer,
     topic: String,
 }
 
 // A context can be used to change the behavior of producers and consumers by adding callbacks
 // that will be executed by librdkafka.
 // This particular context sets up custom callbacks to log rebalancing events.
-struct CustomContext;
+struct CustomConsumerContext;
 
-type CustomConsumer = BaseConsumer<CustomContext>;
+type CustomConsumer = BaseConsumer<CustomConsumerContext>;
+type CustomProducer = ThreadedProducer<DefaultProducerContext>;
 
 pub struct SubscribeClient {
     consumer: CustomConsumer,
@@ -49,15 +52,15 @@ pub enum Error {
     HTTPResponse,
 }
 
-impl ClientContext for CustomContext {}
+impl ClientContext for CustomConsumerContext {}
 
-impl ConsumerContext for CustomContext {
+impl ConsumerContext for CustomConsumerContext {
     fn pre_rebalance(&self, rebalance: &Rebalance) {
-        // info!("Pre rebalance {:?}", rebalance);
+        println!("Pre rebalance {:?}", rebalance);
     }
 
     fn post_rebalance(&self, rebalance: &Rebalance) {
-        // info!("Post rebalance {:?}", rebalance);
+        println!("Post rebalance {:?}", rebalance);
     }
 
     fn commit_callback(
@@ -65,7 +68,7 @@ impl ConsumerContext for CustomContext {
         result: KafkaResult<()>,
         _offsets: &TopicPartitionList,
     ) {
-        // info!("Committing offsets: {:?}", result);
+        println!("Committing offsets: {:?}", result);
     }
 }
 
@@ -112,7 +115,7 @@ impl SubscribeClient {
         group: &str,
         partition: i32,
     ) -> Result<Self, Error> {
-        let context = CustomContext;
+        let context = CustomConsumerContext;
         let consumer: CustomConsumer = ClientConfig::new()
             .set("group.id", group)
             .set("bootstrap.servers", &brokers[0])
@@ -120,16 +123,6 @@ impl SubscribeClient {
             .set("enable.partition.eof", "false")
             .create_with_context(context)
             .expect("Consumer creating failed");
-        // let consumer = match Consumer::from_hosts(brokers)
-        //       .with_topic_partitions(topic.to_owned(), &[partition])
-        //       .with_fallback_offset(FetchOffset::Earliest)
-        //       .with_group(group.to_owned())
-        //       .with_offset_storage(GroupOffsetStorage::Kafka)
-        //       .create() {
-        //         Ok(result) => result,
-        //         Err(_err)  => return Err(Error::KafkaInitialize),
-        //     };
-
         match consumer.subscribe(&[topic]) {
             Err(err) => {
                 println!("Failed to initialize: {}", err);
@@ -162,7 +155,7 @@ impl SubscribeClient {
                   m.key(), payload, m.topic(), m.partition(), m.offset(), m.timestamp());
 
             let parsetest = json::parse(&payload);
-            if parsetest.is_err() {
+            if parsetest.is_ok() {
                 let data = json::stringify(payload);
 
                 self.sender
@@ -181,27 +174,28 @@ impl SubscribeClient {
     }
 }
 
-// impl PublishClient {
-//     pub fn new(brokers: Vec<String>, topic: &str) -> Result<Self, Error> {
-//         let producer = match Producer::from_hosts(brokers)
-//             .with_ack_timeout(Duration::from_secs(1))
-//             .with_required_acks(RequiredAcks::One)
-//             .create()
-//         {
-//             Ok(result) => result,
-//             Err(_err) => return Err(Error::KafkaInitialize),
-//         };
+impl PublishClient {
+    pub fn new(brokers: Vec<String>, topic: &str) -> Result<Self, Error> {
+        let producer: CustomProducer = ClientConfig::new()
+            .set("bootstrap.servers", &brokers[0])
+            .set("request.timeout.ms", "1000")
+            .set("acks", "1")
+            .create()
+            .expect("Producer creation error");
 
-//         Ok(Self {
-//             producer: producer,
-//             topic: topic.into(),
-//         })
-//     }
+        Ok(Self {
+            producer: producer,
+            topic: topic.into(),
+        })
+    }
 
-//     pub fn produce(&mut self, message: &str) -> Result<(), KafkaError> {
-//         return self.producer.send(&Record::from_value(
-//             &self.topic.to_string(),
-//             message.as_bytes(),
-//         ));
-//     }
-// }
+    pub fn produce(&mut self, message: &str) -> KafkaResult<()> {
+        match self
+            .producer
+            .send(BaseRecord::to(&self.topic).payload(message).key(""))
+        {
+            Ok(()) => Ok(()),
+            Err(err) => Err(err.0),
+        }
+    }
+}
