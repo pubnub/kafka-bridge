@@ -90,7 +90,7 @@ impl ConsumerContext for CustomConsumerContext {
 /// let kafka_group                          = "";
 ///
 /// let mut kafka = match kafka::SubscribeClient::new(
-///     brokers,
+///     &brokers,
 ///     kafka_message_tx.clone(),
 ///     &kafka_topic,
 ///     &kafka_group,
@@ -184,6 +184,28 @@ impl SubscribeClient {
     }
 }
 
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+/// # Kafka Publish Client ( Producer )
+///
+/// This client lib will produce messages into Kafka.
+/// 
+/// ```no_run
+/// let brokers = "0.0.0.0:9094".split(",").map(|s| s.to_string()).collect();
+/// let mut kafka = match kafka::PublishClient::new(&brokers, topic) {
+///     Ok(kafka)  => kafka,
+///     Err(error) => { println!("{}", error); }
+/// };
+/// 
+/// loop {
+///     let message: kafka_bridge::pubnub::Message =
+///         kafka_publish_rx.recv().expect("MPSC Channel Receiver");
+///     match kafka.produce(&message.data) {
+///         Ok(())     => {}
+///         Err(error) => { println!("{}", error); }
+///     };
+/// }
+/// ```
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 impl PublishClient {
     /// # Errors
     ///
