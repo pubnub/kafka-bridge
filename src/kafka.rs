@@ -1,4 +1,6 @@
-use json;
+#![deny(clippy::all)]
+#![deny(clippy::pedantic)]
+
 use rdkafka::client::ClientContext;
 use rdkafka::config::{ClientConfig, RDKafkaLogLevel};
 use rdkafka::consumer::{
@@ -107,39 +109,46 @@ impl ConsumerContext for CustomConsumerContext {
 /// ```
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 impl SubscribeClient {
+    /// # Errors
+    ///
+    /// Will return `Err` if failed to initialize kafka consumer.
     pub fn new(
-        brokers: Vec<String>,
+        brokers: &[String],
         sender: Sender<Message>,
         topic: &str,
         group: &str,
         partition: i32,
     ) -> Result<Self, Error> {
         let context = CustomConsumerContext;
-        let consumer: CustomConsumer = ClientConfig::new()
+        let consumer: KafkaResult<CustomConsumer> = ClientConfig::new()
             .set("group.id", group)
             .set("bootstrap.servers", &brokers[0])
             .set("enable.partition.eof", "false")
             .set("auto.offset.reset", "earliest")
             .set("enable.auto.commit", "true")
             .set_log_level(RDKafkaLogLevel::Debug)
-            .create_with_context(context)
-            .expect("Consumer creating failed");
-        match consumer.subscribe(&[topic]) {
-            Err(err) => {
-                println!("Failed to initialize: {}", err);
-                return Err(Error::KafkaInitialize);
-            }
-            _ => {}
+            .create_with_context(context);
+        if let Err(_err) = consumer {
+            return Err(Error::KafkaInitialize);
+        }
+
+        let consumer = consumer.unwrap();
+
+        if let Err(err) = consumer.subscribe(&[topic]) {
+            println!("Failed to initialize: {}", err);
+            return Err(Error::KafkaInitialize);
         }
 
         Ok(Self {
-            consumer: consumer,
-            sender: sender,
+            consumer,
+            sender,
             topic: topic.into(),
             group: group.into(),
         })
     }
-
+    /// # Errors
+    ///
+    /// Will return `Err` if failed to consume item from kafka feed.
     pub fn consume(&mut self) -> KafkaResult<()> {
         while let Some(r) = self.consumer.poll(None) {
             let m = match r {
@@ -163,7 +172,7 @@ impl SubscribeClient {
                     .send(Message {
                         topic: self.topic.clone(),
                         group: self.group.clone(),
-                        data: data,
+                        data,
                     })
                     .expect("Error writing to mpsc Sender");
             }
@@ -176,20 +185,30 @@ impl SubscribeClient {
 }
 
 impl PublishClient {
-    pub fn new(brokers: Vec<String>, topic: &str) -> Result<Self, Error> {
-        let producer: CustomProducer = ClientConfig::new()
+    /// # Errors
+    ///
+    /// Will return `Err` if failed to initialize kafka consumer.
+    pub fn new(brokers: &[String], topic: &str) -> Result<Self, Error> {
+        let producer: KafkaResult<CustomProducer> = ClientConfig::new()
             .set("bootstrap.servers", &brokers[0])
             .set("request.timeout.ms", "1000")
             .set("acks", "1")
-            .create()
-            .expect("Producer creation error");
+            .create();
+
+        if let Err(err) = producer {
+            println!("Failed to init kafka producer: {}", err);
+            return Err(Error::KafkaInitialize);
+        }
 
         Ok(Self {
-            producer: producer,
+            producer: producer.unwrap(),
             topic: topic.into(),
         })
     }
 
+    /// # Errors
+    ///
+    /// Will return `Err` if failed to send message to kafka producer.
     pub fn produce(&mut self, message: &str) -> KafkaResult<()> {
         match self
             .producer

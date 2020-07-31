@@ -1,5 +1,5 @@
-// #![deny(clippy::all)]
-// #![deny(clippy::pedantic)]
+#![deny(clippy::all)]
+#![deny(clippy::pedantic)]
 
 use std::sync::mpsc;
 use std::{env, process, thread, time};
@@ -23,8 +23,8 @@ struct Configuration {
 
 fn environment_variables() -> Configuration {
     Configuration {
-        kafka_brokers: fetch_env_var("KAFKA_BROKERS").split(",")
-            .map(|s| s.to_string()).collect(),
+        kafka_brokers: fetch_env_var("KAFKA_BROKERS").split(',')
+            .map(std::string::ToString::to_string).collect(),
         kafka_topic: fetch_env_var("KAFKA_TOPIC"),
         kafka_group: fetch_env_var("KAFKA_GROUP"),
         kafka_partition: fetch_env_var("KAFKA_PARTITION")
@@ -180,7 +180,7 @@ fn main() {
             let config = environment_variables();
 
             let mut kafka = match kafka::PublishClient::new(
-                config.kafka_brokers,
+                &config.kafka_brokers,
                 &config.kafka_topic,
             ) {
                 Ok(kafka) => kafka,
@@ -209,7 +209,7 @@ fn main() {
         .spawn(move || loop {
             let config = environment_variables();
             let mut kafka = match kafka::SubscribeClient::new(
-                    config.kafka_brokers,
+                    &config.kafka_brokers,
                     kafka_message_tx.clone(),
                     &config.kafka_topic,
                     &config.kafka_group,
