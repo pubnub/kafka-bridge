@@ -10,7 +10,6 @@ use rdkafka::producer::{
     BaseRecord, DefaultProducerContext, ThreadedProducer,
 };
 use rdkafka::topic_partition_list::TopicPartitionList;
-use rdkafka::util::get_rdkafka_version;
 use std::sync::mpsc::Sender;
 
 pub struct Message {
@@ -119,8 +118,10 @@ impl SubscribeClient {
         let consumer: CustomConsumer = ClientConfig::new()
             .set("group.id", group)
             .set("bootstrap.servers", &brokers[0])
-            .set_log_level(RDKafkaLogLevel::Debug)
             .set("enable.partition.eof", "false")
+            .set("auto.offset.reset", "earliest")
+            .set("enable.auto.commit", "true")
+            .set_log_level(RDKafkaLogLevel::Debug)
             .create_with_context(context)
             .expect("Consumer creating failed");
         match consumer.subscribe(&[topic]) {
