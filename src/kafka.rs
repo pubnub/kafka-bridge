@@ -43,8 +43,8 @@ pub enum Error {
 /// MPSC Sender<crate::kafka::Message>.
 ///
 /// ```no_run
-/// use kafka_bridge::kafka::SubscribeClient;
-/// use kafka_bridge::pubnub::Message;
+/// use kafka_bridge::kafka;
+/// use std::sync::mpsc;
 ///
 /// let brokers = "0.0.0.0:9094".split(",").map(|s| s.to_string()).collect();
 /// let (kafka_message_tx, kafka_message_rx) = mpsc::channel();
@@ -60,14 +60,17 @@ pub enum Error {
 ///     kafka_partition,
 /// ) {
 ///     Ok(kafka)  => kafka,
-///     Err(error) => { println!("{}", error); }
+///     Err(error) => {
+///         println!("{:?}", error);
+///         return;
+///     }
 /// };
 ///
 /// // Consume messages from broker and make them available
 /// // to `kafka_message_rx`.
 /// kafka.consume().expect("Error consuming Kafka messages");
 ///
-/// let message: Message =
+/// let message: kafka::Message =
 ///     kafka_message_rx.recv().expect("MPSC Channel Receiver");
 /// ```
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -136,10 +139,17 @@ impl SubscribeClient {
 /// This client lib will produce messages into Kafka.
 ///
 /// ```no_run
+/// use kafka_bridge::kafka;
+/// use std::sync::mpsc;
+///
+/// let (kafka_publish_tx, kafka_publish_rx) = mpsc::channel();
 /// let brokers = "0.0.0.0:9094".split(",").map(|s| s.to_string()).collect();
-/// let mut kafka = match kafka::PublishClient::new(brokers, topic) {
+/// let mut kafka = match kafka::PublishClient::new(brokers, "topic") {
 ///     Ok(kafka)  => kafka,
-///     Err(error) => { println!("{}", error); }
+///     Err(error) => {
+///         println!("{:?}", error);
+///         return;
+///     }
 /// };
 ///
 /// loop {
@@ -147,7 +157,7 @@ impl SubscribeClient {
 ///         kafka_publish_rx.recv().expect("MPSC Channel Receiver");
 ///     match kafka.produce(&message.data) {
 ///         Ok(())     => {}
-///         Err(error) => { println!("{}", error); }
+///         Err(error) => { println!("{:?}", error); }
 ///     };
 /// }
 /// ```
