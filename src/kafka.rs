@@ -48,9 +48,9 @@ pub enum Error {
 ///
 /// let brokers = "0.0.0.0:9094".split(",").map(|s| s.to_string()).collect();
 /// let (kafka_message_tx, kafka_message_rx) = mpsc::channel();
-/// let kafka_topic                          = "topic";
-/// let kafka_partition                      = 0;
-/// let kafka_group                          = "";
+/// let kafka_topic = "topic";
+/// let kafka_partition = 0;
+/// let kafka_group = "";
 ///
 /// let mut kafka = match kafka::SubscribeClient::new(
 ///     brokers,
@@ -59,7 +59,7 @@ pub enum Error {
 ///     &kafka_group,
 ///     kafka_partition,
 /// ) {
-///     Ok(kafka)  => kafka,
+///     Ok(kafka) => kafka,
 ///     Err(error) => {
 ///         println!("{:?}", error);
 ///         return;
@@ -145,7 +145,7 @@ impl SubscribeClient {
 /// let (kafka_publish_tx, kafka_publish_rx) = mpsc::channel();
 /// let brokers = "0.0.0.0:9094".split(",").map(|s| s.to_string()).collect();
 /// let mut kafka = match kafka::PublishClient::new(brokers, "topic") {
-///     Ok(kafka)  => kafka,
+///     Ok(kafka) => kafka,
 ///     Err(error) => {
 ///         println!("{:?}", error);
 ///         return;
@@ -156,8 +156,10 @@ impl SubscribeClient {
 ///     let message: kafka_bridge::pubnub::Message =
 ///         kafka_publish_rx.recv().expect("MPSC Channel Receiver");
 ///     match kafka.produce(&message.data) {
-///         Ok(())     => {}
-///         Err(error) => { println!("{:?}", error); }
+///         Ok(()) => {}
+///         Err(error) => {
+///             println!("{:?}", error);
+///         }
 ///     };
 /// }
 /// ```

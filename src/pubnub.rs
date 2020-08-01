@@ -102,7 +102,8 @@ fn http_response(socket: &mut Socket) -> Result<JsonValue, Error> {
 ///     subscribe_key,
 ///     _secret_key,
 ///     agent,
-///  ).expect("KAFKA Subscribe Client");
+/// )
+/// .expect("KAFKA Subscribe Client");
 ///
 /// let result = pubnub.next_message();
 /// assert!(result.is_ok());
@@ -241,7 +242,8 @@ impl SubscribeClient {
 ///     subscribe_key,
 ///     _secret_key,
 ///     agent,
-///  ).expect("KAFKA Subscribe Client");
+/// )
+/// .expect("KAFKA Subscribe Client");
 ///
 /// let result = pubnub.publish(channel, "data");
 /// assert!(result.is_ok());
