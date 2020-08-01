@@ -76,6 +76,14 @@ pub enum Error {
 /// ```
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 impl SubscribeClient {
+    #[allow(clippy::needless_pass_by_value)]
+    // TODO apply the lint on the next breaking release
+    /// Creates a new [`SubscribeClient`].
+    ///
+    /// # Errors
+    ///
+    /// This function can return [`Error::KafkaInitialize`] on Kafka client
+    /// initialization failure.
     pub fn new(
         brokers: Vec<String>,
         sender: Sender<Message>,
@@ -100,6 +108,12 @@ impl SubscribeClient {
         })
     }
 
+    /// Consumes messages and sends them through the channel.
+    ///
+    /// # Errors
+    ///
+    /// This function can return [`KafkaError`](rdkafka::error::KafkaError) on
+    /// unsuccessful poll.
     pub fn consume(&mut self) -> KafkaResult<()> {
         for message in &self.consumer {
             let message = message?;
@@ -169,6 +183,14 @@ impl SubscribeClient {
 /// ```
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 impl PublishClient {
+    #[allow(clippy::needless_pass_by_value)]
+    // TODO apply the lint on the next breaking release
+    /// Creates a new [`PublishClient`].
+    ///
+    /// # Errors
+    ///
+    /// This function can return [`Error::KafkaInitialize`] on Kafka client
+    /// initialization failure.
     pub fn new(brokers: Vec<String>, topic: &str) -> Result<Self, Error> {
         let producer = ClientConfig::new()
             .set("metadata.broker.list", &brokers.join(","))
@@ -183,6 +205,12 @@ impl PublishClient {
         })
     }
 
+    /// Sends `message` into Kafka.
+    ///
+    /// # Errors
+    ///
+    /// This function can return [`KafkaError`](rdkafka::error::KafkaError) on
+    /// unsuccessful send.
     pub fn produce(&mut self, message: &str) -> KafkaResult<()> {
         self.producer
             .send(BaseRecord::<'_, (), _>::to(&self.topic).payload(message))

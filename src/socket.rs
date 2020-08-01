@@ -39,6 +39,7 @@ pub fn log(host: &str, agent: &str, info: &str) {
 /// let mut socket = Socket::new(host, "HTTP Agent", 5);
 /// ```
 impl Socket {
+    #[must_use]
     pub fn new(host: &str, agent: &str, timeout: u64) -> Self {
         let stream = Socket::connect(host, agent, timeout);
         Self {
@@ -74,6 +75,10 @@ impl Socket {
     /// let request = "GET / HTTP/1.1\r\nHost: pubnub.com\r\n\r\n";
     /// socket.write(request).expect("data written");
     /// ```
+    ///
+    /// # Errors
+    ///
+    /// This function can return [`Error::Write`] on unsuccessful write.
     pub fn write(&mut self, data: impl AsRef<str>) -> Result<usize, Error> {
         // Reconnect if not connected
         self.check_reconnect();
@@ -112,6 +117,10 @@ impl Socket {
     /// socket.write(request);
     /// let line = socket.readln();
     /// ```
+    ///
+    /// # Errors
+    ///
+    /// This function can return [`Error::Read`] on unsuccessful read.
     pub fn readln(&mut self) -> Result<String, Error> {
         // Reconnect if not connected
         self.check_reconnect();
@@ -147,11 +156,15 @@ impl Socket {
     /// let data = socket.read(30).expect("data read"); // read 30 bytes
     /// println!("{}", data);
     /// ```
+    ///
+    /// # Errors
+    ///
+    /// This function can return [`Error::Read`] on unsuccessful read.
     pub fn read(&mut self, bytes: usize) -> Result<String, Error> {
         // Reconnect if not connected
         self.check_reconnect();
 
-        let mut buffer = vec![0u8; bytes];
+        let mut buffer = vec![0_u8; bytes];
         let size = match self.reader.read(&mut buffer) {
             Ok(size) => size,
             Err(_error) => {
