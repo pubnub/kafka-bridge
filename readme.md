@@ -61,7 +61,7 @@ docker run                                                                      
     ## ~ Replace with your own API Keys ~ https://dashboard.pubnub.com/signup     \
     -e PUBNUB_CHANNEL_ROOT=topics                                                 \
     -e PUBNUB_CHANNEL=*                                                           \
-    -e KAFKA_GROUP=                                                               \
+    -e KAFKA_GROUP=mygroup                                                        \
     -e KAFKA_PARTITION=0                                                          \
     -e KAFKA_TOPIC=topic                                                          \
     -e KAFKA_BROKERS=0.0.0.0:9094                                                 \
@@ -176,7 +176,7 @@ PUBNUB_SUBSCRIBE_KEY=sub-c-df3799ee-704b-11e9-8724-8269f6864ada            \
 PUBNUB_SECRET_KEY=sec-c-YWY3NzE0NTYtZTBkMS00YjJjLTgxZDQtN2YzOTY0NWNkNGVk   \
 PUBNUB_CHANNEL_ROOT=topics                                                 \
 PUBNUB_CHANNEL=*                                                           \
-KAFKA_GROUP=                                                               \
+KAFKA_GROUP=mygroup                                                        \
 KAFKA_PARTITION=0                                                          \
 KAFKA_TOPIC=topic                                                          \
 KAFKA_BROKERS=0.0.0.0:9094                                                 \

@@ -1,9 +1,10 @@
-use json;
-use kafka::consumer::{Consumer, FetchOffset, GroupOffsetStorage};
-use kafka::error::Error as KafkaError;
-use kafka::producer::{Producer, Record, RequiredAcks};
+use rdkafka::consumer::{BaseConsumer, Consumer as _};
+use rdkafka::error::KafkaResult;
+use rdkafka::producer::{
+    BaseRecord, DefaultProducerContext, ThreadedProducer,
+};
+use rdkafka::{ClientConfig, Message as _, Offset, TopicPartitionList};
 use std::sync::mpsc::Sender;
-use std::time::Duration;
 
 pub struct Message {
     pub topic: String,
@@ -12,12 +13,12 @@ pub struct Message {
 }
 
 pub struct PublishClient {
-    producer: Producer,
+    producer: ThreadedProducer<DefaultProducerContext>,
     topic: String,
 }
 
 pub struct SubscribeClient {
-    consumer: Consumer,
+    consumer: BaseConsumer,
     sender: Sender<Message>,
     topic: String,
     group: String,
@@ -82,16 +83,14 @@ impl SubscribeClient {
         group: &str,
         partition: i32,
     ) -> Result<Self, Error> {
-        let consumer = match Consumer::from_hosts(brokers)
-            .with_topic_partitions(topic.to_owned(), &[partition])
-            .with_fallback_offset(FetchOffset::Earliest)
-            .with_group(group.to_owned())
-            .with_offset_storage(GroupOffsetStorage::Kafka)
+        let consumer: BaseConsumer = ClientConfig::new()
+            .set("group.id", group)
+            .set("metadata.broker.list", &brokers.join(","))
             .create()
-        {
-            Ok(result) => result,
-            Err(_err) => return Err(Error::KafkaInitialize),
-        };
+            .map_err(|_| Error::KafkaInitialize)?;
+        let mut tpl = TopicPartitionList::new();
+        tpl.add_partition_offset(topic, partition, Offset::Beginning);
+        consumer.assign(&tpl).map_err(|_| Error::KafkaInitialize)?;
 
         Ok(Self {
             consumer,
@@ -101,35 +100,40 @@ impl SubscribeClient {
         })
     }
 
-    pub fn consume(&mut self) -> Result<(), KafkaError> {
-        loop {
-            for ms in self.consumer.poll().unwrap().iter() {
-                for m in ms.messages() {
-                    println!("{:?}", m);
-                    let mut data = match String::from_utf8(m.value.to_vec()) {
-                        Ok(v) => v,
-                        Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
-                    };
-
-                    let parsetest = json::parse(&data);
-                    if parsetest.is_err() {
-                        data = json::stringify(data);
-                    }
-
-                    self.sender
-                        .send(Message {
-                            topic: self.topic.clone(),
-                            group: self.group.clone(),
-                            data,
-                        })
-                        .expect("Error writing to mpsc Sender");
+    pub fn consume(&mut self) -> KafkaResult<()> {
+        for message in &self.consumer {
+            let message = message?;
+            println!(
+                "Message {{ offset: {:?}, key: {:?}, payload: {:?} }}",
+                message.offset(),
+                message.key(),
+                message.payload()
+            );
+            let mut data = match message.payload_view::<str>() {
+                None => String::new(),
+                Some(Ok(s)) => s.into(),
+                Some(Err(e)) => {
+                    panic!(
+                        "Error while deserializing message payload: {:?}",
+                        e
+                    );
                 }
-                self.consumer
-                    .consume_messageset(ms)
-                    .expect("Error marking MessageSet as consumed.");
+            };
+
+            let parsetest = json::parse(&data);
+            if parsetest.is_err() {
+                data = json::stringify(data);
             }
-            self.consumer.commit_consumed().unwrap();
+
+            self.sender
+                .send(Message {
+                    topic: self.topic.clone(),
+                    group: self.group.clone(),
+                    data,
+                })
+                .expect("Error writing to mpsc Sender");
         }
+        Ok(())
     }
 }
 
@@ -166,14 +170,12 @@ impl SubscribeClient {
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 impl PublishClient {
     pub fn new(brokers: Vec<String>, topic: &str) -> Result<Self, Error> {
-        let producer = match Producer::from_hosts(brokers)
-            .with_ack_timeout(Duration::from_secs(1))
-            .with_required_acks(RequiredAcks::One)
+        let producer = ClientConfig::new()
+            .set("metadata.broker.list", &brokers.join(","))
+            .set("request.required.acks", "1")
+            .set("request.timeout.ms", "1000")
             .create()
-        {
-            Ok(result) => result,
-            Err(_err) => return Err(Error::KafkaInitialize),
-        };
+            .map_err(|_| Error::KafkaInitialize)?;
 
         Ok(Self {
             producer,
@@ -181,10 +183,9 @@ impl PublishClient {
         })
     }
 
-    pub fn produce(&mut self, message: &str) -> Result<(), KafkaError> {
-        self.producer.send(&Record::from_value(
-            &self.topic.to_string(),
-            message.as_bytes(),
-        ))
+    pub fn produce(&mut self, message: &str) -> KafkaResult<()> {
+        self.producer
+            .send(BaseRecord::<'_, (), _>::to(&self.topic).payload(message))
+            .map_err(|(err, _)| err)
     }
 }
