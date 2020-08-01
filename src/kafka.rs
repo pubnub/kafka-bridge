@@ -94,8 +94,8 @@ impl SubscribeClient {
         };
 
         Ok(Self {
-            consumer: consumer,
-            sender: sender,
+            consumer,
+            sender,
             topic: topic.into(),
             group: group.into(),
         })
@@ -120,7 +120,7 @@ impl SubscribeClient {
                         .send(Message {
                             topic: self.topic.clone(),
                             group: self.group.clone(),
-                            data: data,
+                            data,
                         })
                         .expect("Error writing to mpsc Sender");
                 }
@@ -176,15 +176,15 @@ impl PublishClient {
         };
 
         Ok(Self {
-            producer: producer,
+            producer,
             topic: topic.into(),
         })
     }
 
     pub fn produce(&mut self, message: &str) -> Result<(), KafkaError> {
-        return self.producer.send(&Record::from_value(
+        self.producer.send(&Record::from_value(
             &self.topic.to_string(),
             message.as_bytes(),
-        ));
+        ))
     }
 }

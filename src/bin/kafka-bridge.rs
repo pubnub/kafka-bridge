@@ -2,6 +2,8 @@
 #![deny(clippy::pedantic)]
 
 use kafka_bridge::kafka;
+use kafka_bridge::pubnub;
+use std::io;
 use std::sync::mpsc;
 use std::{env, process, thread, time};
 
@@ -24,8 +26,8 @@ struct Configuration {
 fn environment_variables() -> Configuration {
     Configuration {
         kafka_brokers: fetch_env_var("KAFKA_BROKERS")
-            .split(",")
-            .map(|s| s.to_string())
+            .split(',')
+            .map(ToString::to_string)
             .collect(),
         kafka_topic: fetch_env_var("KAFKA_TOPIC"),
         kafka_group: fetch_env_var("KAFKA_GROUP"),
@@ -87,11 +89,53 @@ fn main() {
 
     // Receive messages from PubNub
     // Saves messages into MPSC for Kafka Producer Thread
-    let pubnub_subscriber_thread = thread::Builder::new()
+    let pubnub_subscriber_thread =
+        spawn_pubnub_subscriber_thread(pubnub_message_tx);
+
+    // Send messages to PubNub
+    // Receives messages from MPSC from Kafka and Publishes to PubNub
+    let pubnub_publisher_thread =
+        spawn_pubnub_publisher_thread(pubnub_publish_rx);
+
+    // Send messages to Kafka
+    // Reads MPSC from PubNub Subscriptions and Sends to Kafka
+    let kafka_publisher_thread =
+        spawn_kafka_publisher_thread(kafka_publish_rx);
+
+    // Receive messages from Kafka
+    // Consumes messages on Kafka topic and sends to MPSC PubNub Publisher
+    let kafka_subscriber_thread =
+        spawn_kafka_subscriber_thread(kafka_message_tx);
+
+    // Print Follow-on Instructions
+    let config = environment_variables();
+    println!("{{\"info\":\"Dashboard: {}\"}}", config);
+
+    // The Threads Gather
+    pubnub_subscriber_thread
+        .expect("PubNub Subscriber thread builder join handle")
+        .join()
+        .expect("Joining PubNub Subscriber Thread");
+    pubnub_publisher_thread
+        .expect("PubNub Publisher thread builder join handle")
+        .join()
+        .expect("Joining PubNub Publisher Thread");
+    kafka_publisher_thread
+        .expect("KAFKA Publisher thread builder join handle")
+        .join()
+        .expect("Joining KAFKA Publisher Thread");
+    kafka_subscriber_thread
+        .expect("KAFKA Subscriber thread builder join handle")
+        .join()
+        .expect("Joining KAFKA Subscriber Thread");
+}
+
+fn spawn_pubnub_subscriber_thread(
+    pubnub_message_tx: mpsc::Sender<pubnub::Message>,
+) -> Result<thread::JoinHandle<()>, io::Error> {
+    thread::Builder::new()
         .name("PubNub Subscriber Thread".into())
         .spawn(move || loop {
-            use kafka_bridge::pubnub;
-
             let config = environment_variables();
             let host = &config.pubnub_host;
             let root = &config.pubnub_channel_root;
@@ -124,15 +168,15 @@ fn main() {
                     .send(message)
                     .expect("KAFKA mpsc::channel channel write");
             }
-        });
+        })
+}
 
-    // Send messages to PubNub
-    // Receives messages from MPSC from Kafka and Publishes to PubNub
-    let pubnub_publisher_thread = thread::Builder::new()
+fn spawn_pubnub_publisher_thread(
+    pubnub_publish_rx: mpsc::Receiver<kafka::Message>,
+) -> Result<thread::JoinHandle<()>, io::Error> {
+    thread::Builder::new()
         .name("PubNub Publisher Thread".into())
         .spawn(move || loop {
-            use kafka_bridge::pubnub;
-
             let config = environment_variables();
             let host = &config.pubnub_host;
             let root = &config.pubnub_channel_root;
@@ -173,11 +217,13 @@ fn main() {
                     };
                 }
             }
-        });
+        })
+}
 
-    // Send messages to Kafka
-    // Reads MPSC from PubNub Subscriptions and Sends to Kafka
-    let kafka_publisher_thread = thread::Builder::new()
+fn spawn_kafka_publisher_thread(
+    kafka_publish_rx: mpsc::Receiver<pubnub::Message>,
+) -> Result<thread::JoinHandle<()>, io::Error> {
+    thread::Builder::new()
         .name("KAFKA Publisher Thread".into())
         .spawn(move || loop {
             let config = environment_variables();
@@ -203,11 +249,13 @@ fn main() {
                     }
                 };
             }
-        });
+        })
+}
 
-    // Receive messages from Kafka
-    // Consumes messages on Kafka topic and sends to MPSC PubNub Publisher
-    let kafka_subscriber_thread = thread::Builder::new()
+fn spawn_kafka_subscriber_thread(
+    kafka_message_tx: mpsc::Sender<kafka::Message>,
+) -> Result<thread::JoinHandle<()>, io::Error> {
+    thread::Builder::new()
         .name("KAFKA Subscriber Thread".into())
         .spawn(move || loop {
             let config = environment_variables();
@@ -228,27 +276,5 @@ fn main() {
 
             // Send KAFKA Messages to pubnub_publish_rx via kafka_message_tx
             kafka.consume().expect("Error consuming Kafka messages");
-        });
-
-    // Print Follow-on Instructions
-    let config = environment_variables();
-    println!("{{\"info\":\"Dashboard: {}\"}}", config);
-
-    // The Threads Gather
-    pubnub_subscriber_thread
-        .expect("PubNub Subscriber thread builder join handle")
-        .join()
-        .expect("Joining PubNub Subscriber Thread");
-    pubnub_publisher_thread
-        .expect("PubNub Publisher thread builder join handle")
-        .join()
-        .expect("Joining PubNub Publisher Thread");
-    kafka_publisher_thread
-        .expect("KAFKA Publisher thread builder join handle")
-        .join()
-        .expect("Joining KAFKA Publisher Thread");
-    kafka_subscriber_thread
-        .expect("KAFKA Subscriber thread builder join handle")
-        .join()
-        .expect("Joining KAFKA Subscriber Thread");
+        })
 }
