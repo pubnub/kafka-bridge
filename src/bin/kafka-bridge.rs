@@ -1,9 +1,9 @@
 #![deny(clippy::all)]
 #![deny(clippy::pedantic)]
 
+use kafka_bridge::kafka;
 use std::sync::mpsc;
 use std::{env, process, thread, time};
-use kafka_bridge::kafka;
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Configuration via Environmental Variables
@@ -23,12 +23,15 @@ struct Configuration {
 
 fn environment_variables() -> Configuration {
     Configuration {
-        kafka_brokers: fetch_env_var("KAFKA_BROKERS").split(",")
-            .map(|s| s.to_string()).collect(),
+        kafka_brokers: fetch_env_var("KAFKA_BROKERS")
+            .split(",")
+            .map(|s| s.to_string())
+            .collect(),
         kafka_topic: fetch_env_var("KAFKA_TOPIC"),
         kafka_group: fetch_env_var("KAFKA_GROUP"),
         kafka_partition: fetch_env_var("KAFKA_PARTITION")
-            .parse::<i32>().unwrap(),
+            .parse::<i32>()
+            .unwrap(),
         pubnub_host: "psdsn.pubnub.com:80".into(),
         pubnub_channel: fetch_env_var("PUBNUB_CHANNEL"),
         pubnub_channel_root: fetch_env_var("PUBNUB_CHANNEL_ROOT"),
@@ -209,19 +212,19 @@ fn main() {
         .spawn(move || loop {
             let config = environment_variables();
             let mut kafka = match kafka::SubscribeClient::new(
-                    config.kafka_brokers,
-                    kafka_message_tx.clone(),
-                    &config.kafka_topic,
-                    &config.kafka_group,
-                    config.kafka_partition,
-                ) {
-                    Ok(kafka) => kafka,
-                    Err(error) => {
-                        println!("Retrying Consumer Connection {:?}", error);
-                        thread::sleep(time::Duration::from_millis(1000));
-                        continue;
-                    }
-                };
+                config.kafka_brokers,
+                kafka_message_tx.clone(),
+                &config.kafka_topic,
+                &config.kafka_group,
+                config.kafka_partition,
+            ) {
+                Ok(kafka) => kafka,
+                Err(error) => {
+                    println!("Retrying Consumer Connection {:?}", error);
+                    thread::sleep(time::Duration::from_millis(1000));
+                    continue;
+                }
+            };
 
             // Send KAFKA Messages to pubnub_publish_rx via kafka_message_tx
             kafka.consume().expect("Error consuming Kafka messages");

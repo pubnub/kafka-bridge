@@ -286,8 +286,8 @@ impl PublishClient {
             self.subscribe_key,
             channel,
             encoded_message,
-            pnsdk=self.agent,
-            meta="{\"source\":\"KAFKA\"}"
+            pnsdk = self.agent,
+            meta = "{\"source\":\"KAFKA\"}"
         );
 
         let request =
