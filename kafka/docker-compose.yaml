@@ -8,6 +8,10 @@ services:
       - '2181:2181'
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
+      KAFKA_OPTS: "-Djava.security.auth.login.config=/etc/kafka/zookeeper_jass.conf -Dzookeeper.authProvider.sasl=org.apache.zookeeper.server.auth.SASLAuthenticationProvider"
+
+    volumes:
+      - './zookeeper_jass.conf:/etc/kafka/zookeeper_jass.conf'
 
   kafka:
     image: confluentinc/cp-enterprise-kafka:5.3.1
@@ -22,13 +26,18 @@ services:
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_ADVERTISED_LISTENERS: INSIDE://:9092,OUTSIDE://localhost:9094
       KAFKA_LISTENERS: INSIDE://:9092,OUTSIDE://:9094
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+      KAFKA_OPTS: "-Djava.security.auth.login.config=/etc/kafka/kafka_server_jass.conf"
       KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:SASL_PLAINTEXT,OUTSIDE:SASL_PLAINTEXT
       KAFKA_ADVERTISED_HOST_NAME: kafka
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
       CONFLUENT_METRICS_ENABLE: 'false'
       CONFLUENT_SUPPORT_CUSTOMER_ID: 'anonymous'
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
+      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: PLAIN
+    volumes:
+      - './kafka_server_jass.conf:/etc/kafka/kafka_server_jass.conf'
 
   kafka-create-topics:
     image: confluentinc/cp-enterprise-kafka:5.3.1
@@ -37,11 +46,15 @@ services:
       - kafka
     hostname: kafka-create-topics
     volumes:
+      - './kafka_client_jass.conf:/etc/kafka/kafka_client_jass.conf'
       - './kafka-sample-generator.sh:/bin/kafka-sample-generator.sh'
+      - './cub.properties:/etc/kafka/cub.properties'
+      - './client.properties:/etc/kafka/client.properties'
     command: "/bin/kafka-sample-generator.sh"
     environment:
       KAFKA_TOPIC: topic
       KAFKA_BROKER: kafka
+      KAFKA_OPTS: "-Djava.security.auth.login.config=/etc/kafka/kafka_client_jass.conf"
 
   #kafka-bridge:
   #  environment:

@@ -4,7 +4,7 @@ HOST=`host $KAFKA_BROKER | awk '/has address/ { print $4 ; exit }'`
 
 ## Wait until Kafka is ready then create demo topic
 echo 'Waiting for Kafka to be ready...'
-cub kafka-ready -b $HOST:9092 1 20 && \
+cub kafka-ready -c /etc/kafka/cub.properties -b $HOST:9092 1 20 && \
 sleep 1
 
 echo "Creating Topic [$HOST:9092 <topic:'$KAFKA_TOPIC'>]"
@@ -32,8 +32,9 @@ while true
 
         DATA="{\"data\":\"sample-data-$i\"}"
 
-        echo "$DATA" | kafka-console-producer   \
-            --broker-list $HOST:9092            \
+        echo "$DATA" | kafka-console-producer              \
+            --broker-list $HOST:9092                       \
+            --producer.config /etc/kafka/client.properties \
             --topic $KAFKA_TOPIC     
     done
     sleep 1.0
