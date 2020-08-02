@@ -128,16 +128,16 @@ impl SubscribeClient {
             .set("enable.auto.commit", "true")
             .set_log_level(RDKafkaLogLevel::Debug)
             .create_with_context(context);
-        if let Err(_err) = consumer {
-            return Err(Error::KafkaInitialize);
-        }
 
-        let consumer = consumer.unwrap();
+        let consumer = consumer.map_err(|err| {
+            println!("Failed to intialize consumer: {}", err);
+            Error::KafkaInitialize
+        })?;
 
-        if let Err(err) = consumer.subscribe(&[topic]) {
+        consumer.subscribe(&[topic]).map_err(|err| {
             println!("Failed to initialize: {}", err);
-            return Err(Error::KafkaInitialize);
-        }
+            Error::KafkaInitialize
+        })?;
 
         Ok(Self {
             consumer,
@@ -151,31 +151,28 @@ impl SubscribeClient {
     /// Will return `Err` if failed to consume item from kafka feed.
     pub fn consume(&mut self) -> KafkaResult<()> {
         while let Some(r) = self.consumer.poll(None) {
-            let m = match r {
-                Err(e) => return Err(e),
-                Ok(m) => m,
-            };
+            let m = r?;
 
-            let payload = match m.payload_view::<str>() {
-                None => "",
-                Some(Ok(s)) => s,
-                Some(Err(_e)) => "",
+            let mut data = match m.payload_view::<str>() {
+                None => String::new(),
+                Some(Ok(s)) => s.into(),
+                Some(Err(_e)) => String::new(),
             };
             println!("key: '{:?}', payload: '{}', topic: {}, partition: {}, offset: {}, timestamp: {:?}",
-                  m.key(), payload, m.topic(), m.partition(), m.offset(), m.timestamp());
+                  m.key(), data, m.topic(), m.partition(), m.offset(), m.timestamp());
 
-            let parsetest = json::parse(&payload);
-            if parsetest.is_ok() {
-                let data = json::stringify(payload);
-
-                self.sender
-                    .send(Message {
-                        topic: self.topic.clone(),
-                        group: self.group.clone(),
-                        data,
-                    })
-                    .expect("Error writing to mpsc Sender");
+            let parsetest = json::parse(&data);
+            if parsetest.is_err() {
+                data = json::stringify(data);
             }
+
+            self.sender
+                .send(Message {
+                    topic: self.topic.clone(),
+                    group: self.group.clone(),
+                    data: data.to_string(),
+                })
+                .expect("Error writing to mpsc Sender");
 
             self.consumer.commit_message(&m, CommitMode::Async)?;
         }
@@ -188,14 +185,14 @@ impl SubscribeClient {
 /// # Kafka Publish Client ( Producer )
 ///
 /// This client lib will produce messages into Kafka.
-/// 
+///
 /// ```no_run
 /// let brokers = "0.0.0.0:9094".split(",").map(|s| s.to_string()).collect();
 /// let mut kafka = match kafka::PublishClient::new(&brokers, topic) {
 ///     Ok(kafka)  => kafka,
 ///     Err(error) => { println!("{}", error); }
 /// };
-/// 
+///
 /// loop {
 ///     let message: kafka_bridge::pubnub::Message =
 ///         kafka_publish_rx.recv().expect("MPSC Channel Receiver");
@@ -217,13 +214,13 @@ impl PublishClient {
             .set("acks", "1")
             .create();
 
-        if let Err(err) = producer {
+        let producer = producer.map_err(|err| {
             println!("Failed to init kafka producer: {}", err);
-            return Err(Error::KafkaInitialize);
-        }
+            Error::KafkaInitialize
+        })?;
 
         Ok(Self {
-            producer: producer.unwrap(),
+            producer,
             topic: topic.into(),
         })
     }
@@ -232,12 +229,8 @@ impl PublishClient {
     ///
     /// Will return `Err` if failed to send message to kafka producer.
     pub fn produce(&mut self, message: &str) -> KafkaResult<()> {
-        match self
-            .producer
+        self.producer
             .send(BaseRecord::to(&self.topic).payload(message).key(""))
-        {
-            Ok(()) => Ok(()),
-            Err(err) => Err(err.0),
-        }
+            .map_err(|(err, _)| err)
     }
 }
