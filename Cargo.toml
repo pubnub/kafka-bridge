@@ -7,8 +7,9 @@ readme = "readme.md"
 
 [features]
 nightly = []
+sasl-ssl = ["rdkafka/ssl-vendored", "rdkafka/gssapi-vendored"]
 
 [dependencies]
 json = "0.12"
 percent-encoding = "2.1.0"
-rdkafka = "0.24"
+rdkafka = { version = "0.24", features = ["cmake-build"] }

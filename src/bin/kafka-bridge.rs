@@ -2,6 +2,8 @@
 #![deny(clippy::pedantic)]
 
 use kafka_bridge::kafka;
+#[cfg(feature = "sasl-ssl")]
+use kafka_bridge::kafka::SaslSslConfig;
 use kafka_bridge::pubnub;
 use std::io;
 use std::sync::mpsc;
@@ -21,6 +23,8 @@ struct Configuration {
     pub publish_key: String,
     pub subscribe_key: String,
     pub secret_key: String,
+    #[cfg(feature = "sasl-ssl")]
+    pub sasl_ssl_config: SaslSslConfig,
 }
 
 fn environment_variables() -> Configuration {
@@ -40,6 +44,16 @@ fn environment_variables() -> Configuration {
         publish_key: fetch_env_var("PUBNUB_PUBLISH_KEY"),
         subscribe_key: fetch_env_var("PUBNUB_SUBSCRIBE_KEY"),
         secret_key: fetch_env_var("PUBNUB_SECRET_KEY"),
+        #[cfg(feature = "sasl-ssl")]
+        sasl_ssl_config: SaslSslConfig {
+            kerberos_service_name: fetch_env_var("KERBEROS_SERVICE_NAME"),
+            kerberos_keytab: fetch_env_var("KERBEROS_KEYTAB"),
+            kerberos_principal: fetch_env_var("KERBEROS_PRINCIPAL"),
+            ca_location: fetch_env_var("CA_LOCATION"),
+            certificate_location: fetch_env_var("CERTIFICATE_LOCATION"),
+            key_location: fetch_env_var("KEY_LOCATION"),
+            key_password: fetch_env_var("KEY_PASSWORD"),
+        },
     }
 }
 
@@ -228,10 +242,19 @@ fn spawn_kafka_publisher_thread(
         .spawn(move || loop {
             let config = environment_variables();
 
-            let mut kafka = match kafka::PublishClient::new(
+            #[cfg(not(feature = "sasl-ssl"))]
+            let res = kafka::PublishClient::new(
                 config.kafka_brokers,
                 &config.kafka_topic,
-            ) {
+            );
+            #[cfg(feature = "sasl-ssl")]
+            let res = kafka::PublishClient::new_sasl_ssl(
+                &config.kafka_brokers,
+                &config.kafka_topic,
+                &config.sasl_ssl_config,
+            );
+
+            let mut kafka = match res {
                 Ok(kafka) => kafka,
                 Err(_error) => {
                     thread::sleep(time::Duration::from_millis(1000));
@@ -259,13 +282,26 @@ fn spawn_kafka_subscriber_thread(
         .name("KAFKA Subscriber Thread".into())
         .spawn(move || loop {
             let config = environment_variables();
-            let mut kafka = match kafka::SubscribeClient::new(
+
+            #[cfg(not(feature = "sasl-ssl"))]
+            let res = kafka::SubscribeClient::new(
                 config.kafka_brokers,
                 kafka_message_tx.clone(),
                 &config.kafka_topic,
                 &config.kafka_group,
                 config.kafka_partition,
-            ) {
+            );
+            #[cfg(feature = "sasl-ssl")]
+            let res = kafka::SubscribeClient::new_sasl_ssl(
+                &config.kafka_brokers,
+                kafka_message_tx.clone(),
+                &config.kafka_topic,
+                &config.kafka_group,
+                config.kafka_partition,
+                &config.sasl_ssl_config,
+            );
+
+            let mut kafka = match res {
                 Ok(kafka) => kafka,
                 Err(error) => {
                     println!("Retrying Consumer Connection {:?}", error);

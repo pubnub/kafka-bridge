@@ -37,6 +37,17 @@ pub enum Error {
     HTTPResponse,
 }
 
+#[cfg(feature = "sasl-ssl")]
+pub struct SaslSslConfig {
+    pub kerberos_service_name: String,
+    pub kerberos_keytab: String,
+    pub kerberos_principal: String,
+    pub ca_location: String,
+    pub certificate_location: String,
+    pub key_location: String,
+    pub key_password: String,
+}
+
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 /// # Kafka Subscribe Client ( Consumer )
 ///
@@ -92,6 +103,39 @@ impl SubscribeClient {
         partition: i32,
     ) -> Result<Self, Error> {
         let consumer: BaseConsumer = ClientConfig::new()
+            .set("group.id", group)
+            .set("metadata.broker.list", &brokers.join(","))
+            .create()
+            .map_err(|_| Error::KafkaInitialize)?;
+        let mut tpl = TopicPartitionList::new();
+        tpl.add_partition_offset(topic, partition, Offset::Beginning);
+        consumer.assign(&tpl).map_err(|_| Error::KafkaInitialize)?;
+
+        Ok(Self {
+            consumer,
+            sender,
+            topic: topic.into(),
+            group: group.into(),
+        })
+    }
+
+    #[cfg(feature = "sasl-ssl")]
+    /// Creates a new [`SubscribeClient`] using SASL and SSL.
+    ///
+    /// # Errors
+    ///
+    /// This function can return [`Error::KafkaInitialize`] on Kafka client
+    /// initialization failure.
+    pub fn new_sasl_ssl(
+        brokers: &[String],
+        sender: Sender<Message>,
+        topic: &str,
+        group: &str,
+        partition: i32,
+        sasl_ssl_config: &SaslSslConfig,
+    ) -> Result<Self, Error> {
+        let consumer: BaseConsumer = sasl_ssl_config
+            .to_client_config()
             .set("group.id", group)
             .set("metadata.broker.list", &brokers.join(","))
             .create()
@@ -205,6 +249,32 @@ impl PublishClient {
         })
     }
 
+    #[cfg(feature = "sasl-ssl")]
+    /// Creates a new [`PublishClient`] using SASL and SSL.
+    ///
+    /// # Errors
+    ///
+    /// This function can return [`Error::KafkaInitialize`] on Kafka client
+    /// initialization failure.
+    pub fn new_sasl_ssl(
+        brokers: &[String],
+        topic: &str,
+        sasl_ssl_config: &SaslSslConfig,
+    ) -> Result<Self, Error> {
+        let producer = sasl_ssl_config
+            .to_client_config()
+            .set("metadata.broker.list", &brokers.join(","))
+            .set("request.required.acks", "1")
+            .set("request.timeout.ms", "1000")
+            .create()
+            .map_err(|_| Error::KafkaInitialize)?;
+
+        Ok(Self {
+            producer,
+            topic: topic.into(),
+        })
+    }
+
     /// Sends `message` into Kafka.
     ///
     /// # Errors
@@ -215,5 +285,31 @@ impl PublishClient {
         self.producer
             .send(BaseRecord::<'_, (), _>::to(&self.topic).payload(message))
             .map_err(|(err, _)| err)
+    }
+}
+
+#[cfg(feature = "sasl-ssl")]
+impl SaslSslConfig {
+    fn to_client_config(&self) -> ClientConfig {
+        let Self {
+            kerberos_service_name,
+            kerberos_keytab,
+            kerberos_principal,
+            ca_location,
+            certificate_location,
+            key_location,
+            key_password,
+        } = self;
+        let mut config = ClientConfig::new();
+        config
+            .set("security.protocol", "SASL_SSL")
+            .set("sasl.kerberos.service.name", kerberos_service_name)
+            .set("sasl.kerberos.keytab", kerberos_keytab)
+            .set("sasl.kerberos.principal", kerberos_principal)
+            .set("ssl.ca.location", ca_location)
+            .set("ssl.certificate.location", certificate_location)
+            .set("ssl.key.location", key_location)
+            .set("ssl.key.password", key_password);
+        config
     }
 }

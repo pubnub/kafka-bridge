@@ -60,7 +60,7 @@ docker run                                                                      
     -e PUBNUB_SECRET_KEY=sec-c-YWY3NzE0NTYtZTBkMS00YjJjLTgxZDQtN2YzOTY0NWNkNGVk   \
     ## ~ Replace with your own API Keys ~ https://dashboard.pubnub.com/signup     \
     -e PUBNUB_CHANNEL_ROOT=topics                                                 \
-    -e PUBNUB_CHANNEL=*                                                           \
+    -e PUBNUB_CHANNEL='*'                                                         \
     -e KAFKA_GROUP=mygroup                                                        \
     -e KAFKA_PARTITION=0                                                          \
     -e KAFKA_TOPIC=topic                                                          \
@@ -154,6 +154,62 @@ If you can't use the first two installation methods,
 then you can use the following alternative installation instructions.
 
 You need `Rust` and `Kafka`.
+
+## Using SSL and SASL
+
+You must generate CA certificates (or use yours if you already have one) and
+then generate a keystore and truststore for brokers and clients.
+
+```shell
+cd examples/kafka-cluster-sasl/secrets
+./create-certs.sh
+# (Type yes for all "Trust this certificate? [no]:" prompts.)
+cd -
+```
+
+Start the docker compose file in a separate terminal:
+
+```shell
+cd examples/kafka-cluster-sasl
+docker-compose up --no-start kerberos
+docker-compose start kerberos
+./kerberos-setup.sh
+docker-compose up
+```
+
+Open a new terminal session and run the following commands:
+
+```shell
+docker build -f examples/kafka-cluster-sasl/kafka-bridge/Dockerfile -t kafka-bridge .
+docker run                                                                        \
+    --network=host                                                                \
+    --hostname=quickstart.confluent.io                                            \
+    --add-host=quickstart.confluent.io:0.0.0.0                                    \
+    ## ~ Replace with your own API Keys ~ https://dashboard.pubnub.com/signup     \
+    -e PUBNUB_PUBLISH_KEY=pub-c-6b57a39e-79e7-4d1d-926e-5c376a4cb021              \
+    -e PUBNUB_SUBSCRIBE_KEY=sub-c-df3799ee-704b-11e9-8724-8269f6864ada            \
+    -e PUBNUB_SECRET_KEY=sec-c-YWY3NzE0NTYtZTBkMS00YjJjLTgxZDQtN2YzOTY0NWNkNGVk   \
+    ## ~ Replace with your own API Keys ~ https://dashboard.pubnub.com/signup     \
+    -e PUBNUB_CHANNEL_ROOT=topics                                                 \
+    -e PUBNUB_CHANNEL='*'                                                         \
+    -e KAFKA_GROUP=mygroup                                                        \
+    -e KAFKA_PARTITION=0                                                          \
+    -e KAFKA_TOPIC=topic                                                          \
+    -e KAFKA_BROKERS=quickstart.confluent.io:19094,quickstart.confluent.io:29094,quickstart.confluent.io:39094 \
+    -e KRB5_CONFIG=/etc/kafka/secrets/krb.conf                                    \
+    -e KERBEROS_SERVICE_NAME=kafka                                                \
+    -e KERBEROS_KEYTAB=/etc/kafka/secrets/saslconsumer.keytab                     \
+    -e KERBEROS_PRINCIPAL=saslconsumer/quickstart.confluent.io@TEST.CONFLUENT.IO  \
+    -e CA_LOCATION=/etc/kafka/secrets/snakeoil-ca-1.crt                           \
+    -e CERTIFICATE_LOCATION=/etc/kafka/secrets/kafkacat-ca1-signed.pem            \
+    -e KEY_LOCATION=/etc/kafka/secrets/kafkacat.client.key                        \
+    -e KEY_PASSWORD=confluent                                                     \
+    -e RUST_BACKTRACE=1                                                           \
+    -v $PWD/examples/kafka-cluster-sasl/secrets:/etc/kafka/secrets                \
+    kafka-bridge
+```
+
+You can receive a stream of your messages in **Part 3**.
 
 #### Get Rust
 

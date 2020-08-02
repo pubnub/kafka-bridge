@@ -11,7 +11,7 @@ RUN set -eux; \
 WORKDIR /app
 COPY . /app/
 
-RUN cargo build --release
+RUN cargo build --release --features sasl-ssl
 RUN strip target/release/kafka-bridge
 
 # Runtime Build
@@ -25,6 +25,7 @@ RUN set -eux; \
 
 # Install runtime dependencies
 RUN apk --no-cache add \
+        krb5 \
         libgcc \
         tini
 
