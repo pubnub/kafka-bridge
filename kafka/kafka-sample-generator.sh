@@ -42,10 +42,11 @@ while true
     echo ''
     echo "Receiving Data [$HOST:9092 <topic:'$KAFKA_TOPIC'>]"
 
-    kafka-console-consumer              \
-        --bootstrap-server $HOST:9092   \
-        --topic $KAFKA_TOPIC            \
-        --from-beginning                \
+    kafka-console-consumer                             \
+        --bootstrap-server $HOST:9092                  \
+        --topic $KAFKA_TOPIC                           \
+        --from-beginning                               \
+        --consumer.config /etc/kafka/client.properties \
         --max-messages 5
 
 done

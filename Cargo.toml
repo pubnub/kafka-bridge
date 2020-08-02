@@ -7,6 +7,9 @@ readme = "readme.md"
 
 [features]
 nightly = []
+default = ["sasl"]
+
+sasl = []
 
 [dependencies]
 json = "0.12"

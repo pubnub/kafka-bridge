@@ -53,6 +53,12 @@ pub enum Error {
     HTTPResponse,
 }
 
+#[cfg(feature = "sasl")]
+pub struct SASLConfig {
+    pub username: String,
+    pub password: String,
+}
+
 impl ClientContext for CustomConsumerContext {}
 
 impl ConsumerContext for CustomConsumerContext {
@@ -120,14 +126,52 @@ impl SubscribeClient {
         partition: i32,
     ) -> Result<Self, Error> {
         let context = CustomConsumerContext;
-        let consumer: KafkaResult<CustomConsumer> = ClientConfig::new()
-            .set("group.id", group)
-            .set("bootstrap.servers", &brokers[0])
-            .set("enable.partition.eof", "false")
-            .set("auto.offset.reset", "earliest")
-            .set("enable.auto.commit", "true")
-            .set_log_level(RDKafkaLogLevel::Debug)
-            .create_with_context(context);
+        let config =
+            SubscribeClient::create_client_config(brokers, group, partition);
+        let consumer: KafkaResult<CustomConsumer> =
+            config.create_with_context(context);
+
+        let consumer = consumer.map_err(|err| {
+            println!("Failed to intialize consumer: {}", err);
+            Error::KafkaInitialize
+        })?;
+
+        consumer.subscribe(&[topic]).map_err(|err| {
+            println!("Failed to initialize: {}", err);
+            Error::KafkaInitialize
+        })?;
+
+        Ok(Self {
+            consumer,
+            sender,
+            topic: topic.into(),
+            group: group.into(),
+        })
+    }
+
+    #[cfg(feature = "sasl")]
+    /// # Errors
+    ///
+    /// Will return `Err` if failed to initialize kafka consumer.
+    pub fn new_with_sasl(
+        brokers: &[String],
+        sender: Sender<Message>,
+        topic: &str,
+        group: &str,
+        partition: i32,
+        sasl_cfg: &SASLConfig,
+    ) -> Result<Self, Error> {
+        let context = CustomConsumerContext;
+        let mut config =
+            SubscribeClient::create_client_config(brokers, group, partition);
+        config
+            .set("security.protocol", "sasl_plaintext")
+            .set("sasl.mechanism", "PLAIN")
+            .set("sasl.username", &sasl_cfg.username)
+            .set("sasl.password", &sasl_cfg.password);
+
+        let consumer: KafkaResult<CustomConsumer> =
+            config.create_with_context(context);
 
         let consumer = consumer.map_err(|err| {
             println!("Failed to intialize consumer: {}", err);
@@ -179,6 +223,21 @@ impl SubscribeClient {
 
         Ok(())
     }
+
+    fn create_client_config(
+        brokers: &[String],
+        group: &str,
+        partition: i32,
+    ) -> ClientConfig {
+        let mut cfg = ClientConfig::new();
+        cfg.set("group.id", group)
+            .set("bootstrap.servers", &brokers[0])
+            .set("enable.partition.eof", "false")
+            .set("auto.offset.reset", "earliest")
+            .set("enable.auto.commit", "true")
+            .set_log_level(RDKafkaLogLevel::Debug);
+        cfg
+    }
 }
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -212,6 +271,36 @@ impl PublishClient {
             .set("bootstrap.servers", &brokers[0])
             .set("request.timeout.ms", "1000")
             .set("acks", "1")
+            .create();
+
+        let producer = producer.map_err(|err| {
+            println!("Failed to init kafka producer: {}", err);
+            Error::KafkaInitialize
+        })?;
+
+        Ok(Self {
+            producer,
+            topic: topic.into(),
+        })
+    }
+
+    #[cfg(feature = "sasl")]
+    /// # Errors
+    ///
+    /// Will return `Err` if failed to initialize kafka consumer.
+    pub fn new_with_sasl(
+        brokers: &[String],
+        topic: &str,
+        sasl_cfg: &SASLConfig,
+    ) -> Result<Self, Error> {
+        let producer: KafkaResult<CustomProducer> = ClientConfig::new()
+            .set("bootstrap.servers", &brokers[0])
+            .set("request.timeout.ms", "1000")
+            .set("acks", "1")
+            .set("security.protocol", "sasl_plaintext")
+            .set("sasl.mechanism", "PLAIN")
+            .set("sasl.username", &sasl_cfg.username)
+            .set("sasl.password", &sasl_cfg.password)
             .create();
 
         let producer = producer.map_err(|err| {
