@@ -31,10 +31,20 @@ Start the docker compose file in a terminal window.
 This will launch Kafka, Zookeeper and
 a sample feed generator on the `topic` topic.
 
+### Without SASL
+
 ```shell
 git clone git@github.com:pubnub/kafka-bridge.git
 cd kafka-bridge
-docker-compose -f kafka/docker-compose.yaml up --force-recreate --remove-orphans
+docker-compose -f kafka/plain/docker-compose.yaml up --force-recreate --remove-orphans
+```
+
+### Using SASL_PLAINTEXT
+
+```shell
+git clone git@github.com:pubnub/kafka-bridge.git
+cd kafka-bridge
+docker-compose -f kafka/sasl_plaintext/docker-compose.yaml up --force-recreate --remove-orphans
 ```
 
 Great!
@@ -49,9 +59,11 @@ The following API Keys are for public-use and may be rotated.
 
 Open a new terminal session and run the following commands:
 
+### Without SASL
+
 ```shell
 cd kafka-bridge
-docker build -f kafka/dockerfile -t kafka-bridge .
+docker build -f kafka/plain/dockerfile -t kafka-bridge .
 docker run                                                                        \
     --network=host                                                                \
     ## ~ Replace with your own API Keys ~ https://dashboard.pubnub.com/signup     \
@@ -61,11 +73,33 @@ docker run                                                                      
     ## ~ Replace with your own API Keys ~ https://dashboard.pubnub.com/signup     \
     -e PUBNUB_CHANNEL_ROOT=topics                                                 \
     -e PUBNUB_CHANNEL=*                                                           \
-    -e KAFKA_GROUP=                                                               \
+    -e KAFKA_GROUP=test-group                                                     \
     -e KAFKA_PARTITION=0                                                          \
     -e KAFKA_TOPIC=topic                                                          \
     -e KAFKA_BROKERS=0.0.0.0:9094                                                 \
-    -e RUST_BACKTRACE=1                                                           \
+    kafka-bridge
+```
+
+### Using SASL_PLAINTEXT
+
+```shell
+cd kafka-bridge
+docker build -f kafka/sasl_plaintext/dockerfile -t kafka-bridge .
+docker run                                                                        \
+    --network=host                                                                \
+    ## ~ Replace with your own API Keys ~ https://dashboard.pubnub.com/signup     \
+    -e PUBNUB_PUBLISH_KEY=pub-c-6b57a39e-79e7-4d1d-926e-5c376a4cb021              \
+    -e PUBNUB_SUBSCRIBE_KEY=sub-c-df3799ee-704b-11e9-8724-8269f6864ada            \
+    -e PUBNUB_SECRET_KEY=sec-c-YWY3NzE0NTYtZTBkMS00YjJjLTgxZDQtN2YzOTY0NWNkNGVk   \
+    ## ~ Replace with your own API Keys ~ https://dashboard.pubnub.com/signup     \
+    -e PUBNUB_CHANNEL_ROOT=topics                                                 \
+    -e PUBNUB_CHANNEL=*                                                           \
+    -e KAFKA_GROUP=test-group                                                     \
+    -e KAFKA_PARTITION=0                                                          \
+    -e KAFKA_TOPIC=topic                                                          \
+    -e KAFKA_BROKERS=0.0.0.0:9094                                                 \
+    -e SASL_USERNAME=admin                                                        \
+    -e SASL_USERNAME=admin-secret                                                 \
     kafka-bridge
 ```
 
@@ -170,6 +204,8 @@ curl https://sh.rustup.rs -sSf | sh
 Now you can run `cargo run --bin kafka-bridge`.
 The EMP app is 12 factor and is configured via Environmental Variables.
 
+### Without SASL
+
 ```shell
 PUBNUB_PUBLISH_KEY=pub-c-6b57a39e-79e7-4d1d-926e-5c376a4cb021              \
 PUBNUB_SUBSCRIBE_KEY=sub-c-df3799ee-704b-11e9-8724-8269f6864ada            \
@@ -182,6 +218,24 @@ KAFKA_TOPIC=topic                                                          \
 KAFKA_BROKERS=0.0.0.0:9094                                                 \
 RUST_BACKTRACE=1                                                           \
 cargo run --bin kafka-bridge
+```
+
+### Using SASL_PLAINTEXT
+
+```shell
+PUBNUB_PUBLISH_KEY=pub-c-6b57a39e-79e7-4d1d-926e-5c376a4cb021              \
+PUBNUB_SUBSCRIBE_KEY=sub-c-df3799ee-704b-11e9-8724-8269f6864ada            \
+PUBNUB_SECRET_KEY=sec-c-YWY3NzE0NTYtZTBkMS00YjJjLTgxZDQtN2YzOTY0NWNkNGVk   \
+PUBNUB_CHANNEL_ROOT=topics                                                 \
+PUBNUB_CHANNEL=*                                                           \
+KAFKA_GROUP=test-group                                                     \
+KAFKA_PARTITION=0                                                          \
+KAFKA_TOPIC=topic                                                          \
+KAFKA_BROKERS=0.0.0.0:9094                                                 \
+SASL_USERNAME=admin                                                        \
+SASL_PASSWORD=admin-secret                                                 \
+RUST_BACKTRACE=1                                                           \
+cargo run --bin kafka-bridge --features sasl
 ```
 
 ## Reference Links

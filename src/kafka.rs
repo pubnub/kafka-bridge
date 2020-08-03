@@ -59,23 +59,35 @@ pub struct SASLConfig {
     pub password: String,
 }
 
+#[cfg(feature = "sasl")]
+impl From<&SASLConfig> for ClientConfig {
+    fn from(src: &SASLConfig) -> ClientConfig {
+        let mut cfg = ClientConfig::new();
+        cfg.set("security.protocol", "sasl_plaintext")
+            .set("sasl.mechanism", "PLAIN")
+            .set("sasl.username", &src.username)
+            .set("sasl.password", &src.password);
+        cfg
+    }
+}
+
 impl ClientContext for CustomConsumerContext {}
 
 impl ConsumerContext for CustomConsumerContext {
-    fn pre_rebalance(&self, rebalance: &Rebalance) {
-        println!("Pre rebalance {:?}", rebalance);
+    fn pre_rebalance(&self, _rebalance: &Rebalance) {
+        // println!("Pre rebalance {:?}", rebalance);
     }
 
-    fn post_rebalance(&self, rebalance: &Rebalance) {
-        println!("Post rebalance {:?}", rebalance);
+    fn post_rebalance(&self, _rebalance: &Rebalance) {
+        // println!("Post rebalance {:?}", rebalance);
     }
 
     fn commit_callback(
         &self,
-        result: KafkaResult<()>,
+        _result: KafkaResult<()>,
         _offsets: &TopicPartitionList,
     ) {
-        println!("Committing offsets: {:?}", result);
+        // println!("Committing offsets: {:?}", result);
     }
 }
 
@@ -126,8 +138,12 @@ impl SubscribeClient {
         partition: i32,
     ) -> Result<Self, Error> {
         let context = CustomConsumerContext;
-        let config =
-            SubscribeClient::create_client_config(brokers, group, partition);
+        let config = SubscribeClient::fill_client_config(
+            ClientConfig::new(),
+            brokers,
+            group,
+            partition,
+        );
         let consumer: KafkaResult<CustomConsumer> =
             config.create_with_context(context);
 
@@ -162,13 +178,12 @@ impl SubscribeClient {
         sasl_cfg: &SASLConfig,
     ) -> Result<Self, Error> {
         let context = CustomConsumerContext;
-        let mut config =
-            SubscribeClient::create_client_config(brokers, group, partition);
-        config
-            .set("security.protocol", "sasl_plaintext")
-            .set("sasl.mechanism", "PLAIN")
-            .set("sasl.username", &sasl_cfg.username)
-            .set("sasl.password", &sasl_cfg.password);
+        let config = SubscribeClient::fill_client_config(
+            ClientConfig::from(sasl_cfg),
+            brokers,
+            group,
+            partition,
+        );
 
         let consumer: KafkaResult<CustomConsumer> =
             config.create_with_context(context);
@@ -224,12 +239,12 @@ impl SubscribeClient {
         Ok(())
     }
 
-    fn create_client_config(
+    fn fill_client_config(
+        mut cfg: ClientConfig,
         brokers: &[String],
         group: &str,
         partition: i32,
     ) -> ClientConfig {
-        let mut cfg = ClientConfig::new();
         cfg.set("group.id", group)
             .set("bootstrap.servers", &brokers[0])
             .set("enable.partition.eof", "false")
@@ -293,15 +308,12 @@ impl PublishClient {
         topic: &str,
         sasl_cfg: &SASLConfig,
     ) -> Result<Self, Error> {
-        let producer: KafkaResult<CustomProducer> = ClientConfig::new()
-            .set("bootstrap.servers", &brokers[0])
-            .set("request.timeout.ms", "1000")
-            .set("acks", "1")
-            .set("security.protocol", "sasl_plaintext")
-            .set("sasl.mechanism", "PLAIN")
-            .set("sasl.username", &sasl_cfg.username)
-            .set("sasl.password", &sasl_cfg.password)
-            .create();
+        let producer: KafkaResult<CustomProducer> =
+            ClientConfig::from(sasl_cfg)
+                .set("bootstrap.servers", &brokers[0])
+                .set("request.timeout.ms", "1000")
+                .set("acks", "1")
+                .create();
 
         let producer = producer.map_err(|err| {
             println!("Failed to init kafka producer: {}", err);

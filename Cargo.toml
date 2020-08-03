@@ -7,16 +7,12 @@ readme = "readme.md"
 
 [features]
 nightly = []
-default = ["sasl"]
-
-sasl = []
+sasl = ["rdkafka/gssapi-vendored"]
 
 [dependencies]
 json = "0.12"
 percent-encoding = "2.1.0"
 openssl = { version = "0.10", features = ["vendored"] }
-#openssl = "0.9"
-#native-tls = "0.2.2"
 failure = "^0.1"
 failure_derive = "^0.1"
-rdkafka = { version = "0.24", features = ["cmake-build", "gssapi"] }
+rdkafka = { version = "0.24", features = ["cmake-build"] }
