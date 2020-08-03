@@ -48,6 +48,12 @@ pub struct SaslSslConfig {
     pub key_password: String,
 }
 
+#[cfg(feature = "sasl-plain")]
+pub struct SaslPlainConfig {
+    pub username: String,
+    pub password: String,
+}
+
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 /// # Kafka Subscribe Client ( Consumer )
 ///
@@ -120,7 +126,7 @@ impl SubscribeClient {
     }
 
     #[cfg(feature = "sasl-ssl")]
-    /// Creates a new [`SubscribeClient`] using SASL and SSL.
+    /// Creates a new [`SubscribeClient`] using SASL with GSSAPI.
     ///
     /// # Errors
     ///
@@ -133,6 +139,39 @@ impl SubscribeClient {
         group: &str,
         partition: i32,
         sasl_ssl_config: &SaslSslConfig,
+    ) -> Result<Self, Error> {
+        let consumer: BaseConsumer = sasl_ssl_config
+            .to_client_config()
+            .set("group.id", group)
+            .set("metadata.broker.list", &brokers.join(","))
+            .create()
+            .map_err(|_| Error::KafkaInitialize)?;
+        let mut tpl = TopicPartitionList::new();
+        tpl.add_partition_offset(topic, partition, Offset::Beginning);
+        consumer.assign(&tpl).map_err(|_| Error::KafkaInitialize)?;
+
+        Ok(Self {
+            consumer,
+            sender,
+            topic: topic.into(),
+            group: group.into(),
+        })
+    }
+
+    #[cfg(feature = "sasl-plain")]
+    /// Creates a new [`SubscribeClient`] using SASL with user/pass.
+    ///
+    /// # Errors
+    ///
+    /// This function can return [`Error::KafkaInitialize`] on Kafka client
+    /// initialization failure.
+    pub fn new_sasl_plain(
+        brokers: &[String],
+        sender: Sender<Message>,
+        topic: &str,
+        group: &str,
+        partition: i32,
+        sasl_ssl_config: &SaslPlainConfig,
     ) -> Result<Self, Error> {
         let consumer: BaseConsumer = sasl_ssl_config
             .to_client_config()
@@ -250,7 +289,7 @@ impl PublishClient {
     }
 
     #[cfg(feature = "sasl-ssl")]
-    /// Creates a new [`PublishClient`] using SASL and SSL.
+    /// Creates a new [`PublishClient`] using SASL with GSSAPI.
     ///
     /// # Errors
     ///
@@ -260,6 +299,32 @@ impl PublishClient {
         brokers: &[String],
         topic: &str,
         sasl_ssl_config: &SaslSslConfig,
+    ) -> Result<Self, Error> {
+        let producer = sasl_ssl_config
+            .to_client_config()
+            .set("metadata.broker.list", &brokers.join(","))
+            .set("request.required.acks", "1")
+            .set("request.timeout.ms", "1000")
+            .create()
+            .map_err(|_| Error::KafkaInitialize)?;
+
+        Ok(Self {
+            producer,
+            topic: topic.into(),
+        })
+    }
+
+    #[cfg(feature = "sasl-plain")]
+    /// Creates a new [`PublishClient`] using SASL with user/pass.
+    ///
+    /// # Errors
+    ///
+    /// This function can return [`Error::KafkaInitialize`] on Kafka client
+    /// initialization failure.
+    pub fn new_sasl_plain(
+        brokers: &[String],
+        topic: &str,
+        sasl_ssl_config: &SaslPlainConfig,
     ) -> Result<Self, Error> {
         let producer = sasl_ssl_config
             .to_client_config()
@@ -310,6 +375,20 @@ impl SaslSslConfig {
             .set("ssl.certificate.location", certificate_location)
             .set("ssl.key.location", key_location)
             .set("ssl.key.password", key_password);
+        config
+    }
+}
+
+#[cfg(feature = "sasl-plain")]
+impl SaslPlainConfig {
+    fn to_client_config(&self) -> ClientConfig {
+        let Self { username, password } = self;
+        let mut config = ClientConfig::new();
+        config
+            .set("security.protocol", "SASL_PLAINTEXT")
+            .set("sasl.mechanism", "PLAIN")
+            .set("sasl.username", username)
+            .set("sasl.password", password);
         config
     }
 }

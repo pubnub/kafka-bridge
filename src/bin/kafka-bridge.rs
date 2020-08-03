@@ -2,6 +2,8 @@
 #![deny(clippy::pedantic)]
 
 use kafka_bridge::kafka;
+#[cfg(feature = "sasl-plain")]
+use kafka_bridge::kafka::SaslPlainConfig;
 #[cfg(feature = "sasl-ssl")]
 use kafka_bridge::kafka::SaslSslConfig;
 use kafka_bridge::pubnub;
@@ -25,6 +27,8 @@ struct Configuration {
     pub secret_key: String,
     #[cfg(feature = "sasl-ssl")]
     pub sasl_ssl_config: SaslSslConfig,
+    #[cfg(feature = "sasl-plain")]
+    pub sasl_plain_config: SaslPlainConfig,
 }
 
 fn environment_variables() -> Configuration {
@@ -53,6 +57,11 @@ fn environment_variables() -> Configuration {
             certificate_location: fetch_env_var("CERTIFICATE_LOCATION"),
             key_location: fetch_env_var("KEY_LOCATION"),
             key_password: fetch_env_var("KEY_PASSWORD"),
+        },
+        #[cfg(feature = "sasl-plain")]
+        sasl_plain_config: SaslPlainConfig {
+            username: fetch_env_var("SASL_USERNAME"),
+            password: fetch_env_var("SASL_PASSWORD"),
         },
     }
 }
@@ -242,7 +251,7 @@ fn spawn_kafka_publisher_thread(
         .spawn(move || loop {
             let config = environment_variables();
 
-            #[cfg(not(feature = "sasl-ssl"))]
+            #[cfg(not(any(feature = "sasl-ssl", feature = "sasl-plain")))]
             let res = kafka::PublishClient::new(
                 config.kafka_brokers,
                 &config.kafka_topic,
@@ -252,6 +261,12 @@ fn spawn_kafka_publisher_thread(
                 &config.kafka_brokers,
                 &config.kafka_topic,
                 &config.sasl_ssl_config,
+            );
+            #[cfg(feature = "sasl-plain")]
+            let res = kafka::PublishClient::new_sasl_plain(
+                &config.kafka_brokers,
+                &config.kafka_topic,
+                &config.sasl_plain_config,
             );
 
             let mut kafka = match res {
@@ -283,7 +298,7 @@ fn spawn_kafka_subscriber_thread(
         .spawn(move || loop {
             let config = environment_variables();
 
-            #[cfg(not(feature = "sasl-ssl"))]
+            #[cfg(not(any(feature = "sasl-ssl", feature = "sasl-plain")))]
             let res = kafka::SubscribeClient::new(
                 config.kafka_brokers,
                 kafka_message_tx.clone(),
@@ -299,6 +314,15 @@ fn spawn_kafka_subscriber_thread(
                 &config.kafka_group,
                 config.kafka_partition,
                 &config.sasl_ssl_config,
+            );
+            #[cfg(feature = "sasl-plain")]
+            let res = kafka::SubscribeClient::new_sasl_plain(
+                &config.kafka_brokers,
+                kafka_message_tx.clone(),
+                &config.kafka_topic,
+                &config.kafka_group,
+                config.kafka_partition,
+                &config.sasl_plain_config,
             );
 
             let mut kafka = match res {
