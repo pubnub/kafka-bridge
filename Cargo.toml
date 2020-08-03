@@ -7,7 +7,7 @@ readme = "readme.md"
 
 [features]
 nightly = []
-sasl = ["rdkafka/gssapi-vendored"]
+sasl = []
 
 [dependencies]
 json = "0.12"
