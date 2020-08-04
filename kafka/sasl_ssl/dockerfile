@@ -8,7 +8,7 @@ RUN apt-get update \
 WORKDIR /app
 COPY . /app/
 
-RUN cargo build --release --features sasl-plain
+RUN cargo build --release --features sasl-ssl
 RUN strip target/release/kafka-bridge
 
 # Runtime Build

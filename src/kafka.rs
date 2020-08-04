@@ -53,18 +53,44 @@ pub enum Error {
     HTTPResponse,
 }
 
-#[cfg(feature = "sasl")]
+#[cfg(feature = "sasl-plain")]
 pub struct SASLConfig {
     pub username: String,
     pub password: String,
 }
 
-#[cfg(feature = "sasl")]
+#[cfg(feature = "sasl-ssl")]
+pub struct SASLConfig {
+    pub username: String,
+    pub password: String,
+    pub ca_location: String,
+    pub certificate_location: String,
+    pub key_location: String,
+    pub key_password: String,
+}
+
+#[cfg(feature = "sasl-plain")]
 impl From<&SASLConfig> for ClientConfig {
     fn from(src: &SASLConfig) -> ClientConfig {
         let mut cfg = ClientConfig::new();
         cfg.set("security.protocol", "sasl_plaintext")
             .set("sasl.mechanism", "PLAIN")
+            .set("sasl.username", &src.username)
+            .set("sasl.password", &src.password);
+        cfg
+    }
+}
+
+#[cfg(feature = "sasl-ssl")]
+impl From<&SASLConfig> for ClientConfig {
+    fn from(src: &SASLConfig) -> ClientConfig {
+        let mut cfg = ClientConfig::new();
+        cfg.set("security.protocol", "sasl_ssl")
+            .set("sasl.mechanism", "PLAIN")
+            .set("ssl.ca.location", &src.ca_location)
+            .set("ssl.certificate.location", &src.certificate_location)
+            .set("ssl.key.location", &src.key_location)
+            .set("ssl.key.password", &src.key_password)
             .set("sasl.username", &src.username)
             .set("sasl.password", &src.password);
         cfg
@@ -165,7 +191,7 @@ impl SubscribeClient {
         })
     }
 
-    #[cfg(feature = "sasl")]
+    #[cfg(any(feature = "sasl-plain", feature = "sasl-ssl"))]
     /// # Errors
     ///
     /// Will return `Err` if failed to initialize kafka consumer.
@@ -299,7 +325,7 @@ impl PublishClient {
         })
     }
 
-    #[cfg(feature = "sasl")]
+    #[cfg(any(feature = "sasl-plain", feature = "sasl-ssl"))]
     /// # Errors
     ///
     /// Will return `Err` if failed to initialize kafka consumer.

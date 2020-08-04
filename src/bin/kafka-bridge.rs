@@ -2,7 +2,7 @@
 #![deny(clippy::pedantic)]
 
 use kafka_bridge::kafka;
-#[cfg(feature = "sasl")]
+#[cfg(any(feature = "sasl-plain", feature = "sasl-ssl"))]
 use kafka_bridge::kafka::SASLConfig;
 use std::sync::mpsc;
 use std::{env, process, thread, time};
@@ -21,7 +21,7 @@ struct Configuration {
     pub publish_key: String,
     pub subscribe_key: String,
     pub secret_key: String,
-    #[cfg(feature = "sasl")]
+    #[cfg(any(feature = "sasl-plain", feature = "sasl-ssl"))]
     pub sasl_cfg: SASLConfig,
 }
 
@@ -42,10 +42,19 @@ fn environment_variables() -> Configuration {
         publish_key: fetch_env_var("PUBNUB_PUBLISH_KEY"),
         subscribe_key: fetch_env_var("PUBNUB_SUBSCRIBE_KEY"),
         secret_key: fetch_env_var("PUBNUB_SECRET_KEY"),
-        #[cfg(feature = "sasl")]
+        #[cfg(feature = "sasl-plain")]
         sasl_cfg: SASLConfig {
             username: fetch_env_var("SASL_USERNAME"),
             password: fetch_env_var("SASL_PASSWORD"),
+        },
+        #[cfg(feature = "sasl-ssl")]
+        sasl_cfg: SASLConfig {
+            username: fetch_env_var("SASL_USERNAME"),
+            password: fetch_env_var("SASL_PASSWORD"),
+            ca_location: fetch_env_var("SSL_CA_LOCATION"),
+            certificate_location: fetch_env_var("SSL_CERTIFICATE_LOCATION"),
+            key_location: fetch_env_var("SSL_KEY_LOCATION"),
+            key_password: fetch_env_var("SSL_KEY_PASSWORD"),
         },
     }
 }
@@ -192,13 +201,13 @@ fn main() {
         .spawn(move || loop {
             let config = environment_variables();
 
-            #[cfg(not(feature = "sasl"))]
+            #[cfg(not(any(feature = "sasl-plain", feature = "sasl-ssl")))]
             let kafka = kafka::PublishClient::new(
                 &config.kafka_brokers,
                 &config.kafka_topic,
             );
 
-            #[cfg(feature = "sasl")]
+            #[cfg(any(feature = "sasl-plain", feature = "sasl-ssl"))]
             let kafka = kafka::PublishClient::new_with_sasl(
                 &config.kafka_brokers,
                 &config.kafka_topic,
@@ -231,7 +240,7 @@ fn main() {
         .name("KAFKA Subscriber Thread".into())
         .spawn(move || loop {
             let config = environment_variables();
-            #[cfg(not(feature = "sasl"))]
+            #[cfg(not(any(feature = "sasl-plain", feature = "sasl-ssl")))]
             let kafka = kafka::SubscribeClient::new(
                 &config.kafka_brokers,
                 kafka_message_tx.clone(),
@@ -240,7 +249,7 @@ fn main() {
                 config.kafka_partition,
             );
 
-            #[cfg(feature = "sasl")]
+            #[cfg(any(feature = "sasl-plain", feature = "sasl-ssl"))]
             let kafka = kafka::SubscribeClient::new_with_sasl(
                 &config.kafka_brokers,
                 kafka_message_tx.clone(),
