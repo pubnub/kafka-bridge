@@ -47,6 +47,22 @@ cd kafka-bridge
 docker-compose -f kafka/sasl_plaintext/docker-compose.yaml up --force-recreate --remove-orphans
 ```
 
+### Using SASL_SSL
+
+```shell
+git clone git@github.com:pubnub/kafka-bridge.git
+cd kafka-bridge
+```
+
+To use SASL_SSL user needs to generate sample certificates, this needs to be done only once:
+```shell
+cd kafka/sasl_ssl && ./generate-certs.sh && cd -
+```
+
+```shell
+docker-compose -f kafka/sasl_ssl/docker-compose.yaml up --force-recreate --remove-orphans
+```
+
 Great!
 Messages are bing simulated on the `topic` topic as we speak.
 Now in a separate terminal session, run the dockerfile in **Part 2**.
@@ -100,6 +116,36 @@ docker run                                                                      
     -e KAFKA_BROKERS=0.0.0.0:9094                                                 \
     -e SASL_USERNAME=admin                                                        \
     -e SASL_USERNAME=admin-secret                                                 \
+    kafka-bridge
+```
+
+### Using SASL_SSL
+
+```shell
+cd kafka-bridge
+docker build -f kafka/sasl_plaintext/dockerfile -t kafka-bridge .
+docker run                                                                        \
+    --network=host                                                                \
+    --hostname=kafka.confluent.io                                                 \
+    --add-host=kafka.confluent.io:0.0.0.0                                         \
+    ## ~ Replace with your own API Keys ~ https://dashboard.pubnub.com/signup     \
+    -e PUBNUB_PUBLISH_KEY=pub-c-6b57a39e-79e7-4d1d-926e-5c376a4cb021              \
+    -e PUBNUB_SUBSCRIBE_KEY=sub-c-df3799ee-704b-11e9-8724-8269f6864ada            \
+    -e PUBNUB_SECRET_KEY=sec-c-YWY3NzE0NTYtZTBkMS00YjJjLTgxZDQtN2YzOTY0NWNkNGVk   \
+    ## ~ Replace with your own API Keys ~ https://dashboard.pubnub.com/signup     \
+    -e PUBNUB_CHANNEL_ROOT=topics                                                 \
+    -e PUBNUB_CHANNEL=*                                                           \
+    -e KAFKA_GROUP=test-group                                                     \
+    -e KAFKA_PARTITION=0                                                          \
+    -e KAFKA_TOPIC=topic                                                          \
+    -e KAFKA_BROKERS=kafka.confluent.io:9094                                      \
+    -e SASL_USERNAME=admin                                                        \
+    -e SASL_USERNAME=admin-secret                                                 \
+    -e SSL_CA_LOCATION=/etc/kafka/secrets/kafka-cluster.pem                       \
+    -e SSL_CERTIFICATE_LOCATION=/etc/kafka/secrets/client/client.pem              \
+    -e SSL_KEY_LOCATION=/etc/kafka/secrets/client/client.key                      \
+    -e SSL_KEY_PASSWORD=secret                                                    \
+    -v $PWD/kafka/sasl_ssl/secrets:/etc/kafka/secrets                             \
     kafka-bridge
 ```
 
