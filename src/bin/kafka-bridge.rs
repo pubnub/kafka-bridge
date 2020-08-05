@@ -286,7 +286,7 @@ fn spawn_kafka_publisher_thread(
                 &config.sasl_ssl_config,
             );
             #[cfg(feature = "sasl-gssapi")]
-            let res = kafka::PublishClient::new_sasl_ssl(
+            let res = kafka::PublishClient::new_sasl_gssapi(
                 &config.kafka_brokers,
                 &config.kafka_topic,
                 &config.sasl_gssapi_config,
@@ -352,7 +352,7 @@ fn spawn_kafka_subscriber_thread(
                 &config.sasl_ssl_config,
             );
             #[cfg(feature = "sasl-gssapi")]
-            let res = kafka::SubscribeClient::new_sasl_ssl(
+            let res = kafka::SubscribeClient::new_sasl_gssapi(
                 &config.kafka_brokers,
                 kafka_message_tx.clone(),
                 &config.kafka_topic,

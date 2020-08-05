@@ -150,11 +150,10 @@ impl SubscribeClient {
         partition: i32,
         sasl_plain_config: &SaslPlainConfig,
     ) -> Result<Self, Error> {
-        let consumer: BaseConsumer = sasl_plain_config
-            .to_client_config()
+        let consumer = ClientConfig::from(sasl_plain_config)
             .set("group.id", group)
             .set("metadata.broker.list", &brokers.join(","))
-            .create()
+            .create::<BaseConsumer>()
             .map_err(|_| Error::KafkaInitialize)?;
         let mut tpl = TopicPartitionList::new();
         tpl.add_partition_offset(topic, partition, Offset::Beginning);
@@ -183,11 +182,10 @@ impl SubscribeClient {
         partition: i32,
         sasl_ssl_config: &SaslSslConfig,
     ) -> Result<Self, Error> {
-        let consumer: BaseConsumer = sasl_ssl_config
-            .to_client_config()
+        let consumer = ClientConfig::from(sasl_ssl_config)
             .set("group.id", group)
             .set("metadata.broker.list", &brokers.join(","))
-            .create()
+            .create::<BaseConsumer>()
             .map_err(|_| Error::KafkaInitialize)?;
         let mut tpl = TopicPartitionList::new();
         tpl.add_partition_offset(topic, partition, Offset::Beginning);
@@ -208,19 +206,18 @@ impl SubscribeClient {
     ///
     /// This function can return [`Error::KafkaInitialize`] on Kafka client
     /// initialization failure.
-    pub fn new_sasl_ssl(
+    pub fn new_sasl_gssapi(
         brokers: &[String],
         sender: Sender<Message>,
         topic: &str,
         group: &str,
         partition: i32,
-        sasl_ssl_config: &SaslGssapiConfig,
+        sasl_gssapi_config: &SaslGssapiConfig,
     ) -> Result<Self, Error> {
-        let consumer: BaseConsumer = sasl_ssl_config
-            .to_client_config()
+        let consumer = ClientConfig::from(sasl_gssapi_config)
             .set("group.id", group)
             .set("metadata.broker.list", &brokers.join(","))
-            .create()
+            .create::<BaseConsumer>()
             .map_err(|_| Error::KafkaInitialize)?;
         let mut tpl = TopicPartitionList::new();
         tpl.add_partition_offset(topic, partition, Offset::Beginning);
@@ -343,8 +340,7 @@ impl PublishClient {
         topic: &str,
         sasl_plain_config: &SaslPlainConfig,
     ) -> Result<Self, Error> {
-        let producer = sasl_plain_config
-            .to_client_config()
+        let producer = ClientConfig::from(sasl_plain_config)
             .set("metadata.broker.list", &brokers.join(","))
             .set("request.required.acks", "1")
             .set("request.timeout.ms", "1000")
@@ -369,8 +365,7 @@ impl PublishClient {
         topic: &str,
         sasl_ssl_config: &SaslSslConfig,
     ) -> Result<Self, Error> {
-        let producer = sasl_ssl_config
-            .to_client_config()
+        let producer = ClientConfig::from(sasl_ssl_config)
             .set("metadata.broker.list", &brokers.join(","))
             .set("request.required.acks", "1")
             .set("request.timeout.ms", "1000")
@@ -390,13 +385,12 @@ impl PublishClient {
     ///
     /// This function can return [`Error::KafkaInitialize`] on Kafka client
     /// initialization failure.
-    pub fn new_sasl_ssl(
+    pub fn new_sasl_gssapi(
         brokers: &[String],
         topic: &str,
-        sasl_ssl_config: &SaslGssapiConfig,
+        sasl_gssapi_config: &SaslGssapiConfig,
     ) -> Result<Self, Error> {
-        let producer = sasl_ssl_config
-            .to_client_config()
+        let producer = ClientConfig::from(sasl_gssapi_config)
             .set("metadata.broker.list", &brokers.join(","))
             .set("request.required.acks", "1")
             .set("request.timeout.ms", "1000")
@@ -423,9 +417,9 @@ impl PublishClient {
 }
 
 #[cfg(feature = "sasl-plain")]
-impl SaslPlainConfig {
-    fn to_client_config(&self) -> ClientConfig {
-        let Self { username, password } = self;
+impl From<&SaslPlainConfig> for ClientConfig {
+    fn from(config: &SaslPlainConfig) -> Self {
+        let SaslPlainConfig { username, password } = config;
         let mut config = ClientConfig::new();
         config
             .set("security.protocol", "SASL_PLAINTEXT")
@@ -437,16 +431,16 @@ impl SaslPlainConfig {
 }
 
 #[cfg(feature = "sasl-ssl")]
-impl SaslSslConfig {
-    fn to_client_config(&self) -> ClientConfig {
-        let Self {
+impl From<&SaslSslConfig> for ClientConfig {
+    fn from(config: &SaslSslConfig) -> Self {
+        let SaslSslConfig {
             username,
             password,
             ca_location,
             certificate_location,
             key_location,
             key_password,
-        } = self;
+        } = config;
         let mut config = ClientConfig::new();
         config
             .set("security.protocol", "SASL_SSL")
@@ -462,9 +456,9 @@ impl SaslSslConfig {
 }
 
 #[cfg(feature = "sasl-gssapi")]
-impl SaslGssapiConfig {
-    fn to_client_config(&self) -> ClientConfig {
-        let Self {
+impl From<&SaslGssapiConfig> for ClientConfig {
+    fn from(config: &SaslGssapiConfig) -> Self {
+        let SaslGssapiConfig {
             kerberos_service_name,
             kerberos_keytab,
             kerberos_principal,
@@ -472,7 +466,7 @@ impl SaslGssapiConfig {
             certificate_location,
             key_location,
             key_password,
-        } = self;
+        } = config;
         let mut config = ClientConfig::new();
         config
             .set("security.protocol", "SASL_SSL")
