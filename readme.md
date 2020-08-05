@@ -34,7 +34,7 @@ a sample feed generator on the `topic` topic.
 ```shell
 git clone git@github.com:pubnub/kafka-bridge.git
 cd kafka-bridge
-docker-compose -f kafka/docker-compose.yaml up --force-recreate --remove-orphans
+docker-compose -f examples/kafka/docker-compose.yaml up --force-recreate --remove-orphans
 ```
 
 Great!
@@ -51,7 +51,7 @@ Open a new terminal session and run the following commands:
 
 ```shell
 cd kafka-bridge
-docker build -f kafka/dockerfile -t kafka-bridge .
+docker build -f examples/kafka/dockerfile -t kafka-bridge .
 docker run                                                                        \
     --network=host                                                                \
     ## ~ Replace with your own API Keys ~ https://dashboard.pubnub.com/signup     \
@@ -60,8 +60,8 @@ docker run                                                                      
     -e PUBNUB_SECRET_KEY=sec-c-YWY3NzE0NTYtZTBkMS00YjJjLTgxZDQtN2YzOTY0NWNkNGVk   \
     ## ~ Replace with your own API Keys ~ https://dashboard.pubnub.com/signup     \
     -e PUBNUB_CHANNEL_ROOT=topics                                                 \
-    -e PUBNUB_CHANNEL=*                                                           \
-    -e KAFKA_GROUP=                                                               \
+    -e PUBNUB_CHANNEL='*'                                                         \
+    -e KAFKA_GROUP=mygroup                                                        \
     -e KAFKA_PARTITION=0                                                          \
     -e KAFKA_TOPIC=topic                                                          \
     -e KAFKA_BROKERS=0.0.0.0:9094                                                 \
@@ -140,7 +140,7 @@ You will see a `"Hello"` message every half-second.
 
 ### Few more details
 
-You can modify the ENVVARs in `./kafka/docker-compose.yaml` file.
+You can modify the ENVVARs in `./examples/kafka/docker-compose.yaml` file.
 
 That's it!
 If you can't use Docker Compose,
@@ -154,6 +154,136 @@ If you can't use the first two installation methods,
 then you can use the following alternative installation instructions.
 
 You need `Rust` and `Kafka`.
+
+## Using SASL with user/pass
+
+Start the docker compose file in a separate terminal:
+
+```shell
+cd examples/kafka-cluster-sasl-plain
+docker-compose up
+```
+
+Open a new terminal session and run the following commands:
+
+```shell
+docker build -f examples/kafka-cluster-sasl-plain/kafka-bridge/Dockerfile -t kafka-bridge .
+docker run                                                                        \
+    --network=host                                                                \
+    ## ~ Replace with your own API Keys ~ https://dashboard.pubnub.com/signup     \
+    -e PUBNUB_PUBLISH_KEY=pub-c-6b57a39e-79e7-4d1d-926e-5c376a4cb021              \
+    -e PUBNUB_SUBSCRIBE_KEY=sub-c-df3799ee-704b-11e9-8724-8269f6864ada            \
+    -e PUBNUB_SECRET_KEY=sec-c-YWY3NzE0NTYtZTBkMS00YjJjLTgxZDQtN2YzOTY0NWNkNGVk   \
+    ## ~ Replace with your own API Keys ~ https://dashboard.pubnub.com/signup     \
+    -e PUBNUB_CHANNEL_ROOT=topics                                                 \
+    -e PUBNUB_CHANNEL='*'                                                         \
+    -e KAFKA_GROUP=mygroup                                                        \
+    -e KAFKA_PARTITION=0                                                          \
+    -e KAFKA_TOPIC=topic                                                          \
+    -e KAFKA_BROKERS=localhost:19092,localhost:29092,localhost:39092              \
+    -e SASL_USERNAME=admin                                                        \
+    -e SASL_PASSWORD=confluent                                                    \
+    -e RUST_BACKTRACE=1                                                           \
+    -v $PWD/examples/kafka-cluster-sasl-plain/secrets:/etc/kafka/secrets          \
+    kafka-bridge
+```
+
+You can receive a stream of your messages in **Part 3**.
+
+## Using SASL with user/pass over SSL
+
+Start the docker compose file in a separate terminal:
+
+```shell
+cd examples/kafka-cluster-sasl-ssl
+docker-compose up
+```
+
+Open a new terminal session and run the following commands:
+
+```shell
+docker build -f examples/kafka-cluster-sasl-ssl/kafka-bridge/Dockerfile -t kafka-bridge .
+docker run                                                                        \
+    --network=host                                                                \
+    ## ~ Replace with your own API Keys ~ https://dashboard.pubnub.com/signup     \
+    -e PUBNUB_PUBLISH_KEY=pub-c-6b57a39e-79e7-4d1d-926e-5c376a4cb021              \
+    -e PUBNUB_SUBSCRIBE_KEY=sub-c-df3799ee-704b-11e9-8724-8269f6864ada            \
+    -e PUBNUB_SECRET_KEY=sec-c-YWY3NzE0NTYtZTBkMS00YjJjLTgxZDQtN2YzOTY0NWNkNGVk   \
+    ## ~ Replace with your own API Keys ~ https://dashboard.pubnub.com/signup     \
+    -e PUBNUB_CHANNEL_ROOT=topics                                                 \
+    -e PUBNUB_CHANNEL='*'                                                         \
+    -e KAFKA_GROUP=mygroup                                                        \
+    -e KAFKA_PARTITION=0                                                          \
+    -e KAFKA_TOPIC=topic                                                          \
+    -e KAFKA_BROKERS=localhost:19094,localhost:29094,localhost:39094              \
+    -e SASL_USERNAME=admin                                                        \
+    -e SASL_PASSWORD=confluent                                                    \
+    -e SSL_CA_LOCATION=/etc/kafka/secrets/snakeoil-ca-1.crt                       \
+    -e SSL_CERTIFICATE_LOCATION=/etc/kafka/secrets/kafkacat-ca1-signed.pem        \
+    -e SSL_KEY_LOCATION=/etc/kafka/secrets/kafkacat.client.key                    \
+    -e SSL_KEY_PASSWORD=confluent                                                 \
+    -e RUST_BACKTRACE=1                                                           \
+    -v $PWD/examples/kafka-cluster-sasl-ssl/secrets:/etc/kafka/secrets            \
+    kafka-bridge
+```
+
+You can receive a stream of your messages in **Part 3**.
+
+## Using SASL with GSSAPI
+
+You must generate CA certificates (or use yours if you already have one) and
+then generate a keystore and truststore for brokers and clients.
+
+```shell
+cd examples/kafka-cluster-sasl-gssapi/secrets
+./create-certs.sh
+# (Type yes for all "Trust this certificate? [no]:" prompts.)
+cd -
+```
+
+Start the docker compose file in a separate terminal:
+
+```shell
+cd examples/kafka-cluster-sasl-gssapi
+docker-compose up --no-start kerberos
+docker-compose start kerberos
+./kerberos-setup.sh
+docker-compose up
+```
+
+Open a new terminal session and run the following commands:
+
+```shell
+docker build -f examples/kafka-cluster-sasl-gssapi/kafka-bridge/Dockerfile -t kafka-bridge .
+docker run                                                                        \
+    --network=host                                                                \
+    --hostname=quickstart.confluent.io                                            \
+    --add-host=quickstart.confluent.io:0.0.0.0                                    \
+    ## ~ Replace with your own API Keys ~ https://dashboard.pubnub.com/signup     \
+    -e PUBNUB_PUBLISH_KEY=pub-c-6b57a39e-79e7-4d1d-926e-5c376a4cb021              \
+    -e PUBNUB_SUBSCRIBE_KEY=sub-c-df3799ee-704b-11e9-8724-8269f6864ada            \
+    -e PUBNUB_SECRET_KEY=sec-c-YWY3NzE0NTYtZTBkMS00YjJjLTgxZDQtN2YzOTY0NWNkNGVk   \
+    ## ~ Replace with your own API Keys ~ https://dashboard.pubnub.com/signup     \
+    -e PUBNUB_CHANNEL_ROOT=topics                                                 \
+    -e PUBNUB_CHANNEL='*'                                                         \
+    -e KAFKA_GROUP=mygroup                                                        \
+    -e KAFKA_PARTITION=0                                                          \
+    -e KAFKA_TOPIC=topic                                                          \
+    -e KAFKA_BROKERS=quickstart.confluent.io:19094,quickstart.confluent.io:29094,quickstart.confluent.io:39094 \
+    -e KRB5_CONFIG=/etc/kafka/secrets/krb.conf                                    \
+    -e KERBEROS_SERVICE_NAME=kafka                                                \
+    -e KERBEROS_KEYTAB=/etc/kafka/secrets/saslconsumer.keytab                     \
+    -e KERBEROS_PRINCIPAL=saslconsumer/quickstart.confluent.io@TEST.CONFLUENT.IO  \
+    -e SSL_CA_LOCATION=/etc/kafka/secrets/snakeoil-ca-1.crt                       \
+    -e SSL_CERTIFICATE_LOCATION=/etc/kafka/secrets/kafkacat-ca1-signed.pem        \
+    -e SSL_KEY_LOCATION=/etc/kafka/secrets/kafkacat.client.key                    \
+    -e SSL_KEY_PASSWORD=confluent                                                 \
+    -e RUST_BACKTRACE=1                                                           \
+    -v $PWD/examples/kafka-cluster-sasl-gssapi/secrets:/etc/kafka/secrets         \
+    kafka-bridge
+```
+
+You can receive a stream of your messages in **Part 3**.
 
 #### Get Rust
 
@@ -176,7 +306,7 @@ PUBNUB_SUBSCRIBE_KEY=sub-c-df3799ee-704b-11e9-8724-8269f6864ada            \
 PUBNUB_SECRET_KEY=sec-c-YWY3NzE0NTYtZTBkMS00YjJjLTgxZDQtN2YzOTY0NWNkNGVk   \
 PUBNUB_CHANNEL_ROOT=topics                                                 \
 PUBNUB_CHANNEL=*                                                           \
-KAFKA_GROUP=                                                               \
+KAFKA_GROUP=mygroup                                                        \
 KAFKA_PARTITION=0                                                          \
 KAFKA_TOPIC=topic                                                          \
 KAFKA_BROKERS=0.0.0.0:9094                                                 \

@@ -3,3 +3,13 @@ target
 *.DS_Store
 *.lock
 Cargo.lock
+
+**/secrets/*.crt
+**/secrets/*.csr
+**/secrets/*.jks
+**/secrets/*.key
+**/secrets/*.keytab
+**/secrets/*.pem
+**/secrets/*.req
+**/secrets/*.srl
+**/secrets/*_creds

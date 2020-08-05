@@ -102,7 +102,8 @@ fn http_response(socket: &mut Socket) -> Result<JsonValue, Error> {
 ///     subscribe_key,
 ///     _secret_key,
 ///     agent,
-///  ).expect("KAFKA Subscribe Client");
+/// )
+/// .expect("KAFKA Subscribe Client");
 ///
 /// let result = pubnub.next_message();
 /// assert!(result.is_ok());
@@ -111,12 +112,17 @@ fn http_response(socket: &mut Socket) -> Result<JsonValue, Error> {
 /// ```
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 impl SubscribeClient {
+    /// Creates a new [`SubscribeClient`].
+    ///
+    /// # Errors
+    ///
+    /// This function can return [`Error::Subscribe`] on unsuccessful subscribe.
     pub fn new(
         host: &str,
         root: &str,
         channel: &str,
         subscribe_key: &str,
-        _secret_key: &str,
+        secret_key: &str,
         agent: &str,
     ) -> Result<Self, Error> {
         let socket = Socket::new(host, agent, 30);
@@ -128,7 +134,7 @@ impl SubscribeClient {
             messages: Vec::new(),
             timetoken: "0".into(),
             subscribe_key: subscribe_key.into(),
-            _secret_key: _secret_key.into(),
+            _secret_key: secret_key.into(),
             agent: agent.into(),
         };
 
@@ -138,6 +144,11 @@ impl SubscribeClient {
         }
     }
 
+    /// Returns next message on the channel.
+    ///
+    /// # Errors
+    ///
+    /// This function can return [`Error::SubscribeRead`] on unsuccessful read.
     pub fn next_message(&mut self) -> Result<Message, Error> {
         // Return next saved mesasge
         if let Some(message) = self.messages.pop() {
@@ -241,13 +252,19 @@ impl SubscribeClient {
 ///     subscribe_key,
 ///     _secret_key,
 ///     agent,
-///  ).expect("KAFKA Subscribe Client");
+/// )
+/// .expect("KAFKA Subscribe Client");
 ///
 /// let result = pubnub.publish(channel, "data");
 /// assert!(result.is_ok());
 /// ```
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 impl PublishClient {
+    /// Creates a new [`PublishClient`].
+    ///
+    /// # Errors
+    ///
+    /// This function returns no errors.
     pub fn new(
         host: &str,
         root: &str,
@@ -268,6 +285,12 @@ impl PublishClient {
         })
     }
 
+    /// Publishes `message` to `channel`.
+    ///
+    /// # Errors
+    ///
+    /// * [`Error::PublishWrite`] on unsuccessful socket write
+    /// * [`Error::PublishResponse`] on unsuccessful HTTP response
     pub fn publish(
         &mut self,
         channel: &str,
@@ -286,8 +309,8 @@ impl PublishClient {
             self.subscribe_key,
             channel,
             encoded_message,
-            pnsdk=self.agent,
-            meta="{\"source\":\"KAFKA\"}"
+            pnsdk = self.agent,
+            meta = "{\"source\":\"KAFKA\"}"
         );
 
         let request =
