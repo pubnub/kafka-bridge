@@ -7,16 +7,16 @@ readme = "readme.md"
 
 [features]
 nightly = []
-sasl-ssl = ["rdkafka/ssl-vendored"]
-sasl-plain = []
 
 [dependencies]
 json = "0.12"
 percent-encoding = "2.1.0"
 openssl = { version = "0.10", features = ["vendored"] }
+#openssl = "0.9"
+#native-tls = "0.2.2"
 failure = "^0.1"
 failure_derive = "^0.1"
-rdkafka = { version = "0.24", features = ["cmake-build"] }
-futures = "0.3.5"
-futures-util = "0.3.5"
-tokio = { version = "0.2", features = ["rt-core", "macros", "sync", "time"] }
+
+[dependencies.kafka]
+git = "https://github.com/spicavigo/kafka-rust"
+rev = "0cf04b0c14058c2e5c0f46b5e91a46b916e76f51"
