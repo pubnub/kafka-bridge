@@ -176,7 +176,6 @@ impl SubscribeClient {
         group: &str,
         sasl_cfg: &SASLConfig,
     ) -> Result<Self, Error> {
-        let context = CustomConsumerContext;
         let config = SubscribeClient::fill_client_config(
             ClientConfig::from(sasl_cfg),
             brokers,
@@ -184,7 +183,7 @@ impl SubscribeClient {
         );
 
         let consumer: KafkaResult<CustomConsumer> =
-            config.create_with_context(context);
+            config.create();
 
         let consumer = consumer.map_err(|err| {
             println!("Failed to intialize consumer: {}", err);
