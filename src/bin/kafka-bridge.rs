@@ -14,7 +14,6 @@ struct Configuration {
     pub kafka_brokers: Vec<String>,
     pub kafka_topic: String,
     pub kafka_group: String,
-    pub kafka_partition: i32,
     pub pubnub_host: String,
     pub pubnub_channel: String,
     pub pubnub_channel_root: String,
@@ -33,9 +32,6 @@ fn environment_variables() -> Configuration {
             .collect(),
         kafka_topic: fetch_env_var("KAFKA_TOPIC"),
         kafka_group: fetch_env_var("KAFKA_GROUP"),
-        kafka_partition: fetch_env_var("KAFKA_PARTITION")
-            .parse::<i32>()
-            .unwrap(),
         pubnub_host: "psdsn.pubnub.com:80".into(),
         pubnub_channel: fetch_env_var("PUBNUB_CHANNEL"),
         pubnub_channel_root: fetch_env_var("PUBNUB_CHANNEL_ROOT"),
@@ -246,7 +242,6 @@ fn main() {
                 kafka_message_tx.clone(),
                 &config.kafka_topic,
                 &config.kafka_group,
-                config.kafka_partition,
             );
 
             #[cfg(any(feature = "sasl-plain", feature = "sasl-ssl"))]
@@ -255,7 +250,6 @@ fn main() {
                 kafka_message_tx.clone(),
                 &config.kafka_topic,
                 &config.kafka_group,
-                config.kafka_partition,
                 &config.sasl_cfg,
             );
 

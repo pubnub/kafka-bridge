@@ -1,17 +1,15 @@
 #![deny(clippy::all)]
 #![deny(clippy::pedantic)]
 
-use rdkafka::client::ClientContext;
 use rdkafka::config::{ClientConfig, RDKafkaLogLevel};
 use rdkafka::consumer::{
-    BaseConsumer, CommitMode, Consumer, ConsumerContext, Rebalance,
+    BaseConsumer, CommitMode, Consumer, DefaultConsumerContext,
 };
 use rdkafka::error::KafkaResult;
 use rdkafka::message::Message as RDKafkaMessage;
 use rdkafka::producer::{
     BaseRecord, DefaultProducerContext, ThreadedProducer,
 };
-use rdkafka::topic_partition_list::TopicPartitionList;
 use std::sync::mpsc::Sender;
 
 pub struct Message {
@@ -25,12 +23,7 @@ pub struct PublishClient {
     topic: String,
 }
 
-// A context can be used to change the behavior of producers and consumers by adding callbacks
-// that will be executed by librdkafka.
-// This particular context sets up custom callbacks to log rebalancing events.
-struct CustomConsumerContext;
-
-type CustomConsumer = BaseConsumer<CustomConsumerContext>;
+type CustomConsumer = BaseConsumer<DefaultConsumerContext>;
 type CustomProducer = ThreadedProducer<DefaultProducerContext>;
 
 pub struct SubscribeClient {
@@ -97,26 +90,6 @@ impl From<&SASLConfig> for ClientConfig {
     }
 }
 
-impl ClientContext for CustomConsumerContext {}
-
-impl ConsumerContext for CustomConsumerContext {
-    fn pre_rebalance(&self, _rebalance: &Rebalance) {
-        // println!("Pre rebalance {:?}", rebalance);
-    }
-
-    fn post_rebalance(&self, _rebalance: &Rebalance) {
-        // println!("Post rebalance {:?}", rebalance);
-    }
-
-    fn commit_callback(
-        &self,
-        _result: KafkaResult<()>,
-        _offsets: &TopicPartitionList,
-    ) {
-        // println!("Committing offsets: {:?}", result);
-    }
-}
-
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 /// # Kafka Subscribe Client ( Consumer )
 ///
@@ -124,13 +97,12 @@ impl ConsumerContext for CustomConsumerContext {
 /// MPSC Sender<crate::kafka::Message>.
 ///
 /// ```no_run
-/// use kafka_bridge::kafka::SubscribeClient;
-/// use kafka_bridge::pubnub::Message;
+/// use kafka_bridge::kafka;
+/// use std::sync::mpsc;
 ///
 /// let brokers = "0.0.0.0:9094".split(",").map(|s| s.to_string()).collect();
 /// let (kafka_message_tx, kafka_message_rx) = mpsc::channel();
 /// let kafka_topic                          = "topic";
-/// let kafka_partition                      = 0;
 /// let kafka_group                          = "";
 ///
 /// let mut kafka = match kafka::SubscribeClient::new(
@@ -138,37 +110,37 @@ impl ConsumerContext for CustomConsumerContext {
 ///     kafka_message_tx.clone(),
 ///     &kafka_topic,
 ///     &kafka_group,
-///     kafka_partition,
 /// ) {
-///     Ok(kafka)  => kafka,
-///     Err(error) => { println!("{}", error); }
-/// };
+///     Ok(kafka) => kafka,
+///     Err(error) => {
+///         println!("{:?}", error);
+///         return;
+///     }
 ///
 /// // Consume messages from broker and make them available
 /// // to `kafka_message_rx`.
 /// kafka.consume().expect("Error consuming Kafka messages");
 ///
-/// let message: Message =
+/// let message: kafka::Message =
 ///     kafka_message_rx.recv().expect("MPSC Channel Receiver");
 /// ```
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 impl SubscribeClient {
     /// # Errors
     ///
-    /// Will return `Err` if failed to initialize kafka consumer.
+    /// This function can return [`Error::KafkaInitialize`] on Kafka client
+    /// initialization failure.
     pub fn new(
         brokers: &[String],
         sender: Sender<Message>,
         topic: &str,
         group: &str,
-        partition: i32,
     ) -> Result<Self, Error> {
-        let context = CustomConsumerContext;
+        let context = DefaultConsumerContext;
         let config = SubscribeClient::fill_client_config(
             ClientConfig::new(),
             brokers,
             group,
-            partition,
         );
         let consumer: KafkaResult<CustomConsumer> =
             config.create_with_context(context);
@@ -192,15 +164,17 @@ impl SubscribeClient {
     }
 
     #[cfg(any(feature = "sasl-plain", feature = "sasl-ssl"))]
+    /// Creates a new [`SubscribeClient`] using SASL with SASL_PLAINTEXT or SASL_SSL depending on config.
+    ///
     /// # Errors
     ///
-    /// Will return `Err` if failed to initialize kafka consumer.
+    /// This function can return [`Error::KafkaInitialize`] on Kafka client
+    /// initialization failure.
     pub fn new_with_sasl(
         brokers: &[String],
         sender: Sender<Message>,
         topic: &str,
         group: &str,
-        partition: i32,
         sasl_cfg: &SASLConfig,
     ) -> Result<Self, Error> {
         let context = CustomConsumerContext;
@@ -208,7 +182,6 @@ impl SubscribeClient {
             ClientConfig::from(sasl_cfg),
             brokers,
             group,
-            partition,
         );
 
         let consumer: KafkaResult<CustomConsumer> =
@@ -231,9 +204,12 @@ impl SubscribeClient {
             group: group.into(),
         })
     }
+    /// Consumes messages and sends them through the channel.
+    ///
     /// # Errors
     ///
-    /// Will return `Err` if failed to consume item from kafka feed.
+    /// This function can return [`KafkaError`](rdkafka::error::KafkaError) on
+    /// unsuccessful poll.
     pub fn consume(&mut self) -> KafkaResult<()> {
         while let Some(r) = self.consumer.poll(None) {
             let m = r?;
@@ -269,7 +245,6 @@ impl SubscribeClient {
         mut cfg: ClientConfig,
         brokers: &[String],
         group: &str,
-        partition: i32,
     ) -> ClientConfig {
         cfg.set("group.id", group)
             .set("bootstrap.servers", &brokers[0])
@@ -287,26 +262,36 @@ impl SubscribeClient {
 /// This client lib will produce messages into Kafka.
 ///
 /// ```no_run
+/// use kafka_bridge::kafka;
+/// use std::sync::mpsc;
+/// 
 /// let brokers = "0.0.0.0:9094".split(",").map(|s| s.to_string()).collect();
-/// let mut kafka = match kafka::PublishClient::new(&brokers, topic) {
-///     Ok(kafka)  => kafka,
-///     Err(error) => { println!("{}", error); }
-/// };
+/// let mut kafka = match kafka::PublishClient::new(brokers, "topic") {
+///     Ok(kafka) => kafka,
+///     Err(error) => {
+///         println!("{:?}", error);
+///         return;
+///     }
 ///
 /// loop {
 ///     let message: kafka_bridge::pubnub::Message =
 ///         kafka_publish_rx.recv().expect("MPSC Channel Receiver");
 ///     match kafka.produce(&message.data) {
-///         Ok(())     => {}
-///         Err(error) => { println!("{}", error); }
+///         Ok(()) => {}
+///         Err(error) => {
+///             println!("{:?}", error);
+///         }
 ///     };
 /// }
 /// ```
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 impl PublishClient {
+    /// Creates a new [`PublishClient`].
+    ///
     /// # Errors
     ///
-    /// Will return `Err` if failed to initialize kafka consumer.
+    /// This function can return [`Error::KafkaInitialize`] on Kafka client
+    /// initialization failure.
     pub fn new(brokers: &[String], topic: &str) -> Result<Self, Error> {
         let producer: KafkaResult<CustomProducer> = ClientConfig::new()
             .set("bootstrap.servers", &brokers[0])
@@ -326,9 +311,12 @@ impl PublishClient {
     }
 
     #[cfg(any(feature = "sasl-plain", feature = "sasl-ssl"))]
+    /// Creates a new [`PublishClient`] using SASL with SASL_PLAINTEXT or SASL_SSL depending on config.
+    ///
     /// # Errors
     ///
-    /// Will return `Err` if failed to initialize kafka consumer.
+    /// This function can return [`Error::KafkaInitialize`] on Kafka client
+    /// initialization failure.
     pub fn new_with_sasl(
         brokers: &[String],
         topic: &str,
@@ -352,9 +340,12 @@ impl PublishClient {
         })
     }
 
+    /// Sends `message` into Kafka.
+    ///
     /// # Errors
     ///
-    /// Will return `Err` if failed to send message to kafka producer.
+    /// This function can return [`KafkaError`](rdkafka::error::KafkaError) on
+    /// unsuccessful send.
     pub fn produce(&mut self, message: &str) -> KafkaResult<()> {
         self.producer
             .send(BaseRecord::to(&self.topic).payload(message).key(""))
