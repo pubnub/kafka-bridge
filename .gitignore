@@ -1,4 +1,5 @@
 target
+kafka/**/secrets
 *.DStore
 *.DS_Store
 *.lock

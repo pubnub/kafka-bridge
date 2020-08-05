@@ -1,9 +1,15 @@
-use json;
+#![deny(clippy::all)]
+#![deny(clippy::pedantic)]
+
+use futures_util::stream::StreamExt;
+use rdkafka::config::{ClientConfig, RDKafkaLogLevel};
+use rdkafka::consumer::stream_consumer::StreamConsumer;
+use rdkafka::consumer::{CommitMode, Consumer, DefaultConsumerContext};
+use rdkafka::error::KafkaResult;
+use rdkafka::message::Message as RDKafkaMessage;
+use rdkafka::producer::{FutureProducer, FutureRecord};
+use tokio::sync::mpsc::Sender;
 use std::time::Duration;
-use std::sync::mpsc::Sender;
-use kafka::producer::{Producer, Record, RequiredAcks};
-use kafka::consumer::{Consumer, FetchOffset, GroupOffsetStorage};
-use kafka::error::Error as KafkaError;
 
 pub struct Message {
     pub topic: String,
@@ -12,12 +18,15 @@ pub struct Message {
 }
 
 pub struct PublishClient {
-    producer: Producer,
+    producer: CustomProducer,
     topic: String,
 }
 
+type CustomConsumer = StreamConsumer;
+type CustomProducer = FutureProducer;
+
 pub struct SubscribeClient {
-    consumer: Consumer,
+    consumer: CustomConsumer,
     sender: Sender<Message>,
     topic: String,
     group: String,
@@ -36,144 +45,313 @@ pub enum Error {
     HTTPResponse,
 }
 
+#[cfg(feature = "sasl-plain")]
+pub struct SASLConfig {
+    pub username: String,
+    pub password: String,
+}
+
+#[cfg(feature = "sasl-ssl")]
+pub struct SASLConfig {
+    pub username: String,
+    pub password: String,
+    pub ca_location: String,
+    pub certificate_location: String,
+    pub key_location: String,
+    pub key_password: String,
+}
+
+#[cfg(feature = "sasl-plain")]
+impl From<&SASLConfig> for ClientConfig {
+    fn from(src: &SASLConfig) -> ClientConfig {
+        let mut cfg = ClientConfig::new();
+        cfg.set("security.protocol", "sasl_plaintext")
+            .set("sasl.mechanism", "PLAIN")
+            .set("sasl.username", &src.username)
+            .set("sasl.password", &src.password);
+        cfg
+    }
+}
+
+#[cfg(feature = "sasl-ssl")]
+impl From<&SASLConfig> for ClientConfig {
+    fn from(src: &SASLConfig) -> ClientConfig {
+        let mut cfg = ClientConfig::new();
+        cfg.set("security.protocol", "sasl_ssl")
+            .set("sasl.mechanism", "PLAIN")
+            .set("ssl.ca.location", &src.ca_location)
+            .set("ssl.certificate.location", &src.certificate_location)
+            .set("ssl.key.location", &src.key_location)
+            .set("ssl.key.password", &src.key_password)
+            .set("sasl.username", &src.username)
+            .set("sasl.password", &src.password);
+        cfg
+    }
+}
+
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 /// # Kafka Subscribe Client ( Consumer )
 ///
-/// This client lib will consumer messages and place them into an 
+/// This client lib will consumer messages and place them into an
 /// MPSC Sender<crate::kafka::Message>.
 ///
 /// ```no_run
-/// use kafka_bridge::kafka::SubscribeClient;
-/// use kafka_bridge::pubnub::Message;
-/// 
+/// use kafka_bridge::kafka;
+/// use std::sync::mpsc;
+///
 /// let brokers = "0.0.0.0:9094".split(",").map(|s| s.to_string()).collect();
 /// let (kafka_message_tx, kafka_message_rx) = mpsc::channel();
 /// let kafka_topic                          = "topic";
-/// let kafka_partition                      = 0;
 /// let kafka_group                          = "";
-/// 
+///
 /// let mut kafka = match kafka::SubscribeClient::new(
-///     brokers,
+///     &brokers,
 ///     kafka_message_tx.clone(),
 ///     &kafka_topic,
 ///     &kafka_group,
-///     kafka_partition,
 /// ) {
-///     Ok(kafka)  => kafka,
-///     Err(error) => { println!("{}", error); }
-/// };
-/// 
+///     Ok(kafka) => kafka,
+///     Err(error) => {
+///         println!("{:?}", error);
+///         return;
+///     }
+///
 /// // Consume messages from broker and make them available
 /// // to `kafka_message_rx`.
 /// kafka.consume().expect("Error consuming Kafka messages");
-/// 
-/// let message: Message =
+///
+/// let message: kafka::Message =
 ///     kafka_message_rx.recv().expect("MPSC Channel Receiver");
 /// ```
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 impl SubscribeClient {
+    /// # Errors
+    ///
+    /// This function can return [`Error::KafkaInitialize`] on Kafka client
+    /// initialization failure.
     pub fn new(
-        brokers: Vec<String>,
+        brokers: &[String],
         sender: Sender<Message>,
         topic: &str,
         group: &str,
-        partition: i32,
     ) -> Result<Self, Error> {
-        let consumer = match Consumer::from_hosts(brokers)
-              .with_topic_partitions(topic.to_owned(), &[partition])
-              .with_fallback_offset(FetchOffset::Earliest)
-              .with_group(group.to_owned())
-              .with_offset_storage(GroupOffsetStorage::Kafka)
-              .create() {
-                Ok(result) => result,
-                Err(_err)  => return Err(Error::KafkaInitialize),
-            };
+        let context = DefaultConsumerContext;
+        let config = SubscribeClient::fill_client_config(
+            ClientConfig::new(),
+            brokers,
+            group,
+        );
+        let consumer: KafkaResult<CustomConsumer> =
+            config.create_with_context(context);
+
+        let consumer = consumer.map_err(|err| {
+            println!("Failed to intialize consumer: {}", err);
+            Error::KafkaInitialize
+        })?;
+
+        consumer.subscribe(&[topic]).map_err(|err| {
+            println!("Failed to initialize: {}", err);
+            Error::KafkaInitialize
+        })?;
 
         Ok(Self {
-            consumer: consumer,
-            sender:   sender,
-            topic:    topic.into(),
-            group:    group.into(),
+            consumer,
+            sender,
+            topic: topic.into(),
+            group: group.into(),
         })
     }
 
-    pub fn consume(&mut self) -> Result<(), KafkaError> {
-        loop {
-            for ms in self.consumer.poll().unwrap().iter() {
-                for m in ms.messages() {
-                    println!("{:?}", m);
-                    let mut data = match String::from_utf8(m.value.to_vec()) {
-                        Ok(v) => v,
-                        Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
-                    };
+    #[cfg(any(feature = "sasl-plain", feature = "sasl-ssl"))]
+    /// Creates a new [`SubscribeClient`] using SASL with SASL_PLAINTEXT or SASL_SSL depending on config.
+    ///
+    /// # Errors
+    ///
+    /// This function can return [`Error::KafkaInitialize`] on Kafka client
+    /// initialization failure.
+    pub fn new_with_sasl(
+        brokers: &[String],
+        sender: Sender<Message>,
+        topic: &str,
+        group: &str,
+        sasl_cfg: &SASLConfig,
+    ) -> Result<Self, Error> {
+        let config = SubscribeClient::fill_client_config(
+            ClientConfig::from(sasl_cfg),
+            brokers,
+            group,
+        );
 
-                    let parsetest = json::parse(&data);
-                    if parsetest.is_err() {
-                        data = json::stringify(data);
-                    }
+        let consumer: KafkaResult<CustomConsumer> =
+            config.create();
 
-                    self.sender.send(Message {
-                        topic: self.topic.clone(),
-                        group: self.group.clone(),
-                        data: data,
-                    }).expect("Error writing to mpsc Sender");
-                }
-                self.consumer.consume_messageset(ms)
-                .expect("Error marking MessageSet as consumed.");
+        let consumer = consumer.map_err(|err| {
+            println!("Failed to intialize consumer: {}", err);
+            Error::KafkaInitialize
+        })?;
+
+        consumer.subscribe(&[topic]).map_err(|err| {
+            println!("Failed to initialize: {}", err);
+            Error::KafkaInitialize
+        })?;
+
+        Ok(Self {
+            consumer,
+            sender,
+            topic: topic.into(),
+            group: group.into(),
+        })
+    }
+    /// Consumes messages and sends them through the channel.
+    ///
+    /// # Errors
+    ///
+    /// This function can return [`KafkaError`](rdkafka::error::KafkaError) on
+    /// unsuccessful poll.
+    pub async fn consume(&mut self) -> KafkaResult<()> {
+        let mut message_stream = self.consumer.start();
+        while let Some(r) = message_stream.next().await {
+            let m = r?;
+
+            let mut data = match m.payload_view::<str>() {
+                None => String::new(),
+                Some(Ok(s)) => s.into(),
+                Some(Err(_e)) => String::new(),
+            };
+            println!("key: '{:?}', payload: '{}', topic: {}, partition: {}, offset: {}, timestamp: {:?}",
+                  m.key(), data, m.topic(), m.partition(), m.offset(), m.timestamp());
+
+            let parsetest = json::parse(&data);
+            if parsetest.is_err() {
+                data = json::stringify(data);
             }
-            self.consumer.commit_consumed().unwrap();
+
+            self.sender
+                .send(Message {
+                    topic: self.topic.clone(),
+                    group: self.group.clone(),
+                    data: data.to_string(),
+                })
+                .await
+                .map_err(|_err| ())
+                .expect("Error writing to mpsc Sender");
+
+            self.consumer.commit_message(&m, CommitMode::Async)?;
         }
+
+        Ok(())
+    }
+
+    fn fill_client_config(
+        mut cfg: ClientConfig,
+        brokers: &[String],
+        group: &str,
+    ) -> ClientConfig {
+        cfg.set("group.id", group)
+            .set("bootstrap.servers", &brokers[0])
+            .set("enable.partition.eof", "false")
+            .set("auto.offset.reset", "earliest")
+            .set("enable.auto.commit", "true")
+            .set_log_level(RDKafkaLogLevel::Debug);
+        cfg
     }
 }
-
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 /// # Kafka Publish Client ( Producer )
 ///
 /// This client lib will produce messages into Kafka.
-/// 
+///
 /// ```no_run
+/// use kafka_bridge::kafka;
+/// use std::sync::mpsc;
+///
 /// let brokers = "0.0.0.0:9094".split(",").map(|s| s.to_string()).collect();
-/// let mut kafka = match kafka::PublishClient::new(brokers, topic) {
-///     Ok(kafka)  => kafka,
-///     Err(error) => { println!("{}", error); }
-/// };
-/// 
+/// let mut kafka = match kafka::PublishClient::new(brokers, "topic") {
+///     Ok(kafka) => kafka,
+///     Err(error) => {
+///         println!("{:?}", error);
+///         return;
+///     }
+///
 /// loop {
 ///     let message: kafka_bridge::pubnub::Message =
 ///         kafka_publish_rx.recv().expect("MPSC Channel Receiver");
 ///     match kafka.produce(&message.data) {
-///         Ok(())     => {}
-///         Err(error) => { println!("{}", error); }
+///         Ok(()) => {}
+///         Err(error) => {
+///             println!("{:?}", error);
+///         }
 ///     };
 /// }
 /// ```
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 impl PublishClient {
-    pub fn new(
-        brokers: Vec<String>,
-        topic: &str,
-    ) -> Result<Self, Error> {
-	let producer = match Producer::from_hosts(brokers)
-	    .with_ack_timeout(Duration::from_secs(1))
-	    .with_required_acks(RequiredAcks::One)
-	    .create() {
-                Ok(result) => result,
-                Err(_err)  => return Err(Error::KafkaInitialize),
-            };
+    /// Creates a new [`PublishClient`].
+    ///
+    /// # Errors
+    ///
+    /// This function can return [`Error::KafkaInitialize`] on Kafka client
+    /// initialization failure.
+    pub fn new(brokers: &[String], topic: &str) -> Result<Self, Error> {
+        let producer: KafkaResult<CustomProducer> = ClientConfig::new()
+            .set("bootstrap.servers", &brokers[0])
+            .set("request.timeout.ms", "1000")
+            .set("acks", "1")
+            .create();
+
+        let producer = producer.map_err(|err| {
+            println!("Failed to init kafka producer: {}", err);
+            Error::KafkaInitialize
+        })?;
 
         Ok(Self {
-            producer: producer,
-            topic:    topic.into(),
+            producer,
+            topic: topic.into(),
         })
     }
 
-    pub fn produce(&mut self, message: &str) -> Result<(), KafkaError> {
-        return self.producer.send(
-            &Record::from_value(
-                &self.topic.to_string(),
-                message.as_bytes(),
-            )
-        );
+    #[cfg(any(feature = "sasl-plain", feature = "sasl-ssl"))]
+    /// Creates a new [`PublishClient`] using SASL with SASL_PLAINTEXT or SASL_SSL depending on config.
+    ///
+    /// # Errors
+    ///
+    /// This function can return [`Error::KafkaInitialize`] on Kafka client
+    /// initialization failure.
+    pub fn new_with_sasl(
+        brokers: &[String],
+        topic: &str,
+        sasl_cfg: &SASLConfig,
+    ) -> Result<Self, Error> {
+        let producer: KafkaResult<CustomProducer> =
+            ClientConfig::from(sasl_cfg)
+                .set("bootstrap.servers", &brokers[0])
+                .set("request.timeout.ms", "1000")
+                .set("acks", "1")
+                .create();
+
+        let producer = producer.map_err(|err| {
+            println!("Failed to init kafka producer: {}", err);
+            Error::KafkaInitialize
+        })?;
+
+        Ok(Self {
+            producer,
+            topic: topic.into(),
+        })
+    }
+
+    /// Sends `message` into Kafka.
+    ///
+    /// # Errors
+    ///
+    /// This function can return [`KafkaError`](rdkafka::error::KafkaError) on
+    /// unsuccessful send.
+    pub async fn produce(&mut self, message: &str) -> KafkaResult<()> {
+        self.producer
+            .send(FutureRecord::to(&self.topic).payload(message).key(""), Duration::from_secs(0))
+            .await
+            .map(|(_, _)| ())
+            .map_err(|(err, _)| err)
     }
 }
