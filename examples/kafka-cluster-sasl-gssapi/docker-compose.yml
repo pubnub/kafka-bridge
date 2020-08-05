@@ -1,7 +1,7 @@
 ---
 version: '2'
 services:
-  zookeeper-sasl-1:
+  zookeeper-sasl-gssapi-1:
     image: confluentinc/cp-zookeeper:latest
     # This is required because Zookeeper can fail if kerberos is still initializing.
     restart: on-failure:3
@@ -26,7 +26,7 @@ services:
     - "quickstart.confluent.io:127.0.0.1"
     - "test.confluent.io:127.0.0.1"
 
-  zookeeper-sasl-2:
+  zookeeper-sasl-gssapi-2:
     image: confluentinc/cp-zookeeper:latest
     # This is required because Zookeeper can fail if kerberos is still initializing.
     restart: on-failure:3
@@ -51,7 +51,7 @@ services:
     - "quickstart.confluent.io:127.0.0.1"
     - "test.confluent.io:127.0.0.1"
 
-  zookeeper-sasl-3:
+  zookeeper-sasl-gssapi-3:
     image: confluentinc/cp-zookeeper:latest
     # This is required because Zookeeper can fail if kerberos is still initializing.
     restart: on-failure:3
@@ -76,7 +76,7 @@ services:
     - "quickstart.confluent.io:127.0.0.1"
     - "test.confluent.io:127.0.0.1"
 
-  kafka-sasl-1:
+  kafka-sasl-gssapi-1:
     image: confluentinc/cp-kafka:latest
     # This is required because Kafka can fail if kerberos is still initializing.
     restart: on-failure:3
@@ -108,7 +108,7 @@ services:
     - "quickstart.confluent.io:127.0.0.1"
     - "test.confluent.io:127.0.0.1"
 
-  kafka-sasl-2:
+  kafka-sasl-gssapi-2:
     image: confluentinc/cp-kafka:latest
     restart: on-failure:3
     environment:
@@ -139,7 +139,7 @@ services:
     - "quickstart.confluent.io:127.0.0.1"
     - "test.confluent.io:127.0.0.1"
 
-  kafka-sasl-3:
+  kafka-sasl-gssapi-3:
     image: confluentinc/cp-kafka:latest
     restart: on-failure:3
     environment:

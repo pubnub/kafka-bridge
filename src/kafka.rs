@@ -37,8 +37,14 @@ pub enum Error {
     HTTPResponse,
 }
 
-#[cfg(feature = "sasl-ssl")]
-pub struct SaslSslConfig {
+#[cfg(feature = "sasl-plain")]
+pub struct SaslPlainConfig {
+    pub username: String,
+    pub password: String,
+}
+
+#[cfg(feature = "sasl-gssapi")]
+pub struct SaslGssapiConfig {
     pub kerberos_service_name: String,
     pub kerberos_keytab: String,
     pub kerberos_principal: String,
@@ -46,12 +52,6 @@ pub struct SaslSslConfig {
     pub certificate_location: String,
     pub key_location: String,
     pub key_password: String,
-}
-
-#[cfg(feature = "sasl-plain")]
-pub struct SaslPlainConfig {
-    pub username: String,
-    pub password: String,
 }
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -125,20 +125,20 @@ impl SubscribeClient {
         })
     }
 
-    #[cfg(feature = "sasl-ssl")]
-    /// Creates a new [`SubscribeClient`] using SASL with GSSAPI.
+    #[cfg(feature = "sasl-plain")]
+    /// Creates a new [`SubscribeClient`] using SASL with user/pass.
     ///
     /// # Errors
     ///
     /// This function can return [`Error::KafkaInitialize`] on Kafka client
     /// initialization failure.
-    pub fn new_sasl_ssl(
+    pub fn new_sasl_plain(
         brokers: &[String],
         sender: Sender<Message>,
         topic: &str,
         group: &str,
         partition: i32,
-        sasl_ssl_config: &SaslSslConfig,
+        sasl_ssl_config: &SaslPlainConfig,
     ) -> Result<Self, Error> {
         let consumer: BaseConsumer = sasl_ssl_config
             .to_client_config()
@@ -158,20 +158,20 @@ impl SubscribeClient {
         })
     }
 
-    #[cfg(feature = "sasl-plain")]
-    /// Creates a new [`SubscribeClient`] using SASL with user/pass.
+    #[cfg(feature = "sasl-gssapi")]
+    /// Creates a new [`SubscribeClient`] using SASL with GSSAPI.
     ///
     /// # Errors
     ///
     /// This function can return [`Error::KafkaInitialize`] on Kafka client
     /// initialization failure.
-    pub fn new_sasl_plain(
+    pub fn new_sasl_ssl(
         brokers: &[String],
         sender: Sender<Message>,
         topic: &str,
         group: &str,
         partition: i32,
-        sasl_ssl_config: &SaslPlainConfig,
+        sasl_ssl_config: &SaslGssapiConfig,
     ) -> Result<Self, Error> {
         let consumer: BaseConsumer = sasl_ssl_config
             .to_client_config()
@@ -288,17 +288,17 @@ impl PublishClient {
         })
     }
 
-    #[cfg(feature = "sasl-ssl")]
-    /// Creates a new [`PublishClient`] using SASL with GSSAPI.
+    #[cfg(feature = "sasl-plain")]
+    /// Creates a new [`PublishClient`] using SASL with user/pass.
     ///
     /// # Errors
     ///
     /// This function can return [`Error::KafkaInitialize`] on Kafka client
     /// initialization failure.
-    pub fn new_sasl_ssl(
+    pub fn new_sasl_plain(
         brokers: &[String],
         topic: &str,
-        sasl_ssl_config: &SaslSslConfig,
+        sasl_ssl_config: &SaslPlainConfig,
     ) -> Result<Self, Error> {
         let producer = sasl_ssl_config
             .to_client_config()
@@ -314,17 +314,17 @@ impl PublishClient {
         })
     }
 
-    #[cfg(feature = "sasl-plain")]
-    /// Creates a new [`PublishClient`] using SASL with user/pass.
+    #[cfg(feature = "sasl-gssapi")]
+    /// Creates a new [`PublishClient`] using SASL with GSSAPI.
     ///
     /// # Errors
     ///
     /// This function can return [`Error::KafkaInitialize`] on Kafka client
     /// initialization failure.
-    pub fn new_sasl_plain(
+    pub fn new_sasl_ssl(
         brokers: &[String],
         topic: &str,
-        sasl_ssl_config: &SaslPlainConfig,
+        sasl_ssl_config: &SaslGssapiConfig,
     ) -> Result<Self, Error> {
         let producer = sasl_ssl_config
             .to_client_config()
@@ -353,8 +353,8 @@ impl PublishClient {
     }
 }
 
-#[cfg(feature = "sasl-ssl")]
-impl SaslSslConfig {
+#[cfg(feature = "sasl-gssapi")]
+impl SaslGssapiConfig {
     fn to_client_config(&self) -> ClientConfig {
         let Self {
             kerberos_service_name,

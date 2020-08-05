@@ -34,7 +34,7 @@ a sample feed generator on the `topic` topic.
 ```shell
 git clone git@github.com:pubnub/kafka-bridge.git
 cd kafka-bridge
-docker-compose -f kafka/docker-compose.yaml up --force-recreate --remove-orphans
+docker-compose -f examples/kafka/docker-compose.yaml up --force-recreate --remove-orphans
 ```
 
 Great!
@@ -51,7 +51,7 @@ Open a new terminal session and run the following commands:
 
 ```shell
 cd kafka-bridge
-docker build -f kafka/dockerfile -t kafka-bridge .
+docker build -f examples/kafka/dockerfile -t kafka-bridge .
 docker run                                                                        \
     --network=host                                                                \
     ## ~ Replace with your own API Keys ~ https://dashboard.pubnub.com/signup     \
@@ -140,7 +140,7 @@ You will see a `"Hello"` message every half-second.
 
 ### Few more details
 
-You can modify the ENVVARs in `./kafka/docker-compose.yaml` file.
+You can modify the ENVVARs in `./examples/kafka/docker-compose.yaml` file.
 
 That's it!
 If you can't use Docker Compose,
@@ -196,7 +196,7 @@ You must generate CA certificates (or use yours if you already have one) and
 then generate a keystore and truststore for brokers and clients.
 
 ```shell
-cd examples/kafka-cluster-sasl/secrets
+cd examples/kafka-cluster-sasl-gssapi/secrets
 ./create-certs.sh
 # (Type yes for all "Trust this certificate? [no]:" prompts.)
 cd -
@@ -205,7 +205,7 @@ cd -
 Start the docker compose file in a separate terminal:
 
 ```shell
-cd examples/kafka-cluster-sasl
+cd examples/kafka-cluster-sasl-gssapi
 docker-compose up --no-start kerberos
 docker-compose start kerberos
 ./kerberos-setup.sh
@@ -215,7 +215,7 @@ docker-compose up
 Open a new terminal session and run the following commands:
 
 ```shell
-docker build -f examples/kafka-cluster-sasl/kafka-bridge/Dockerfile -t kafka-bridge .
+docker build -f examples/kafka-cluster-sasl-gssapi/kafka-bridge/Dockerfile -t kafka-bridge .
 docker run                                                                        \
     --network=host                                                                \
     --hostname=quickstart.confluent.io                                            \
@@ -240,7 +240,7 @@ docker run                                                                      
     -e KEY_LOCATION=/etc/kafka/secrets/kafkacat.client.key                        \
     -e KEY_PASSWORD=confluent                                                     \
     -e RUST_BACKTRACE=1                                                           \
-    -v $PWD/examples/kafka-cluster-sasl/secrets:/etc/kafka/secrets                \
+    -v $PWD/examples/kafka-cluster-sasl-gssapi/secrets:/etc/kafka/secrets         \
     kafka-bridge
 ```
 
