@@ -2,12 +2,6 @@
 #![deny(clippy::pedantic)]
 
 use kafka_bridge::kafka;
-#[cfg(feature = "sasl-gssapi")]
-use kafka_bridge::kafka::SaslGssapiConfig;
-#[cfg(feature = "sasl-plain")]
-use kafka_bridge::kafka::SaslPlainConfig;
-#[cfg(feature = "sasl-ssl")]
-use kafka_bridge::kafka::SaslSslConfig;
 use kafka_bridge::pubnub;
 use std::io;
 use std::sync::mpsc;
@@ -27,12 +21,24 @@ struct Configuration {
     pub publish_key: String,
     pub subscribe_key: String,
     pub secret_key: String,
-    #[cfg(feature = "sasl-plain")]
-    pub sasl_plain_config: SaslPlainConfig,
-    #[cfg(feature = "sasl-ssl")]
-    pub sasl_ssl_config: SaslSslConfig,
+    #[cfg(any(feature = "sasl-plain", feature = "sasl-ssl"))]
+    pub sasl_username: String,
+    #[cfg(any(feature = "sasl-plain", feature = "sasl-ssl"))]
+    pub sasl_password: String,
+    #[cfg(any(feature = "sasl-ssl", feature = "sasl-gssapi"))]
+    pub ssl_ca_location: String,
+    #[cfg(any(feature = "sasl-ssl", feature = "sasl-gssapi"))]
+    pub ssl_certificate_location: String,
+    #[cfg(any(feature = "sasl-ssl", feature = "sasl-gssapi"))]
+    pub ssl_key_location: String,
+    #[cfg(any(feature = "sasl-ssl", feature = "sasl-gssapi"))]
+    pub ssl_key_password: String,
     #[cfg(feature = "sasl-gssapi")]
-    pub sasl_gssapi_config: SaslGssapiConfig,
+    pub kerberos_service_name: String,
+    #[cfg(feature = "sasl-gssapi")]
+    pub kerberos_keytab: String,
+    #[cfg(feature = "sasl-gssapi")]
+    pub kerberos_principal: String,
 }
 
 fn environment_variables() -> Configuration {
@@ -52,30 +58,68 @@ fn environment_variables() -> Configuration {
         publish_key: fetch_env_var("PUBNUB_PUBLISH_KEY"),
         subscribe_key: fetch_env_var("PUBNUB_SUBSCRIBE_KEY"),
         secret_key: fetch_env_var("PUBNUB_SECRET_KEY"),
-        #[cfg(feature = "sasl-plain")]
-        sasl_plain_config: SaslPlainConfig {
-            username: fetch_env_var("SASL_USERNAME"),
-            password: fetch_env_var("SASL_PASSWORD"),
-        },
-        #[cfg(feature = "sasl-ssl")]
-        sasl_ssl_config: SaslSslConfig {
-            username: fetch_env_var("SASL_USERNAME"),
-            password: fetch_env_var("SASL_PASSWORD"),
-            ca_location: fetch_env_var("SSL_CA_LOCATION"),
-            certificate_location: fetch_env_var("SSL_CERTIFICATE_LOCATION"),
-            key_location: fetch_env_var("SSL_KEY_LOCATION"),
-            key_password: fetch_env_var("SSL_KEY_PASSWORD"),
-        },
+        #[cfg(any(feature = "sasl-plain", feature = "sasl-ssl"))]
+        sasl_username: fetch_env_var("SASL_USERNAME"),
+        #[cfg(any(feature = "sasl-plain", feature = "sasl-ssl"))]
+        sasl_password: fetch_env_var("SASL_PASSWORD"),
+        #[cfg(any(feature = "sasl-ssl", feature = "sasl-gssapi"))]
+        ssl_ca_location: fetch_env_var("SSL_CA_LOCATION"),
+        #[cfg(any(feature = "sasl-ssl", feature = "sasl-gssapi"))]
+        ssl_certificate_location: fetch_env_var("SSL_CERTIFICATE_LOCATION"),
+        #[cfg(any(feature = "sasl-ssl", feature = "sasl-gssapi"))]
+        ssl_key_location: fetch_env_var("SSL_KEY_LOCATION"),
+        #[cfg(any(feature = "sasl-ssl", feature = "sasl-gssapi"))]
+        ssl_key_password: fetch_env_var("SSL_KEY_PASSWORD"),
         #[cfg(feature = "sasl-gssapi")]
-        sasl_gssapi_config: SaslGssapiConfig {
-            kerberos_service_name: fetch_env_var("KERBEROS_SERVICE_NAME"),
-            kerberos_keytab: fetch_env_var("KERBEROS_KEYTAB"),
-            kerberos_principal: fetch_env_var("KERBEROS_PRINCIPAL"),
-            ca_location: fetch_env_var("SSL_CA_LOCATION"),
-            certificate_location: fetch_env_var("SSL_CERTIFICATE_LOCATION"),
-            key_location: fetch_env_var("SSL_KEY_LOCATION"),
-            key_password: fetch_env_var("SSL_KEY_PASSWORD"),
-        },
+        kerberos_service_name: fetch_env_var("KERBEROS_SERVICE_NAME"),
+        #[cfg(feature = "sasl-gssapi")]
+        kerberos_keytab: fetch_env_var("KERBEROS_KEYTAB"),
+        #[cfg(feature = "sasl-gssapi")]
+        kerberos_principal: fetch_env_var("KERBEROS_PRINCIPAL"),
+    }
+}
+
+impl From<&Configuration> for kafka::ClientConfig {
+    fn from(config: &Configuration) -> Self {
+        #[cfg(not(any(
+            feature = "sasl-plain",
+            feature = "sasl-ssl",
+            feature = "sasl-gssapi"
+        )))]
+        {
+            let _ = config;
+            Self::Plain
+        }
+        #[cfg(feature = "sasl-plain")]
+        {
+            Self::SaslPlain {
+                username: config.sasl_username,
+                password: config.sasl_password,
+            }
+        }
+        #[cfg(feature = "sasl-ssl")]
+        {
+            Self::SaslSsl {
+                username: config.sasl_username,
+                password: config.sasl_password,
+                ca_location: config.ssl_ca_location,
+                certificate_location: config.ssl_certificate_location,
+                key_location: config.ssl_key_location,
+                key_password: config.ssl_key_password,
+            }
+        }
+        #[cfg(feature = "sasl-gssapi")]
+        {
+            Self::SaslGssapi {
+                kerberos_service_name: config.kerberos_service_name,
+                kerberos_keytab: config.kerberos_keytab,
+                kerberos_principal: config.kerberos_principal,
+                ca_location: config.ssl_ca_location,
+                certificate_location: config.ssl_certificate_location,
+                key_location: config.ssl_key_location,
+                key_password: config.ssl_key_password,
+            }
+        }
     }
 }
 
@@ -262,34 +306,12 @@ fn spawn_kafka_publisher_thread(
     thread::Builder::new()
         .name("KAFKA Publisher Thread".into())
         .spawn(move || loop {
-            let config = environment_variables();
+            let config = &environment_variables();
 
-            #[cfg(not(any(
-                feature = "sasl-plain",
-                feature = "sasl-ssl",
-                feature = "sasl-gssapi"
-            )))]
             let res = kafka::PublishClient::new(
-                config.kafka_brokers,
-                &config.kafka_topic,
-            );
-            #[cfg(feature = "sasl-plain")]
-            let res = kafka::PublishClient::new_sasl_plain(
+                config.into(),
                 &config.kafka_brokers,
                 &config.kafka_topic,
-                &config.sasl_plain_config,
-            );
-            #[cfg(feature = "sasl-ssl")]
-            let res = kafka::PublishClient::new_sasl_ssl(
-                &config.kafka_brokers,
-                &config.kafka_topic,
-                &config.sasl_ssl_config,
-            );
-            #[cfg(feature = "sasl-gssapi")]
-            let res = kafka::PublishClient::new_sasl_gssapi(
-                &config.kafka_brokers,
-                &config.kafka_topic,
-                &config.sasl_gssapi_config,
             );
 
             let mut kafka = match res {
@@ -319,46 +341,15 @@ fn spawn_kafka_subscriber_thread(
     thread::Builder::new()
         .name("KAFKA Subscriber Thread".into())
         .spawn(move || loop {
-            let config = environment_variables();
+            let config = &environment_variables();
 
-            #[cfg(not(any(
-                feature = "sasl-plain",
-                feature = "sasl-ssl",
-                feature = "sasl-gssapi"
-            )))]
             let res = kafka::SubscribeClient::new(
-                config.kafka_brokers,
-                kafka_message_tx.clone(),
-                &config.kafka_topic,
-                &config.kafka_group,
-                config.kafka_partition,
-            );
-            #[cfg(feature = "sasl-plain")]
-            let res = kafka::SubscribeClient::new_sasl_plain(
+                config.into(),
                 &config.kafka_brokers,
                 kafka_message_tx.clone(),
                 &config.kafka_topic,
                 &config.kafka_group,
                 config.kafka_partition,
-                &config.sasl_plain_config,
-            );
-            #[cfg(feature = "sasl-ssl")]
-            let res = kafka::SubscribeClient::new_sasl_ssl(
-                &config.kafka_brokers,
-                kafka_message_tx.clone(),
-                &config.kafka_topic,
-                &config.kafka_group,
-                config.kafka_partition,
-                &config.sasl_ssl_config,
-            );
-            #[cfg(feature = "sasl-gssapi")]
-            let res = kafka::SubscribeClient::new_sasl_gssapi(
-                &config.kafka_brokers,
-                kafka_message_tx.clone(),
-                &config.kafka_topic,
-                &config.kafka_group,
-                config.kafka_partition,
-                &config.sasl_gssapi_config,
             );
 
             let mut kafka = match res {
