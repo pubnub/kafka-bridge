@@ -3,6 +3,7 @@ use futures::prelude::*;
 use rdkafka::consumer::{Consumer as _, StreamConsumer};
 use rdkafka::error::KafkaResult;
 use rdkafka::{Message as _, Offset, TopicPartitionList};
+use std::str;
 use tokio::sync::mpsc::Sender;
 
 #[allow(clippy::needless_doctest_main)] // needed for async main
@@ -107,7 +108,9 @@ impl Client {
                 "Message {{ offset: {:?}, key: {:?}, payload: {:?} }}",
                 message.offset(),
                 message.key(),
-                message.payload()
+                message
+                    .payload()
+                    .map(|x| str::from_utf8(x).expect("Invalid UTF-8"))
             );
             let mut data = match message.payload_view::<str>() {
                 None => String::new(),
