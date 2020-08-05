@@ -8,6 +8,7 @@ readme = "readme.md"
 [features]
 nightly = []
 sasl-plain = []
+sasl-ssl = ["rdkafka/ssl-vendored"]
 sasl-gssapi = ["rdkafka/ssl-vendored", "rdkafka/gssapi-vendored"]
 
 [dependencies]
