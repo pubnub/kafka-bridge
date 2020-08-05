@@ -16,8 +16,10 @@ keytool -noprompt -importcert -alias $CLUSTERCA -file $ROOT_DIR/$CLUSTERCA.pem -
 cp $ROOT_DIR/$CLUSTER_TRUSTSTORE $ROOT_DIR/node.ts
 
 mkdir -p $ROOT_DIR/client
+# Generate private key for rust-bridge powered by libkafkard
 openssl genrsa -des3 -passout "pass:$CAPASS" -out $ROOT_DIR/client/client.key 1024
 openssl req -passin "pass:$CAPASS" -passout "pass:$CAPASS" -key $ROOT_DIR/client/client.key -new -out $ROOT_DIR/client/client.req -subj "/CN=client.confluent.io/OU=TEST/O=CONFLUENT/L=PaloAlto/C=US"
+# Generate cert for libkafkard, it doesn't know how to work with java keystore.
 openssl x509 -req -CA $ROOT_DIR/$CLUSTERCA.pem -CAkey $ROOT_DIR/$CLUSTERCA.key -in $ROOT_DIR/client/client.req -out $ROOT_DIR/client/client.pem -days 9999 -CAcreateserial -passin "pass:$CAPASS"
 
 for agent in kafka producer; do

@@ -286,8 +286,6 @@ async fn main() {
     let config = environment_variables();
     println!("{{\"info\":\"Dashboard: {}\"}}", config);
 
-    // Receive messages from Kafka
-    // Consumes messages on Kafka topic and sends to MPSC PubNub Publisher
     tokio::join!(
         run_async_kafka_consumer(kafka_message_tx),
         run_async_kafka_producer(kafka_publish_rx),
