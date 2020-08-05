@@ -233,12 +233,12 @@ impl Socket {
 }
 
 #[cfg(test)]
-mod socket_tests {
+mod tests {
     use super::*;
 
     #[test]
     fn write_ok() {
-        let host = "www.pubnub.com:80".into();
+        let host = "www.pubnub.com:80";
         let mut socket = Socket::new(host, "HTTP Agent", 5);
 
         let request = "GET / HTTP/1.1\r\nHost: pubnub.com\r\n\r\n";
@@ -247,7 +247,7 @@ mod socket_tests {
 
     #[test]
     fn read_ok() {
-        let host = "www.pubnub.com:80".into();
+        let host = "www.pubnub.com:80";
         let mut socket = Socket::new(host, "HTTP Agent", 5);
 
         let request = "GET / HTTP/1.1\r\nHost: pubnub.com\r\n\r\n";
@@ -257,12 +257,12 @@ mod socket_tests {
         assert!(result.is_ok());
 
         let data = result.expect("data");
-        assert!(data.len() > 0);
+        assert!(!data.is_empty());
 
         let result = socket.readln();
         assert!(result.is_ok());
 
         let data = result.expect("data");
-        assert!(data.len() > 0);
+        assert!(!data.is_empty());
     }
 }

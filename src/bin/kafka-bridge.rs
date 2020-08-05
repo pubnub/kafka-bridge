@@ -32,7 +32,7 @@ struct Configuration {
     #[cfg(feature = "sasl-ssl")]
     pub sasl_ssl_config: SaslSslConfig,
     #[cfg(feature = "sasl-gssapi")]
-    pub sasl_ssl_config: SaslGssapiConfig,
+    pub sasl_gssapi_config: SaslGssapiConfig,
 }
 
 fn environment_variables() -> Configuration {
@@ -67,7 +67,7 @@ fn environment_variables() -> Configuration {
             key_password: fetch_env_var("SSL_KEY_PASSWORD"),
         },
         #[cfg(feature = "sasl-gssapi")]
-        sasl_ssl_config: SaslGssapiConfig {
+        sasl_gssapi_config: SaslGssapiConfig {
             kerberos_service_name: fetch_env_var("KERBEROS_SERVICE_NAME"),
             kerberos_keytab: fetch_env_var("KERBEROS_KEYTAB"),
             kerberos_principal: fetch_env_var("KERBEROS_PRINCIPAL"),
@@ -289,7 +289,7 @@ fn spawn_kafka_publisher_thread(
             let res = kafka::PublishClient::new_sasl_ssl(
                 &config.kafka_brokers,
                 &config.kafka_topic,
-                &config.sasl_ssl_config,
+                &config.sasl_gssapi_config,
             );
 
             let mut kafka = match res {
@@ -358,7 +358,7 @@ fn spawn_kafka_subscriber_thread(
                 &config.kafka_topic,
                 &config.kafka_group,
                 config.kafka_partition,
-                &config.sasl_ssl_config,
+                &config.sasl_gssapi_config,
             );
 
             let mut kafka = match res {

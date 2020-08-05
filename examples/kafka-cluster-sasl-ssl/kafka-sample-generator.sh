@@ -1,5 +1,10 @@
 #!/bin/sh
 
+## Wait until Kafka is ready then create demo topic
+echo 'Waiting for Kafka to be ready...'
+cub kafka-ready -b $KAFKA_BROKER 1 20 && \
+sleep 1
+
 echo "Creating Topic [$KAFKA_BROKER <topic:'$KAFKA_TOPIC'>]"
 kafka-topics                     \
     --create                     \
