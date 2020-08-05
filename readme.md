@@ -113,7 +113,7 @@ docker run                                                                      
     -e KAFKA_TOPIC=topic                                                          \
     -e KAFKA_BROKERS=0.0.0.0:9094                                                 \
     -e SASL_USERNAME=admin                                                        \
-    -e SASL_USERNAME=admin-secret                                                 \
+    -e SASL_PASSWORD=admin-secret                                                 \
     kafka-bridge
 ```
 
@@ -137,7 +137,7 @@ docker run                                                                      
     -e KAFKA_TOPIC=topic                                                          \
     -e KAFKA_BROKERS=kafka.confluent.io:9094                                      \
     -e SASL_USERNAME=admin                                                        \
-    -e SASL_USERNAME=admin-secret                                                 \
+    -e SASL_PASSWORD=admin-secret                                                 \
     -e SSL_CA_LOCATION=/etc/kafka/secrets/kafka-cluster.pem                       \
     -e SSL_CERTIFICATE_LOCATION=/etc/kafka/secrets/client/client.pem              \
     -e SSL_KEY_LOCATION=/etc/kafka/secrets/client/client.key                      \
