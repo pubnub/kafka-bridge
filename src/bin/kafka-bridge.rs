@@ -93,6 +93,8 @@ fn fetch_env_var(name: &str) -> String {
     }
 }
 
+// Receive messages from Kafka
+// Consumes messages on Kafka topic and sends to MPSC PubNub Publisher
 async fn run_async_kafka_consumer(
     kafka_message_tx: async_mpsc::Sender<kafka::Message>,
 ) {
@@ -129,6 +131,8 @@ async fn run_async_kafka_consumer(
     }
 }
 
+// Send messages to Kafka
+// Reads MPSC from PubNub Subscriptions and Sends to Kafka
 async fn run_async_kafka_producer(
     kafka_publish_rx: async_mpsc::Receiver<pubnub::Message>,
 ) {
@@ -161,7 +165,7 @@ async fn run_async_kafka_producer(
             let message: kafka_bridge::pubnub::Message = kafka_publish_rx
                 .recv()
                 .await
-                .expect("Async mpsc Channel receiver");
+                .expect("Async MPSC Channel receiver");
             match kafka.produce(&message.data).await {
                 Ok(()) => {}
                 Err(_error) => {
