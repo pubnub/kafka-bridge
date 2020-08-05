@@ -32,8 +32,8 @@ while true
 
         DATA="{\"data\":\"sample-data-$i\"}"
 
-        echo "$DATA" | kafka-console-producer              \
-            --broker-list $HOST:9092                       \
+        echo "$DATA" | kafka-console-producer   \
+            --broker-list $HOST:9092            \
             --topic $KAFKA_TOPIC     
     done
     sleep 1.0
@@ -41,10 +41,10 @@ while true
     echo ''
     echo "Receiving Data [$HOST:9092 <topic:'$KAFKA_TOPIC'>]"
 
-    kafka-console-consumer                             \
-        --bootstrap-server $HOST:9092                  \
-        --topic $KAFKA_TOPIC                           \
-        --from-beginning                               \
+    kafka-console-consumer              \
+        --bootstrap-server $HOST:9092   \
+        --topic $KAFKA_TOPIC            \
+        --from-beginning                \
         --max-messages 5
 
 done
