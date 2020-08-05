@@ -1,23 +1,27 @@
 use super::{ClientConfig, Error, Message};
-use rdkafka::consumer::{BaseConsumer, Consumer as _};
+use futures::prelude::*;
+use rdkafka::consumer::{Consumer as _, StreamConsumer};
 use rdkafka::error::KafkaResult;
 use rdkafka::{Message as _, Offset, TopicPartitionList};
-use std::sync::mpsc::Sender;
+use tokio::sync::mpsc::Sender;
 
+#[allow(clippy::needless_doctest_main)] // needed for async main
 /// Kafka Subscribe Client (Consumer)
 ///
 /// This client lib will consumer messages and place them into an
 /// MPSC Sender<crate::kafka::Message>.
 ///
 /// ```no_run
+/// # #[tokio::main]
+/// # async fn main() {
 /// use kafka_bridge::kafka;
-/// use std::sync::mpsc;
+/// use tokio::sync::mpsc;
 ///
 /// let brokers = "0.0.0.0:9094"
 ///     .split(",")
 ///     .map(ToString::to_string)
 ///     .collect::<Vec<_>>();
-/// let (kafka_message_tx, kafka_message_rx) = mpsc::channel();
+/// let (kafka_message_tx, mut kafka_message_rx) = mpsc::channel(100);
 /// let kafka_topic = "topic";
 /// let kafka_partition = 0;
 /// let kafka_group = "";
@@ -39,13 +43,19 @@ use std::sync::mpsc::Sender;
 ///
 /// // Consume messages from broker and make them available
 /// // to `kafka_message_rx`.
-/// kafka.consume().expect("Error consuming Kafka messages");
+/// kafka
+///     .consume()
+///     .await
+///     .expect("Error consuming Kafka messages");
 ///
-/// let message: kafka::Message =
-///     kafka_message_rx.recv().expect("MPSC Channel Receiver");
+/// let message: kafka::Message = kafka_message_rx
+///     .recv()
+///     .await
+///     .expect("MPSC Channel Receiver");
+/// # }
 /// ```
 pub struct Client {
-    consumer: BaseConsumer,
+    consumer: StreamConsumer,
     sender: Sender<Message>,
     topic: String,
     group: String,
@@ -69,7 +79,7 @@ impl Client {
         let consumer = rdkafka::ClientConfig::from(config)
             .set("group.id", group)
             .set("metadata.broker.list", &brokers.join(","))
-            .create::<BaseConsumer>()
+            .create::<StreamConsumer>()
             .map_err(|_| Error::KafkaInitialize)?;
         let mut tpl = TopicPartitionList::new();
         tpl.add_partition_offset(topic, partition, Offset::Beginning);
@@ -89,8 +99,9 @@ impl Client {
     ///
     /// This function can return [`KafkaError`](rdkafka::error::KafkaError) on
     /// unsuccessful poll.
-    pub fn consume(&mut self) -> KafkaResult<()> {
-        for message in &self.consumer {
+    pub async fn consume(&mut self) -> KafkaResult<()> {
+        let mut stream = self.consumer.start();
+        while let Some(message) = stream.next().await {
             let message = message?;
             println!(
                 "Message {{ offset: {:?}, key: {:?}, payload: {:?} }}",
@@ -114,13 +125,17 @@ impl Client {
                 data = json::stringify(data);
             }
 
-            self.sender
+            if let Err(err) = self
+                .sender
                 .send(Message {
                     topic: self.topic.clone(),
                     group: self.group.clone(),
                     data,
                 })
-                .expect("Error writing to mpsc Sender");
+                .await
+            {
+                panic!("Error writing to mpsc Sender: {}", err);
+            }
         }
         Ok(())
     }

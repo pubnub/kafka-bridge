@@ -1,14 +1,16 @@
 use super::{ClientConfig, Error};
 use rdkafka::error::KafkaResult;
-use rdkafka::producer::{
-    BaseRecord, DefaultProducerContext, ThreadedProducer,
-};
+use rdkafka::producer::{FutureProducer, FutureRecord};
+use rdkafka::util::Timeout;
 
+#[allow(clippy::needless_doctest_main)] // needed for async main
 /// Kafka Publish Client (Producer)
 ///
 /// This client lib will produce messages into Kafka.
 ///
 /// ```no_run
+/// # #[tokio::main]
+/// # async fn main() {
 /// use kafka_bridge::kafka;
 /// use std::sync::mpsc;
 ///
@@ -32,16 +34,17 @@ use rdkafka::producer::{
 /// loop {
 ///     let message: kafka_bridge::pubnub::Message =
 ///         kafka_publish_rx.recv().expect("MPSC Channel Receiver");
-///     match kafka.produce(&message.data) {
+///     match kafka.produce(&message.data).await {
 ///         Ok(()) => {}
 ///         Err(error) => {
 ///             println!("{:?}", error);
 ///         }
 ///     };
 /// }
+/// # }
 /// ```
 pub struct Client {
-    producer: ThreadedProducer<DefaultProducerContext>,
+    producer: FutureProducer,
     topic: String,
 }
 
@@ -76,9 +79,14 @@ impl Client {
     ///
     /// This function can return [`KafkaError`](rdkafka::error::KafkaError) on
     /// unsuccessful send.
-    pub fn produce(&mut self, message: &str) -> KafkaResult<()> {
+    pub async fn produce(&mut self, message: &str) -> KafkaResult<()> {
         self.producer
-            .send(BaseRecord::<'_, (), _>::to(&self.topic).payload(message))
+            .send(
+                FutureRecord::<'_, (), _>::to(&self.topic).payload(message),
+                Timeout::Never,
+            )
+            .await
+            .map(|_| ())
             .map_err(|(err, _)| err)
     }
 }
