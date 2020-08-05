@@ -1,16 +1,15 @@
 #![deny(clippy::all)]
 #![deny(clippy::pedantic)]
 
+use futures_util::stream::StreamExt;
 use rdkafka::config::{ClientConfig, RDKafkaLogLevel};
-use rdkafka::consumer::{
-    BaseConsumer, CommitMode, Consumer, DefaultConsumerContext,
-};
+use rdkafka::consumer::stream_consumer::StreamConsumer;
+use rdkafka::consumer::{CommitMode, Consumer, DefaultConsumerContext};
 use rdkafka::error::KafkaResult;
 use rdkafka::message::Message as RDKafkaMessage;
-use rdkafka::producer::{
-    BaseRecord, DefaultProducerContext, ThreadedProducer,
-};
-use std::sync::mpsc::Sender;
+use rdkafka::producer::{FutureProducer, FutureRecord};
+use tokio::sync::mpsc::Sender;
+use std::time::Duration;
 
 pub struct Message {
     pub topic: String,
@@ -23,8 +22,8 @@ pub struct PublishClient {
     topic: String,
 }
 
-type CustomConsumer = BaseConsumer<DefaultConsumerContext>;
-type CustomProducer = ThreadedProducer<DefaultProducerContext>;
+type CustomConsumer = StreamConsumer;
+type CustomProducer = FutureProducer;
 
 pub struct SubscribeClient {
     consumer: CustomConsumer,
@@ -210,8 +209,9 @@ impl SubscribeClient {
     ///
     /// This function can return [`KafkaError`](rdkafka::error::KafkaError) on
     /// unsuccessful poll.
-    pub fn consume(&mut self) -> KafkaResult<()> {
-        while let Some(r) = self.consumer.poll(None) {
+    pub async fn consume(&mut self) -> KafkaResult<()> {
+        let mut message_stream = self.consumer.start();
+        while let Some(r) = message_stream.next().await {
             let m = r?;
 
             let mut data = match m.payload_view::<str>() {
@@ -233,6 +233,8 @@ impl SubscribeClient {
                     group: self.group.clone(),
                     data: data.to_string(),
                 })
+                .await
+                .map_err(|_err| ())
                 .expect("Error writing to mpsc Sender");
 
             self.consumer.commit_message(&m, CommitMode::Async)?;
@@ -264,7 +266,7 @@ impl SubscribeClient {
 /// ```no_run
 /// use kafka_bridge::kafka;
 /// use std::sync::mpsc;
-/// 
+///
 /// let brokers = "0.0.0.0:9094".split(",").map(|s| s.to_string()).collect();
 /// let mut kafka = match kafka::PublishClient::new(brokers, "topic") {
 ///     Ok(kafka) => kafka,
@@ -346,9 +348,11 @@ impl PublishClient {
     ///
     /// This function can return [`KafkaError`](rdkafka::error::KafkaError) on
     /// unsuccessful send.
-    pub fn produce(&mut self, message: &str) -> KafkaResult<()> {
+    pub async fn produce(&mut self, message: &str) -> KafkaResult<()> {
         self.producer
-            .send(BaseRecord::to(&self.topic).payload(message).key(""))
+            .send(FutureRecord::to(&self.topic).payload(message).key(""), Duration::from_secs(0))
+            .await
+            .map(|(_, _)| ())
             .map_err(|(err, _)| err)
     }
 }
