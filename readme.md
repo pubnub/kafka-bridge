@@ -47,7 +47,7 @@ docker run                                                                      
     -e SASL_USERNAME=token                                                        \
     -e SASL_PASSWORD=YOUR_API_KEY                                                 \
     -e RUST_BACKTRACE=1                                                           \
-    -v $PWD/examples/kafka-cluster-sasl-plain/secrets:/etc/kafka/secrets          \
+    -v $PWD/examples/kafka-ibm-event-streams/secrets:/etc/kafka/secrets           \
     kafka-bridge
 ```
 
