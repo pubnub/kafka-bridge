@@ -65,6 +65,7 @@ impl Client {
             .set("metadata.broker.list", &brokers.join(","))
             .set("request.required.acks", "1")
             .set("request.timeout.ms", "1000")
+            .set("delivery.timeout.ms", "1000")
             .create()
             .map_err(|_| Error::KafkaInitialize)?;
 
@@ -84,7 +85,7 @@ impl Client {
         self.producer
             .send(
                 FutureRecord::<'_, (), _>::to(&self.topic).payload(message),
-                Timeout::After(Duration::from_millis(5 * 1000)),
+                Timeout::Never,
             )
             .await
             .map(|_| ())
