@@ -2,6 +2,7 @@ use super::{ClientConfig, Error};
 use rdkafka::error::KafkaResult;
 use rdkafka::producer::{FutureProducer, FutureRecord};
 use rdkafka::util::Timeout;
+use tokio::time::Duration;
 
 #[allow(clippy::needless_doctest_main)] // needed for async main
 /// Kafka Publish Client (Producer)
@@ -83,7 +84,7 @@ impl Client {
         self.producer
             .send(
                 FutureRecord::<'_, (), _>::to(&self.topic).payload(message),
-                Timeout::Never,
+                Timeout::After(Duration::from_millis(5 * 1000)),
             )
             .await
             .map(|_| ())
