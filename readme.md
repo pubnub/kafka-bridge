@@ -51,8 +51,6 @@ docker run                                                                      
     kafka-bridge
 ```
 
-For data security, you also need to 
-
 ### Dependency
 
 Docker is used for running the sample Kafka/Zookeeper feed.
