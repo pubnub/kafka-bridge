@@ -214,12 +214,11 @@ impl SubscribeClient {
         };
         let uri = format!(
             "/v2/subscribe/{subscribe_key}/{channel}/0/{timetoken}?pnsdk={agent}&filter-expr={filter}",
-            //"/v2/subscribe/{subscribe_key}/{channel}/0/{timetoken}?pnsdk={agent}",
             subscribe_key = self.subscribe_key,
             channel = channel,
             timetoken = self.timetoken,
             agent = self.agent,
-            filter = "source%22%21%3D%22%27KAFKA%27".to_string(),
+            filter = "source%20!%3D%20'KAFKA'".to_string(),
         );
         let request =
             format!("GET {} HTTP/1.1\r\nHost: pubnub\r\n\r\n", uri,);

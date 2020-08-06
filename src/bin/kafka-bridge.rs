@@ -221,9 +221,15 @@ fn spawn_pubnub_subscriber(
 
         loop {
             let message = match pubnub.next_message() {
-                Ok(message) => message,
-                Err(_error) => continue,
+                Ok(message) => {
+                    message
+                }
+                Err(error) => {
+                    continue;
+                }
             };
+
+            println!("{chan} -> {msg}", chan=message.channel, msg=message.data);
             if let Err(err) = block_on(pubnub_message_tx.send(message)) {
                 panic!("KAFKA mpsc::channel channel write: {}", err);
             }
@@ -286,6 +292,7 @@ fn spawn_kafka_publisher(
     mut kafka_publish_rx: mpsc::Receiver<pubnub::Message>,
 ) -> JoinHandle<()> {
     tokio::spawn(async move {
+
         loop {
             let config = &environment_variables();
 
@@ -297,7 +304,8 @@ fn spawn_kafka_publisher(
 
             let mut kafka = match res {
                 Ok(kafka) => kafka,
-                Err(_error) => {
+                Err(error) => {
+                    println!("Error connecting to Kafka: {:?}", error);
                     delay_for(Duration::from_millis(1000)).await;
                     continue;
                 }
@@ -308,9 +316,12 @@ fn spawn_kafka_publisher(
                     .recv()
                     .await
                     .expect("MPSC Channel Receiver");
+
+                println!("Sendning message to Kafka Stream: {message}", message=&message.data);
                 match kafka.produce(&message.data).await {
                     Ok(()) => {}
-                    Err(_error) => {
+                    Err(error) => {
+                        println!("Error sending to Kafka: {:?}", error);
                         delay_for(Duration::from_millis(1000)).await;
                     }
                 };
