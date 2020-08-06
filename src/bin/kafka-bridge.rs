@@ -138,8 +138,8 @@ impl std::fmt::Display for Configuration {
         };
 
         let protocol = "https";
-        let domain = "www.pubnub.com";
-        let url = "/docs/console";
+        let domain   = "www.pubnub.com";
+        let url      = "docs/console";
         write!(f,
             "{proto}://{domain}/{url}?channel={channel}&sub={sub}&pub={pub}",
             proto=protocol,

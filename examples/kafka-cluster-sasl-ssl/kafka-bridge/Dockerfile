@@ -11,6 +11,7 @@ RUN set -eux; \
 WORKDIR /app
 COPY . /app/
 
+RUN cargo test
 RUN cargo build --release --features sasl-ssl
 RUN strip target/release/kafka-bridge
 
