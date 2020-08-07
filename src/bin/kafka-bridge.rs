@@ -6,7 +6,7 @@ use kafka_bridge::kafka;
 use kafka_bridge::kafka::SASLConfig;
 use kafka_bridge::pubnub;
 use std::{env, process, thread, time};
-use tokio::sync::mpsc as async_mpsc;
+use tokio::sync::mpsc;
 use tokio::time::{delay_for, Duration};
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -96,7 +96,7 @@ fn fetch_env_var(name: &str) -> String {
 // Receive messages from Kafka
 // Consumes messages on Kafka topic and sends to MPSC PubNub Publisher
 async fn run_async_kafka_consumer(
-    kafka_message_tx: async_mpsc::Sender<kafka::Message>,
+    kafka_message_tx: mpsc::Sender<kafka::Message>,
 ) {
     loop {
         let config = environment_variables();
@@ -134,7 +134,7 @@ async fn run_async_kafka_consumer(
 // Send messages to Kafka
 // Reads MPSC from PubNub Subscriptions and Sends to Kafka
 async fn run_async_kafka_producer(
-    kafka_publish_rx: async_mpsc::Receiver<pubnub::Message>,
+    kafka_publish_rx: mpsc::Receiver<pubnub::Message>,
 ) {
     let mut kafka_publish_rx = kafka_publish_rx;
     loop {
@@ -179,7 +179,7 @@ async fn run_async_kafka_producer(
 // Send messages to PubNub
 // Receives messages from MPSC from Kafka and Publishes to PubNub
 async fn run_async_pubnub_publisher(
-    pubnub_publish_rx: async_mpsc::Receiver<kafka::Message>,
+    pubnub_publish_rx: mpsc::Receiver<kafka::Message>,
 ) {
     let mut pubnub_publish_rx = pubnub_publish_rx;
     let config = environment_variables();
@@ -234,8 +234,8 @@ async fn run_async_pubnub_publisher(
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 async fn main() {
     // Async Channels
-    let (kafka_message_tx, pubnub_publish_rx) = async_mpsc::channel(10);
-    let (mut pubnub_message_tx, kafka_publish_rx) = async_mpsc::channel(10);
+    let (kafka_message_tx, pubnub_publish_rx) = mpsc::channel(100);
+    let (mut pubnub_message_tx, kafka_publish_rx) = mpsc::channel(010);
 
     let rt_handle = tokio::runtime::Handle::current();
 

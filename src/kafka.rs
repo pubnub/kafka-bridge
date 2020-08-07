@@ -8,8 +8,9 @@ use rdkafka::consumer::{CommitMode, Consumer, DefaultConsumerContext};
 use rdkafka::error::KafkaResult;
 use rdkafka::message::Message as RDKafkaMessage;
 use rdkafka::producer::{FutureProducer, FutureRecord};
-use tokio::sync::mpsc::Sender;
+use rdkafka::util::Timeout;
 use std::time::Duration;
+use tokio::sync::mpsc::Sender;
 
 pub struct Message {
     pub topic: String,
@@ -79,12 +80,24 @@ impl From<&SASLConfig> for ClientConfig {
         let mut cfg = ClientConfig::new();
         cfg.set("security.protocol", "sasl_ssl")
             .set("sasl.mechanism", "PLAIN")
-            .set("ssl.ca.location", &src.ca_location)
-            .set("ssl.certificate.location", &src.certificate_location)
-            .set("ssl.key.location", &src.key_location)
-            .set("ssl.key.password", &src.key_password)
             .set("sasl.username", &src.username)
             .set("sasl.password", &src.password);
+
+        let opt_values = vec![
+            ("ssl.ca.location", &src.ca_location),
+            ("ssl.certificate.location", &src.certificate_location),
+            ("ssl.key.location", &src.key_location),
+            ("ssl.key.password", &src.key_password),
+        ];
+
+        cfg.set("debug", "all");
+
+        opt_values
+            .iter()
+            .filter(|(_, value)| !value.is_empty())
+            .for_each(|(key, value)| {
+                cfg.set(key, value);
+            });
         cfg
     }
 }
@@ -181,9 +194,7 @@ impl SubscribeClient {
             brokers,
             group,
         );
-
-        let consumer: KafkaResult<CustomConsumer> =
-            config.create();
+        let consumer: KafkaResult<CustomConsumer> = config.create();
 
         let consumer = consumer.map_err(|err| {
             println!("Failed to intialize consumer: {}", err);
@@ -248,7 +259,7 @@ impl SubscribeClient {
         group: &str,
     ) -> ClientConfig {
         cfg.set("group.id", group)
-            .set("bootstrap.servers", &brokers[0])
+            .set("bootstrap.servers", &brokers.join(","))
             .set("enable.partition.eof", "false")
             .set("auto.offset.reset", "earliest")
             .set("enable.auto.commit", "true")
@@ -349,9 +360,12 @@ impl PublishClient {
     /// unsuccessful send.
     pub async fn produce(&mut self, message: &str) -> KafkaResult<()> {
         self.producer
-            .send(FutureRecord::to(&self.topic).payload(message).key(""), Duration::from_secs(0))
+            .send(
+                FutureRecord::<'_, (), _>::to(&self.topic).payload(message),
+                Timeout::After(Duration::from_millis(5 * 1000)),
+            )
             .await
-            .map(|(_, _)| ())
+            .map(|_| ())
             .map_err(|(err, _)| err)
     }
 }

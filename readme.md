@@ -11,6 +11,48 @@ Add push notifications and streaming events to Mobile and Web clients
 based on your Kafka topics.
 Easy drop-in operations with Docker or Cargo.
 
+### IBM Cloud EventStreams
+
+To establish a connection, clients must be configured to use SASL PLAIN over
+TLSv1.2 at a minimum and to require a username, password
+and a list of the bootstrap servers.
+
+```shell
+git clone git@github.com:pubnub/kafka-bridge.git
+cd kafka-bridge
+docker build -f kafka/ibm-event-streams/dockerfile -t kafka-bridge .
+```
+
+In the `docker run` shell command below, replace details below with your own credentials.
+The required variables are `KAFKA_TOPIC` `KAFKA_BROKERS` `SASL_USERNAME` and `SASL_PASSWORD`.
+
+For security, you will need to get your private API keys from: 
+https://dashboard.pubnub.com/signup
+
+If you have non-private data on your EventStream,
+the PubNub demo API keys that are included in the following `docker run` command should work.
+
+```shell
+docker run                                                                        \
+    --network=host                                                                \
+    -e PUBNUB_PUBLISH_KEY=pub-c-6b57a39e-79e7-4d1d-926e-5c376a4cb021              \
+    -e PUBNUB_SUBSCRIBE_KEY=sub-c-df3799ee-704b-11e9-8724-8269f6864ada            \
+    -e PUBNUB_SECRET_KEY=sec-c-YWY3NzE0NTYtZTBkMS00YjJjLTgxZDQtN2YzOTY0NWNkNGVk   \
+    -e PUBNUB_CHANNEL_ROOT=topics                                                 \
+    -e PUBNUB_CHANNEL='*'                                                         \
+    -e KAFKA_GROUP=test-group                                                     \
+    -e KAFKA_TOPIC=topic                                                          \
+    -e KAFKA_BROKERS=broker-4-ZZZZZ.kafka.svc05.us-south.eventstreams.cloud.ibm.com:9093,broker-3-YYYYYY.kafka.svc05.us-south.eventstreams.cloud.ibm.com:9093 \
+    -e SASL_USERNAME=token                                                        \
+    -e SASL_PASSWORD=YOUR_API_KEY                                                 \
+    -e SSL_CA_LOCATION=/etc/ssl/certs                                             \
+    -e SSL_CERTIFICATE_LOCATION=''                                                \
+    -e SSL_KEY_LOCATION=''                                                        \
+    -e SSL_KEY_PASSWORD=''                                                        \
+    -e RUST_BACKTRACE=1                                                           \
+    kafka-bridge
+```
+
 ### Dependency
 
 Docker is used for running the sample Kafka/Zookeeper feed.
@@ -121,7 +163,7 @@ docker run                                                                      
 
 ```shell
 cd kafka-bridge
-docker build -f kafka/sasl_plaintext/dockerfile -t kafka-bridge .
+docker build -f kafka/sasl_ssl/dockerfile -t kafka-bridge .
 docker run                                                                        \
     --network=host                                                                \
     --hostname=kafka.confluent.io                                                 \
