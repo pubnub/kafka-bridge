@@ -1,12 +1,12 @@
 #![deny(clippy::all)]
 #![deny(clippy::pedantic)]
 
-use futures::executor::block_on;
 use kafka_bridge::kafka;
+#[cfg(any(feature = "sasl-plain", feature = "sasl-ssl"))]
+use kafka_bridge::kafka::SASLConfig;
 use kafka_bridge::pubnub;
-use std::{env, process};
+use std::{env, process, thread, time};
 use tokio::sync::mpsc;
-use tokio::task::JoinHandle;
 use tokio::time::{delay_for, Duration};
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -16,7 +16,6 @@ struct Configuration {
     pub kafka_brokers: Vec<String>,
     pub kafka_topic: String,
     pub kafka_group: String,
-    pub kafka_partition: i32,
     pub pubnub_host: String,
     pub pubnub_channel: String,
     pub pubnub_channel_root: String,
@@ -24,104 +23,37 @@ struct Configuration {
     pub subscribe_key: String,
     pub secret_key: String,
     #[cfg(any(feature = "sasl-plain", feature = "sasl-ssl"))]
-    pub sasl_username: String,
-    #[cfg(any(feature = "sasl-plain", feature = "sasl-ssl"))]
-    pub sasl_password: String,
-    #[cfg(any(feature = "sasl-ssl", feature = "sasl-gssapi"))]
-    pub ssl_ca_location: String,
-    #[cfg(any(feature = "sasl-ssl", feature = "sasl-gssapi"))]
-    pub ssl_certificate_location: String,
-    #[cfg(any(feature = "sasl-ssl", feature = "sasl-gssapi"))]
-    pub ssl_key_location: String,
-    #[cfg(any(feature = "sasl-ssl", feature = "sasl-gssapi"))]
-    pub ssl_key_password: String,
-    #[cfg(feature = "sasl-gssapi")]
-    pub kerberos_service_name: String,
-    #[cfg(feature = "sasl-gssapi")]
-    pub kerberos_keytab: String,
-    #[cfg(feature = "sasl-gssapi")]
-    pub kerberos_principal: String,
+    pub sasl_cfg: SASLConfig,
 }
 
 fn environment_variables() -> Configuration {
     Configuration {
         kafka_brokers: fetch_env_var("KAFKA_BROKERS")
             .split(',')
-            .map(ToString::to_string)
+            .map(std::string::ToString::to_string)
             .collect(),
         kafka_topic: fetch_env_var("KAFKA_TOPIC"),
         kafka_group: fetch_env_var("KAFKA_GROUP"),
-        kafka_partition: fetch_env_var("KAFKA_PARTITION")
-            .parse::<i32>()
-            .unwrap(),
         pubnub_host: "psdsn.pubnub.com:80".into(),
         pubnub_channel: fetch_env_var("PUBNUB_CHANNEL"),
         pubnub_channel_root: fetch_env_var("PUBNUB_CHANNEL_ROOT"),
         publish_key: fetch_env_var("PUBNUB_PUBLISH_KEY"),
         subscribe_key: fetch_env_var("PUBNUB_SUBSCRIBE_KEY"),
         secret_key: fetch_env_var("PUBNUB_SECRET_KEY"),
-        #[cfg(any(feature = "sasl-plain", feature = "sasl-ssl"))]
-        sasl_username: fetch_env_var("SASL_USERNAME"),
-        #[cfg(any(feature = "sasl-plain", feature = "sasl-ssl"))]
-        sasl_password: fetch_env_var("SASL_PASSWORD"),
-        #[cfg(any(feature = "sasl-ssl", feature = "sasl-gssapi"))]
-        ssl_ca_location: fetch_env_var("SSL_CA_LOCATION"),
-        #[cfg(any(feature = "sasl-ssl", feature = "sasl-gssapi"))]
-        ssl_certificate_location: fetch_env_var("SSL_CERTIFICATE_LOCATION"),
-        #[cfg(any(feature = "sasl-ssl", feature = "sasl-gssapi"))]
-        ssl_key_location: fetch_env_var("SSL_KEY_LOCATION"),
-        #[cfg(any(feature = "sasl-ssl", feature = "sasl-gssapi"))]
-        ssl_key_password: fetch_env_var("SSL_KEY_PASSWORD"),
-        #[cfg(feature = "sasl-gssapi")]
-        kerberos_service_name: fetch_env_var("KERBEROS_SERVICE_NAME"),
-        #[cfg(feature = "sasl-gssapi")]
-        kerberos_keytab: fetch_env_var("KERBEROS_KEYTAB"),
-        #[cfg(feature = "sasl-gssapi")]
-        kerberos_principal: fetch_env_var("KERBEROS_PRINCIPAL"),
-    }
-}
-
-impl From<&Configuration> for kafka::ClientConfig {
-    fn from(config: &Configuration) -> Self {
-        #[cfg(not(any(
-            feature = "sasl-plain",
-            feature = "sasl-ssl",
-            feature = "sasl-gssapi"
-        )))]
-        {
-            let _ = config;
-            Self::Plain
-        }
         #[cfg(feature = "sasl-plain")]
-        {
-            Self::SaslPlain {
-                username: config.sasl_username.clone(),
-                password: config.sasl_password.clone(),
-            }
-        }
+        sasl_cfg: SASLConfig {
+            username: fetch_env_var("SASL_USERNAME"),
+            password: fetch_env_var("SASL_PASSWORD"),
+        },
         #[cfg(feature = "sasl-ssl")]
-        {
-            Self::SaslSsl {
-                username: config.sasl_username.clone(),
-                password: config.sasl_password.clone(),
-                ca_location: config.ssl_ca_location.clone(),
-                certificate_location: config.ssl_certificate_location.clone(),
-                key_location: config.ssl_key_location.clone(),
-                key_password: config.ssl_key_password.clone(),
-            }
-        }
-        #[cfg(feature = "sasl-gssapi")]
-        {
-            Self::SaslGssapi {
-                kerberos_service_name: config.kerberos_service_name.clone(),
-                kerberos_keytab: config.kerberos_keytab.clone(),
-                kerberos_principal: config.kerberos_principal.clone(),
-                ca_location: config.ssl_ca_location.clone(),
-                certificate_location: config.ssl_certificate_location.clone(),
-                key_location: config.ssl_key_location.clone(),
-                key_password: config.ssl_key_password.clone(),
-            }
-        }
+        sasl_cfg: SASLConfig {
+            username: fetch_env_var("SASL_USERNAME"),
+            password: fetch_env_var("SASL_PASSWORD"),
+            ca_location: fetch_env_var("SSL_CA_LOCATION"),
+            certificate_location: fetch_env_var("SSL_CERTIFICATE_LOCATION"),
+            key_location: fetch_env_var("SSL_KEY_LOCATION"),
+            key_password: fetch_env_var("SSL_KEY_PASSWORD"),
+        },
     }
 }
 
@@ -138,8 +70,8 @@ impl std::fmt::Display for Configuration {
         };
 
         let protocol = "https";
-        let domain   = "www.pubnub.com";
-        let url      = "docs/console";
+        let domain = "www.pubnub.com";
+        let url = "docs/console";
         write!(f,
             "{proto}://{domain}/{url}?channel={channel}&sub={sub}&pub={pub}",
             proto=protocol,
@@ -161,97 +93,104 @@ fn fetch_env_var(name: &str) -> String {
     }
 }
 
-// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-// Main Loop
-// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-#[allow(unused_must_use)] // generated inside `tokio::join!`
-#[tokio::main]
-async fn main() {
-    // Async Channels
-    let (kafka_message_tx, pubnub_publish_rx) = mpsc::channel(100);
-    let (pubnub_message_tx, kafka_publish_rx) = mpsc::channel(100);
+// Receive messages from Kafka
+// Consumes messages on Kafka topic and sends to MPSC PubNub Publisher
+async fn run_async_kafka_consumer(
+    kafka_message_tx: mpsc::Sender<kafka::Message>,
+) {
+    loop {
+        let config = environment_variables();
+        #[cfg(not(any(feature = "sasl-plain", feature = "sasl-ssl")))]
+        let kafka = kafka::SubscribeClient::new(
+            &config.kafka_brokers,
+            kafka_message_tx.clone(),
+            &config.kafka_topic,
+            &config.kafka_group,
+        );
 
-    let pubnub_subscriber = spawn_pubnub_subscriber(pubnub_message_tx);
-    let pubnub_publisher = spawn_pubnub_publisher(pubnub_publish_rx);
-    let kafka_publisher = spawn_kafka_publisher(kafka_publish_rx);
-    let kafka_subscriber = spawn_kafka_subscriber(kafka_message_tx);
+        #[cfg(any(feature = "sasl-plain", feature = "sasl-ssl"))]
+        let kafka = kafka::SubscribeClient::new_with_sasl(
+            &config.kafka_brokers,
+            kafka_message_tx.clone(),
+            &config.kafka_topic,
+            &config.kafka_group,
+            &config.sasl_cfg,
+        );
 
-    // Print Follow-on Instructions
-    let config = environment_variables();
-    println!("{{\"info\":\"Dashboard: {}\"}}", config);
+        let mut kafka = match kafka {
+            Ok(kafka) => kafka,
+            Err(error) => {
+                println!("Retrying Consumer Connection {:?}", error);
+                delay_for(Duration::from_millis(1000)).await;
+                continue;
+            }
+        };
 
-    // The Threads Gather
-    tokio::join!(
-        pubnub_subscriber,
-        pubnub_publisher,
-        kafka_publisher,
-        kafka_subscriber,
-    );
+        // Send KAFKA Messages to pubnub_publish_rx via kafka_message_tx
+        kafka.consume().await.expect("Consuming failed");
+    }
 }
 
-/// Receives messages from PubNub.
-///
-/// Saves messages into MPSC for Kafka Producer Thread
-fn spawn_pubnub_subscriber(
-    mut pubnub_message_tx: mpsc::Sender<pubnub::Message>,
-) -> JoinHandle<()> {
-    tokio::task::spawn_blocking(move || loop {
+// Send messages to Kafka
+// Reads MPSC from PubNub Subscriptions and Sends to Kafka
+async fn run_async_kafka_producer(
+    kafka_publish_rx: mpsc::Receiver<pubnub::Message>,
+) {
+    let mut kafka_publish_rx = kafka_publish_rx;
+    loop {
         let config = environment_variables();
-        let host = &config.pubnub_host;
-        let root = &config.pubnub_channel_root;
-        let channel = &config.pubnub_channel;
-        let subscribe_key = &config.subscribe_key;
-        let secret_key = &config.secret_key;
-        let agent = "kafka-bridge";
 
-        let mut pubnub = match pubnub::SubscribeClient::new(
-            host,
-            root,
-            channel,
-            subscribe_key,
-            secret_key,
-            agent,
-        ) {
-            Ok(pubnub) => pubnub,
+        #[cfg(not(any(feature = "sasl-plain", feature = "sasl-ssl")))]
+        let kafka = kafka::PublishClient::new(
+            &config.kafka_brokers,
+            &config.kafka_topic,
+        );
+
+        #[cfg(any(feature = "sasl-plain", feature = "sasl-ssl"))]
+        let kafka = kafka::PublishClient::new_with_sasl(
+            &config.kafka_brokers,
+            &config.kafka_topic,
+            &config.sasl_cfg,
+        );
+
+        let mut kafka = match kafka {
+            Ok(kafka) => kafka,
             Err(_error) => {
-                block_on(delay_for(Duration::new(1, 0)));
+                delay_for(Duration::from_millis(1000)).await;
                 continue;
             }
         };
 
         loop {
-            let message = match pubnub.next_message() {
-                Ok(message) => {
-                    message
-                }
-                Err(error) => {
-                    continue;
+            let message: kafka_bridge::pubnub::Message = kafka_publish_rx
+                .recv()
+                .await
+                .expect("Async MPSC Channel receiver");
+            match kafka.produce(&message.data).await {
+                Ok(()) => {}
+                Err(_error) => {
+                    delay_for(Duration::from_millis(1000)).await;
                 }
             };
-
-            println!("{chan} -> {msg}", chan=message.channel, msg=message.data);
-            if let Err(err) = block_on(pubnub_message_tx.send(message)) {
-                panic!("KAFKA mpsc::channel channel write: {}", err);
-            }
         }
-    })
+    }
 }
 
-/// Sends messages to PubNub.
-///
-/// Receives messages from MPSC from Kafka and Publishes to PubNub.
-fn spawn_pubnub_publisher(
-    mut pubnub_publish_rx: mpsc::Receiver<kafka::Message>,
-) -> JoinHandle<()> {
-    tokio::task::spawn_blocking(move || loop {
-        let config = environment_variables();
-        let host = &config.pubnub_host;
-        let root = &config.pubnub_channel_root;
-        let publish_key = &config.publish_key;
-        let subscribe_key = &config.subscribe_key;
-        let secret_key = &config.secret_key;
-        let agent = "kafka-bridge";
+// Send messages to PubNub
+// Receives messages from MPSC from Kafka and Publishes to PubNub
+async fn run_async_pubnub_publisher(
+    pubnub_publish_rx: mpsc::Receiver<kafka::Message>,
+) {
+    let mut pubnub_publish_rx = pubnub_publish_rx;
+    let config = environment_variables();
+    let host = &config.pubnub_host;
+    let root = &config.pubnub_channel_root;
+    let publish_key = &config.publish_key;
+    let subscribe_key = &config.subscribe_key;
+    let secret_key = &config.secret_key;
+    let agent = "kafka-bridge";
 
+    loop {
         let mut pubnub = match pubnub::PublishClient::new(
             host,
             root,
@@ -262,14 +201,16 @@ fn spawn_pubnub_publisher(
         ) {
             Ok(pubnub) => pubnub,
             Err(_error) => {
-                block_on(delay_for(Duration::new(1, 0)));
+                delay_for(Duration::from_millis(1000)).await;
                 continue;
             }
         };
 
         // Message Receiver Loop
         loop {
-            let message: kafka::Message = block_on(pubnub_publish_rx.recv())
+            let message: kafka::Message = pubnub_publish_rx
+                .recv()
+                .await
                 .expect("MPSC Channel Receiver");
             let channel = &message.topic;
             let data = &message.data;
@@ -278,91 +219,85 @@ fn spawn_pubnub_publisher(
             loop {
                 match pubnub.publish(channel, data) {
                     Ok(_timetoken) => break,
-                    Err(_error) => block_on(delay_for(Duration::new(1, 0))),
+                    Err(_error) => {
+                        delay_for(Duration::from_millis(1000)).await
+                    }
                 };
             }
         }
-    })
+    }
 }
 
-/// Sends messages to Kafka.
-///
-/// Reads MPSC from PubNub Subscriptions and Sends to Kafka.
-fn spawn_kafka_publisher(
-    mut kafka_publish_rx: mpsc::Receiver<pubnub::Message>,
-) -> JoinHandle<()> {
-    tokio::spawn(async move {
+#[tokio::main]
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+// Main Loop
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+async fn main() {
+    // Async Channels
+    let (kafka_message_tx, pubnub_publish_rx) = mpsc::channel(100);
+    let (mut pubnub_message_tx, kafka_publish_rx) = mpsc::channel(100);
 
-        loop {
-            let config = &environment_variables();
+    let rt_handle = tokio::runtime::Handle::current();
 
-            let res = kafka::PublishClient::new(
-                config.into(),
-                &config.kafka_brokers,
-                &config.kafka_topic,
-            );
+    // Receive messages from PubNub
+    // Saves messages into MPSC for Kafka Producer Thread
+    // Once the message is saved to the MPSC queue, a worker
+    // will pick up the message and publish it to Kafka cluster
+    // using a kafka.produce() method.
+    let pubnub_subscriber_thread = thread::Builder::new()
+        .name("PubNub Subscriber Thread".into())
+        .spawn(move || loop {
+            use kafka_bridge::pubnub;
 
-            let mut kafka = match res {
-                Ok(kafka) => kafka,
-                Err(error) => {
-                    println!("Error connecting to Kafka: {:?}", error);
-                    delay_for(Duration::from_millis(1000)).await;
+            let config = environment_variables();
+            let host = &config.pubnub_host;
+            let root = &config.pubnub_channel_root;
+            let channel = &config.pubnub_channel;
+            let subscribe_key = &config.subscribe_key;
+            let secret_key = &config.secret_key;
+            let agent = "kafka-bridge";
+
+            let mut pubnub = match pubnub::SubscribeClient::new(
+                host,
+                root,
+                channel,
+                subscribe_key,
+                secret_key,
+                agent,
+            ) {
+                Ok(pubnub) => pubnub,
+                Err(_error) => {
+                    thread::sleep(time::Duration::new(1, 0));
                     continue;
                 }
             };
 
             loop {
-                let message: kafka_bridge::pubnub::Message = kafka_publish_rx
-                    .recv()
-                    .await
-                    .expect("MPSC Channel Receiver");
-
-                println!("Sendning message to Kafka Stream: {message}", message=&message.data);
-                match kafka.produce(&message.data).await {
-                    Ok(()) => {}
-                    Err(error) => {
-                        println!("Error sending to Kafka: {:?}", error);
-                        delay_for(Duration::from_millis(1000)).await;
-                    }
+                let message = match pubnub.next_message() {
+                    Ok(message) => message,
+                    Err(_error) => continue,
                 };
+
+                rt_handle
+                    .block_on(pubnub_message_tx.send(message))
+                    .map_err(|_| ())
+                    .expect("KAFKA mpsc::channel channel write");
             }
-        }
-    })
-}
+        });
 
-/// Receives messages from Kafka.
-///
-/// Consumes messages on Kafka topic and sends to MPSC PubNub Publisher.
-fn spawn_kafka_subscriber(
-    kafka_message_tx: mpsc::Sender<kafka::Message>,
-) -> JoinHandle<()> {
-    tokio::spawn(async move {
-        loop {
-            let config = &environment_variables();
+    // Print Follow-on Instructions
+    let config = environment_variables();
+    println!("{{\"info\":\"Dashboard: {}\"}}", config);
 
-            let res = kafka::SubscribeClient::new(
-                config.into(),
-                &config.kafka_brokers,
-                kafka_message_tx.clone(),
-                &config.kafka_topic,
-                &config.kafka_group,
-                config.kafka_partition,
-            );
+    tokio::join!(
+        run_async_kafka_consumer(kafka_message_tx),
+        run_async_kafka_producer(kafka_publish_rx),
+        run_async_pubnub_publisher(pubnub_publish_rx)
+    );
 
-            let mut kafka = match res {
-                Ok(kafka) => kafka,
-                Err(error) => {
-                    println!("Retrying Consumer Connection {:?}", error);
-                    delay_for(Duration::from_millis(1000)).await;
-                    continue;
-                }
-            };
-
-            // Send KAFKA Messages to pubnub_publish_rx via kafka_message_tx
-            kafka
-                .consume()
-                .await
-                .expect("Error consuming Kafka messages");
-        }
-    })
+    // The Threads Gather
+    pubnub_subscriber_thread
+        .expect("PubNub Subscriber thread builder join handle")
+        .join()
+        .expect("Joining PubNub Subscriber Thread");
 }

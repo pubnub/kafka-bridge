@@ -81,9 +81,9 @@ fn http_response(socket: &mut Socket) -> Result<JsonValue, Error> {
 }
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-/// # PubNub Subscriber Client
+/// # `PubNub` Subscriber Client
 ///
-/// This client lib offers subscribe support to PubNub.
+/// This client lib offers subscribe support to `PubNub`.
 ///
 /// ```no_run
 /// use kafka_bridge::pubnub::SubscribeClient;
@@ -102,8 +102,7 @@ fn http_response(socket: &mut Socket) -> Result<JsonValue, Error> {
 ///     subscribe_key,
 ///     _secret_key,
 ///     agent,
-/// )
-/// .expect("KAFKA Subscribe Client");
+///  ).expect("KAFKA Subscribe Client");
 ///
 /// let result = pubnub.next_message();
 /// assert!(result.is_ok());
@@ -230,9 +229,9 @@ impl SubscribeClient {
 }
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-/// # PubNub Publisher Client
+/// # `PubNub` Publisher Client
 ///
-/// This client lib offers publish support to PubNub.
+/// This client lib offers publish support to `PubNub`.
 ///
 /// ```no_run
 /// use kafka_bridge::pubnub::PublishClient;
@@ -251,8 +250,7 @@ impl SubscribeClient {
 ///     subscribe_key,
 ///     _secret_key,
 ///     agent,
-/// )
-/// .expect("KAFKA Subscribe Client");
+///  ).expect("KAFKA Subscribe Client");
 ///
 /// let result = pubnub.publish(channel, "data");
 /// assert!(result.is_ok());
@@ -283,7 +281,6 @@ impl PublishClient {
             agent: agent.into(),
         })
     }
-
     /// Publishes `message` to `channel`.
     ///
     /// # Errors

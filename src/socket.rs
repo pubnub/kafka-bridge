@@ -233,8 +233,8 @@ impl Socket {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
+mod socket_tests {
+    use super::{Socket};
 
     #[test]
     fn write_ok() {
