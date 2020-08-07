@@ -90,8 +90,6 @@ impl From<&SASLConfig> for ClientConfig {
             ("ssl.key.password", &src.key_password),
         ];
 
-        cfg.set("debug", "all");
-
         opt_values
             .iter()
             .filter(|(_, value)| !value.is_empty())
