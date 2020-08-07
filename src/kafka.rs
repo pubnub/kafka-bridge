@@ -228,7 +228,7 @@ impl SubscribeClient {
                 Some(Ok(s)) => s.into(),
                 Some(Err(_e)) => String::new(),
             };
-            println!("{{\"info\": \"Received message from Kafka Broker.\", \"payload\": {}, \"topic\": {}, \"partition\": {}, \"offset\": {}, \"timestamp\": {:?}, \"key\": \"{:?}\"}}",
+            println!("{{\"info\": \"Received message from Kafka Broker.\", \"key\": \"{:?}\", \"payload\": {}, \"topic\": {}, \"partition\": {}, \"offset\": {}, \"timestamp\": {:?}}}",
                   m.key(), data, m.topic(), m.partition(), m.offset(), m.timestamp());
 
             let parsetest = json::parse(&data);
