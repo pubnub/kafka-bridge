@@ -8,6 +8,7 @@ RUN apt-get update \
 WORKDIR /app
 COPY . /app/
 
+RUN cargo test
 RUN cargo build --release --features sasl-plain
 RUN strip target/release/kafka-bridge
 

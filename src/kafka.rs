@@ -110,14 +110,13 @@ impl From<&SASLConfig> for ClientConfig {
 /// use kafka_bridge::kafka;
 /// use tokio::sync::mpsc;
 ///
-/// let config = "0.0.0.0:9094";
-/// let brokers = config.split(",").map(std::string::ToString::to_string).collect();
-/// let (kafka_message_tx, kafka_message_rx) = mpsc::channel();
+/// let (kafka_message_tx, kafka_message_rx) = mpsc::channel(100);
+/// let brokers                              = "0.0.0.0:9094";
 /// let kafka_topic                          = "topic";
 /// let kafka_group                          = "";
 ///
 /// let mut kafka = match kafka::SubscribeClient::new(
-///     &brokers,
+///     &[brokers.to_string()],
 ///     kafka_message_tx.clone(),
 ///     &kafka_topic,
 ///     &kafka_group,
@@ -131,10 +130,10 @@ impl From<&SASLConfig> for ClientConfig {
 ///
 /// // Consume messages from broker and make them available
 /// // to `kafka_message_rx`.
-/// kafka.consume().await.expect("Error consuming Kafka messages");
+/// // kafka.consume().await.expect("Error consuming Kafka messages");
 ///
-/// let message: kafka::Message =
-///     kafka_message_rx.recv().expect("MPSC Channel Receiver");
+/// // let message: kafka::Message =
+/// //     kafka_message_rx.recv().await.expect("MPSC Channel Receiver");
 /// ```
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 impl SubscribeClient {
@@ -278,8 +277,8 @@ impl SubscribeClient {
 /// use std::sync::mpsc;
 ///
 /// let (kafka_message_tx, kafka_message_rx) = mpsc::channel();
-/// let brokers = "0.0.0.0:9094".split(",").map(std::string::ToString::to_string).collect();
-/// let mut kafka = match kafka::PublishClient::new(brokers, "topic") {
+/// let brokers = "0.0.0.0:9094";
+/// let mut kafka = match kafka::PublishClient::new(&[brokers.to_string()], "topic") {
 ///     Ok(kafka) => kafka,
 ///     Err(error) => {
 ///         println!("{:?}", error);
@@ -290,10 +289,8 @@ impl SubscribeClient {
 /// loop {
 ///     let message: kafka_bridge::pubnub::Message =
 ///         kafka_message_rx.recv().expect("MPSC Channel Receiver");
-///     match kafka.produce(&message.data) {
-///         Ok(()) => println!("Sent"),
-///         Err(error) => println!("{:?}", error)
-///     };
+///
+///     let _result = kafka.produce(&message.data);
 /// }
 /// ```
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
