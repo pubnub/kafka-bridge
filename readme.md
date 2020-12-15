@@ -243,7 +243,7 @@ on a target mobile device.
 
 Open the test console to see messages being received in a browser window.
 
-[View Test Console](https://www.pubnub.com//docs/console?channel=topics.*&sub=sub-c-df3799ee-704b-11e9-8724-8269f6864ada&pub=pub-c-6b57a39e-79e7-4d1d-926e-5c376a4cb021)
+[View Test Console](https://www.pubnub.com/docs/console?channel=topics.*&sub=sub-c-df3799ee-704b-11e9-8724-8269f6864ada&pub=pub-c-6b57a39e-79e7-4d1d-926e-5c376a4cb021)
 
 > Scroll a bit down on this page, you will see an output
 element labeled **`messages`** on this screen with message logs:
